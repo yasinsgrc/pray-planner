@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --paper: #F9F7F2;
+    --gold: #D6A84D;
+    --sand: #E8C68C;
+    --ink: #2D2D2D;
+    --mist: #BCB8B1;
+    --bg-current: #F9F7F2;
+    --text-current: #2D2D2D;
+    --card-bg: #FFFFFF;
+    --card-border: rgba(214, 168, 77, 0.18);
+  }
+
+  .dark {
+    --paper: #1A1B1E;
+    --gold: #E5B757;
+    --sand: #C9A25E;
+    --ink: #ECEAE3;
+    --mist: #787570;
+    --bg-current: #1A1B1E;
+    --text-current: #ECEAE3;
+    --card-bg: #24262B;
+    --card-border: rgba(229, 183, 87, 0.22);
+  }
+
+  body {
+    background-color: var(--bg-current);
+    color: var(--text-current);
+    font-family: 'Montserrat', sans-serif;
+    transition: background-color 0.4s ease, color 0.4s ease;
+    overflow-x: hidden;
+  }
+}
+
+.font-serif-title {
+  font-family: 'Noto Serif', serif;
+}
+
+.font-numbers {
+  font-family: 'Manrope', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.font-body {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--mist);
+  border-radius: 999px;
+  opacity: 0.5;
+}
+

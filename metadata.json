@@ -1,0 +1,6 @@
+{
+  "name": "VAKİT",
+  "description": "Sakin ve Manevi Ezan Vakitleri, Geri Sayım ve Günlük Manevi Ritüeller Uygulaması",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
