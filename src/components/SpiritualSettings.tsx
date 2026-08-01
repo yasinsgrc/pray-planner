@@ -2,8 +2,6 @@ import React from 'react';
 import { motion } from 'motion/react';
 import {
   Bell,
-  Volume2,
-  VolumeX,
   Clock,
   Moon,
   ShieldCheck,
@@ -13,7 +11,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import { AppSettings, PrayerName, SoundMode } from '../types';
-import { playSoftChime, playEzanAudio } from '../utils/audio';
+import { playSoundForMode } from '../utils/audio';
 import type { PushStatus } from '../utils/pushClient';
 
 interface SpiritualSettingsProps {
@@ -121,50 +119,39 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   {PRAYER_LABELS[prayer]}
                 </span>
 
-                <div className="flex items-center gap-1 bg-[var(--paper)] p-1 rounded-xl border border-[#D6A84D]/15">
-                  <button
-                    onClick={() => {
-                      onUpdateNotification(prayer, 'ezan');
-                      playEzanAudio();
-                    }}
-                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
-                      currentMode === 'ezan'
-                        ? 'bg-[#D6A84D] text-white shadow-xs'
-                        : 'text-[var(--mist)] hover:text-[var(--ink)]'
-                    }`}
-                  >
-                    <Bell className="w-3 h-3" /> Ezan
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onUpdateNotification(prayer, 'tini');
-                      playSoftChime();
-                    }}
-                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
-                      currentMode === 'tini'
-                        ? 'bg-[#D6A84D] text-white shadow-xs'
-                        : 'text-[var(--mist)] hover:text-[var(--ink)]'
-                    }`}
-                  >
-                    <Volume2 className="w-3 h-3" /> Tını
-                  </button>
-
-                  <button
-                    onClick={() => onUpdateNotification(prayer, 'sessiz')}
-                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
-                      currentMode === 'sessiz'
-                        ? 'bg-[#D6A84D] text-white shadow-xs'
-                        : 'text-[var(--mist)] hover:text-[var(--ink)]'
-                    }`}
-                  >
-                    <VolumeX className="w-3 h-3" /> Sessiz
-                  </button>
-                </div>
+                <select
+                  value={currentMode}
+                  onChange={(e) => {
+                    const mode = e.target.value as SoundMode;
+                    onUpdateNotification(prayer, mode);
+                    playSoundForMode(mode);
+                  }}
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-[var(--paper)] border border-[#D6A84D]/15 text-[var(--ink)] focus:outline-none focus:border-[#D6A84D] cursor-pointer"
+                >
+                  <option value="ezan">Ezan</option>
+                  <option value="ilahi1">İlahi 1</option>
+                  <option value="ilahi2">İlahi 2</option>
+                  <option value="ilahi3">İlahi 3</option>
+                  <option value="tini">Tını</option>
+                  <option value="sessiz">Sessiz</option>
+                </select>
               </div>
             );
           })}
         </div>
+
+        <p className="text-[10px] text-[var(--mist)] pt-1">
+          Ezan sesi:{' '}
+          <a
+            href="https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[#D6A84D]"
+          >
+            Wikimedia Commons, Atcovi
+          </a>{' '}
+          (CC BY-SA 4.0)
+        </p>
       </div>
 
       {/* 2. Erken Uyarı (Abdest Hatırlatıcı) */}
