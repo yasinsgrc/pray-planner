@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, Lock, Clock, X, Check } from 'lucide-react';
+import { DeviceMobileIcon, LockIcon, XIcon, CheckIcon } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 
 interface LiveActivityWidgetModalProps {
@@ -34,7 +34,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
       <div className="w-full max-w-sm bg-[#121316] text-white border border-gray-800 rounded-3xl shadow-2xl p-5 space-y-5 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-gray-800 pb-3">
           <div className="flex items-center gap-2">
-            <Smartphone className="w-5 h-5 text-[#D6A84D]" />
+            <DeviceMobileIcon className="w-5 h-5 text-[#D6A84D]" />
             <div>
               <h3 className="font-serif-title font-bold text-sm text-white">
                 Kilit Ekranı Canlı Etkinliği
@@ -48,7 +48,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
             onClick={onClose}
             className="p-1 rounded-full hover:bg-gray-800 text-gray-400 cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <XIcon className="w-5 h-5" />
           </button>
         </div>
 
@@ -56,7 +56,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
         <div className="p-4 rounded-2xl bg-gradient-to-b from-gray-900 to-black border border-gray-800 space-y-4 shadow-xl">
           <div className="flex items-center justify-between text-[11px] text-gray-400 border-b border-gray-800/80 pb-2">
             <div className="flex items-center gap-1">
-              <Lock className="w-3 h-3 text-[#D6A84D]" />
+              <LockIcon className="w-3 h-3 text-[#D6A84D]" />
               <span>Kilit Ekranı</span>
             </div>
             <span>{location.districtName}, {location.cityName}</span>
@@ -116,7 +116,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
         </div>
 
         <div className="flex items-center gap-2 text-xs text-gray-400">
-          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <CheckIcon className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>Arka planda ve kilit ekranında altın halka canlı olarak güncellenir.</span>
         </div>
       </div>

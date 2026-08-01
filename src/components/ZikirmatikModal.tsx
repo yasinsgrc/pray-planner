@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HeartHandshake, RotateCcw, Volume2, X, Plus } from 'lucide-react';
+import { HandHeartIcon, ArrowCounterClockwiseIcon, XIcon } from '@phosphor-icons/react';
 import { playSoftChime } from '../utils/audio';
 
 interface ZikirmatikModalProps {
@@ -51,7 +51,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
       <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl p-5 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-[#D6A84D]/15 pb-3">
           <div className="flex items-center gap-2">
-            <HeartHandshake className="w-5 h-5 text-[#D6A84D]" />
+            <HandHeartIcon className="w-5 h-5 text-[#D6A84D]" />
             <h3 className="font-serif-title font-bold text-base text-[var(--ink)]">
               Sakin Zikirmatik
             </h3>
@@ -60,7 +60,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
             onClick={onClose}
             className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-[var(--mist)] cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <XIcon className="w-5 h-5" />
           </button>
         </div>
 
@@ -114,7 +114,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
             onClick={handleReset}
             className="flex items-center gap-1 text-xs text-[var(--mist)] hover:text-red-500 transition-colors cursor-pointer"
           >
-            <RotateCcw className="w-3.5 h-3.5" /> Sıfırla
+            <ArrowCounterClockwiseIcon className="w-3.5 h-3.5" /> Sıfırla
           </button>
 
           <span className="text-[11px] text-[var(--mist)]">

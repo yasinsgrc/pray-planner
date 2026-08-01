@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Clock, AlertTriangle, Smartphone, ChevronDown } from 'lucide-react';
+import { ClockIcon, WarningIcon, DeviceMobileIcon, CalendarDotsIcon } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 
 interface MainCountdownRingProps {
@@ -38,7 +38,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           animate={{ opacity: 1, y: 0 }}
           className="w-full mb-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-300"
         >
-          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+          <WarningIcon className="w-4 h-4 text-amber-500 shrink-0" />
           <span>
             <strong className="font-semibold">{currentKerahet.title}:</strong> {currentKerahet.description}
           </span>
@@ -105,17 +105,20 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
         </div>
       </div>
 
-      {/* Alt Alan: Sıradaki Vakit Kartı ve Detay Butonu */}
-      <div className="w-full space-y-3 mt-4">
-        {/* Sıradaki Vakit Kartı */}
+      {/* Alt Alan: Bento Grid (Sıradaki Vakit + Kısayollar) */}
+      <div className="w-full grid grid-cols-2 gap-3 mt-4">
+        {/* Sıradaki Vakit Kartı (geniş) */}
         <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
-          className="w-full p-3.5 rounded-2xl glass-panel border border-[var(--card-border)] shadow-sm flex items-center justify-between px-5 transition-colors"
+          className="col-span-2 p-3.5 rounded-2xl glass-panel border border-[var(--card-border)] shadow-sm flex items-center justify-between px-5 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#D6A84D]/10 text-[#D6A84D] flex items-center justify-center">
-              <Clock className="w-4 h-4" />
+              <ClockIcon className="w-4 h-4" />
             </div>
             <div className="text-left">
               <div className="text-[11px] text-[var(--mist)] uppercase tracking-wider font-semibold">
@@ -134,25 +137,42 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           </div>
         </motion.div>
 
-        {/* Canlı Etkinlik / Kilit Ekranı Widget Önizleme Butonu */}
-        <div className="flex items-center justify-between text-xs text-[var(--mist)] px-1">
-          <button
-            onClick={onOpenLiveActivity}
-            className="flex items-center gap-1.5 hover:text-[#D6A84D] transition-all duration-200 cursor-pointer py-1 hover:scale-[1.03] active:scale-95"
-            title="Kilit Ekranı / Canlı Etkinlik Widget'ını Gör"
-          >
-            <Smartphone className="w-3.5 h-3.5 text-[#D6A84D]" />
-            <span>Kilit Ekranı Görünümü</span>
-          </button>
+        {/* Kilit Ekranı Görünümü Kısayolu */}
+        <motion.button
+          onClick={onOpenLiveActivity}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.97 }}
+          className="p-3.5 rounded-2xl bg-[var(--card-bg)]/70 border border-[var(--card-border)]/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-[#D6A84D]/40"
+          title="Kilit Ekranı / Canlı Etkinlik Widget'ını Gör"
+        >
+          <div className="w-8 h-8 rounded-full bg-[#D6A84D]/10 text-[#D6A84D] flex items-center justify-center">
+            <DeviceMobileIcon className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-semibold text-[var(--ink)] leading-tight">
+            Kilit Ekranı Görünümü
+          </span>
+        </motion.button>
 
-          <button
-            onClick={onScrollToFlow}
-            className="flex items-center gap-1 hover:text-[#D6A84D] transition-all duration-200 cursor-pointer py-1 hover:scale-[1.03] active:scale-95"
-          >
-            <span>Tüm Vakitler</span>
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        {/* Tüm Vakitler Kısayolu */}
+        <motion.button
+          onClick={onScrollToFlow}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.24, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.97 }}
+          className="p-3.5 rounded-2xl bg-[var(--card-bg)]/70 border border-[var(--card-border)]/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-[#D6A84D]/40"
+        >
+          <div className="w-8 h-8 rounded-full bg-[#D6A84D]/10 text-[#D6A84D] flex items-center justify-center">
+            <CalendarDotsIcon className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-semibold text-[var(--ink)] leading-tight">
+            Tüm Vakitler
+          </span>
+        </motion.button>
       </div>
     </div>
   );

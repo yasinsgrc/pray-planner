@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, MapPin, Navigation, Check, X } from 'lucide-react';
+import { MagnifyingGlassIcon, MapPinIcon, NavigationArrowIcon, CheckIcon, XIcon } from '@phosphor-icons/react';
 import { LocationItem } from '../types';
 import { POPULAR_LOCATIONS } from '../data/locations';
 
@@ -125,7 +125,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
       <div className="w-full max-w-md bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
         <div className="p-4 border-b border-[#D6A84D]/15 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-[#D6A84D]" />
+            <MapPinIcon className="w-5 h-5 text-[#D6A84D]" />
             <h3 className="font-serif-title font-bold text-base text-[var(--ink)]">
               Şehir ve Konum Seçimi
             </h3>
@@ -134,7 +134,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
             onClick={onClose}
             className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-[var(--mist)] cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <XIcon className="w-5 h-5" />
           </button>
         </div>
 
@@ -144,14 +144,14 @@ export const LocationModal: React.FC<LocationModalProps> = ({
             disabled={isLocating}
             className="w-full py-2.5 px-4 rounded-xl bg-[#D6A84D] hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
           >
-            <Navigation className="w-4 h-4 animate-spin-slow" />
+            <NavigationArrowIcon className="w-4 h-4 animate-spin-slow" />
             <span>
               {isLocating ? 'Konum Alınıyor...' : 'Mevcut Konumumu Otomatik Kullan (GPS)'}
             </span>
           </button>
 
           <div className="relative">
-            <Search className="w-4 h-4 text-[var(--mist)] absolute left-3 top-3" />
+            <MagnifyingGlassIcon className="w-4 h-4 text-[var(--mist)] absolute left-3 top-3" />
             <input
               type="text"
               placeholder="Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)"
@@ -238,7 +238,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
                   <div className="text-[10px] text-[var(--mist)]">{loc.country}</div>
                 </div>
 
-                {isSelected && <Check className="w-4 h-4 text-[#D6A84D]" />}
+                {isSelected && <CheckIcon className="w-4 h-4 text-[#D6A84D]" />}
               </button>
             );
           })}

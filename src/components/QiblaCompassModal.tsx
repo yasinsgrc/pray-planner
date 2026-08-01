@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Compass, X, AlertCircle } from 'lucide-react';
+import { CompassIcon, XIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { LocationItem } from '../types';
 import { useCompassHeading } from '../hooks/useCompassHeading';
 import { isAlignedWithBearing } from '../utils/compassHeading';
@@ -53,7 +53,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
       <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl p-5 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-[#D6A84D]/15 pb-3">
           <div className="flex items-center gap-2 text-left">
-            <Compass className="w-5 h-5 text-[#D6A84D]" />
+            <CompassIcon className="w-5 h-5 text-[#D6A84D]" />
             <div>
               <h3 className="font-serif-title font-bold text-base text-[var(--ink)]">
                 Kıble Pusulası
@@ -67,7 +67,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
             onClick={onClose}
             className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-[var(--mist)] cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <XIcon className="w-5 h-5" />
           </button>
         </div>
 
@@ -128,14 +128,14 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
             onClick={requestPermission}
             className="w-full py-2.5 px-4 rounded-xl bg-[#D6A84D] hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
           >
-            <Compass className="w-4 h-4" />
+            <CompassIcon className="w-4 h-4" />
             <span>Pusulayı Etkinleştir</span>
           </button>
         )}
 
         {permissionState === 'denied' && (
           <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2 text-left">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <WarningCircleIcon className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-[11px] text-red-500">
                 İzin reddedildi. Tarayıcı ayarlarından hareket sensörü iznini açıp tekrar deneyin.
@@ -152,7 +152,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
 
         {permissionState === 'unsupported' && (
           <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2 text-left">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <WarningCircleIcon className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-[11px] text-red-500">
                 Cihazınız pusula sensörünü desteklemiyor, açı bilgisini yukarıdan kullanabilirsiniz.

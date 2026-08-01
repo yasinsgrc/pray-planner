@@ -1,15 +1,14 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import {
-  Bell,
-  Clock,
-  Moon,
-  ShieldCheck,
-  Check,
-  Play,
-  Settings2,
-  CalendarDays,
-} from 'lucide-react';
+  BellIcon,
+  ClockIcon,
+  MoonIcon,
+  ShieldCheckIcon,
+  CheckIcon,
+  GearIcon,
+  CalendarDotsIcon,
+} from '@phosphor-icons/react';
+import { FadeIn } from './FadeIn';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { playSoundForMode } from '../utils/audio';
 import type { PushStatus } from '../utils/pushClient';
@@ -55,9 +54,9 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       </div>
 
       {/* 0. Bildirimleri Etkinleştir */}
-      <div className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+      <FadeIn delay={0} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
         <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-[#D6A84D]" />
+          <BellIcon className="w-4 h-4 text-[#D6A84D]" />
           <div>
             <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
               Bildirimleri Etkinleştir
@@ -70,7 +69,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
         {pushStatus === 'granted' ? (
           <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-            <Check className="w-4 h-4" /> Bildirimler etkin
+            <CheckIcon className="w-4 h-4" /> Bildirimler etkin
           </div>
         ) : (
           <button
@@ -90,13 +89,13 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
         {pushStatus === 'error' && pushError && (
           <p className="text-[11px] text-red-500">{pushError}</p>
         )}
-      </div>
+      </FadeIn>
 
       {/* 1. Vakit Bazlı Bildirim Seçimi */}
-      <div className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-4">
+      <FadeIn delay={0.06} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-[#D6A84D]/15 pb-2.5">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-[#D6A84D]" />
+            <BellIcon className="w-4 h-4 text-[#D6A84D]" />
             <span className="text-sm font-bold text-[var(--ink)] font-serif-title">
               Vakit Bazlı Bildirim Sesleri
             </span>
@@ -152,12 +151,12 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           </a>{' '}
           (CC BY-SA 4.0)
         </p>
-      </div>
+      </FadeIn>
 
       {/* 2. Erken Uyarı (Abdest Hatırlatıcı) */}
-      <div className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+      <FadeIn delay={0.12} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[#D6A84D]" />
+          <ClockIcon className="w-4 h-4 text-[#D6A84D]" />
           <div>
             <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
               Abdest & Hazırlık Hatırlatıcı
@@ -190,13 +189,13 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             </button>
           ))}
         </div>
-      </div>
+      </FadeIn>
 
       {/* 3. Gece Modu ve Otomatik Zemin Değişimi */}
-      <div className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+      <FadeIn delay={0.18} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Moon className="w-4 h-4 text-[#D6A84D]" />
+            <MoonIcon className="w-4 h-4 text-[#D6A84D]" />
             <div>
               <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
                 Gece Teması & Otomatik Dönüşüm
@@ -229,12 +228,12 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             </button>
           ))}
         </div>
-      </div>
+      </FadeIn>
 
       {/* 4. Hesaplama Yöntemi */}
-      <div className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+      <FadeIn delay={0.24} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
         <div className="flex items-center gap-2">
-          <Settings2 className="w-4 h-4 text-[#D6A84D]" />
+          <GearIcon className="w-4 h-4 text-[#D6A84D]" />
           <div>
             <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
               Hesaplama Yöntemi
@@ -261,12 +260,12 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           <option value="Egypt">Mısır Genel Ölçüm Heyeti</option>
           <option value="Karachi">Karaçi İslam İlimleri Üniversitesi</option>
         </select>
-      </div>
+      </FadeIn>
 
       {/* 4.5 Hicri Tarih Hakkında */}
-      <div className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-2">
+      <FadeIn delay={0.3} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-2">
         <div className="flex items-center gap-2">
-          <CalendarDays className="w-4 h-4 text-[#D6A84D]" />
+          <CalendarDotsIcon className="w-4 h-4 text-[#D6A84D]" />
           <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
             Hicri Tarih Hakkında
           </div>
@@ -274,21 +273,21 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
         <p className="text-[11px] text-[var(--mist)] leading-relaxed">
           Uygulamadaki hicri tarih, Ümmü'l-Kura takvim verisine dayanan astronomik bir hesaplamadır. Diyanet İşleri Başkanlığı'nın resmi açıklamasından bazı aylarda ±1 gün farklı olabilir; kesin tarih için resmi Diyanet duyurularını esas alınız.
         </p>
-      </div>
+      </FadeIn>
 
       {/* 5. İnternetsiz Çevrimdışı Bellek (30 Günlük Local DB) */}
-      <div className="p-4 rounded-2xl bg-[#D6A84D]/10 border border-[#D6A84D]/30 flex items-center gap-3">
-        <ShieldCheck className="w-6 h-6 text-[#D6A84D] shrink-0" />
+      <FadeIn delay={0.36} className="p-4 rounded-2xl bg-[#D6A84D]/10 border border-[#D6A84D]/30 flex items-center gap-3">
+        <ShieldCheckIcon className="w-6 h-6 text-[#D6A84D] shrink-0" />
         <div>
           <div className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
             <span>30 Günlük Çevrimdışı Vakit Paketi Yüklü</span>
-            <Check className="w-3.5 h-3.5 text-emerald-600" />
+            <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
           </div>
           <p className="text-[11px] text-[var(--mist)] leading-relaxed mt-0.5">
             İnternet bağlantınız kesilse dahi tüm vakitler ve bildirimler telefonunuzun yerel hafızasından sorunsuz çalışır.
           </p>
         </div>
-      </div>
+      </FadeIn>
     </div>
   );
 };

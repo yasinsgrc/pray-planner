@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, Copy, Check, Quote, Share2 } from 'lucide-react';
+import { BookOpenIcon, CopyIcon, CheckIcon, QuotesIcon } from '@phosphor-icons/react';
 import { DAILY_INSPIRATIONS } from '../data/dailyContent';
 
 export const DailyInspirationCard: React.FC = () => {
@@ -55,7 +55,7 @@ export const DailyInspirationCard: React.FC = () => {
         {/* Üst Sekme Başlıkları */}
         <div className="flex items-center justify-between border-b border-[#D6A84D]/15 pb-2.5">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-[#D6A84D]" />
+            <BookOpenIcon className="w-4 h-4 text-[#D6A84D]" />
             <span className="text-sm font-bold text-[var(--ink)] font-serif-title">
               Günün Manevi Notu
             </span>
@@ -97,7 +97,7 @@ export const DailyInspirationCard: React.FC = () => {
 
         {/* Metin İçeriği */}
         <div className="relative py-2">
-          <Quote className="w-8 h-8 text-[#D6A84D]/15 absolute -top-1 -left-2 pointer-events-none" />
+          <QuotesIcon className="w-8 h-8 text-[#D6A84D]/15 absolute -top-1 -left-2 pointer-events-none" />
 
           <p className="text-sm font-serif-title text-[var(--ink)] leading-relaxed italic relative z-10 px-2">
             {tab === 'verse' && verseText}
@@ -120,12 +120,12 @@ export const DailyInspirationCard: React.FC = () => {
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
                 <span className="text-emerald-500 font-medium">Kopyalandı</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5" />
+                <CopyIcon className="w-3.5 h-3.5" />
                 <span>Kopyala</span>
               </>
             )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Moon, Sun, Compass, HeartHandshake } from 'lucide-react';
+import { MapPinIcon, MoonIcon, SunIcon, CompassIcon, HandHeartIcon } from '@phosphor-icons/react';
 import { LocationItem, HijriDateInfo } from '../types';
 
 interface HeaderProps {
@@ -30,7 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
         title="Konumu Değiştir"
       >
         <div className="w-7 h-7 rounded-full bg-[#D6A84D]/10 flex items-center justify-center text-[#D6A84D] group-hover:bg-[#D6A84D]/20 transition-colors">
-          <MapPin className="w-4 h-4" />
+          <MapPinIcon className="w-4 h-4" />
         </div>
         <div>
           <div className="text-xs font-semibold tracking-wide text-[var(--ink)] flex items-center gap-1">
@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="p-2 rounded-full hover:bg-[#D6A84D]/10 text-[var(--ink)] transition-colors cursor-pointer"
           title="Kıble Pusulası"
         >
-          <Compass className="w-4 h-4 text-[#D6A84D]" />
+          <CompassIcon className="w-4 h-4 text-[#D6A84D]" />
         </button>
 
         {/* Zikirmatik Butonu */}
@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="p-2 rounded-full hover:bg-[#D6A84D]/10 text-[var(--ink)] transition-colors cursor-pointer"
           title="Zikirmatik"
         >
-          <HeartHandshake className="w-4 h-4 text-[#D6A84D]" />
+          <HandHeartIcon className="w-4 h-4 text-[#D6A84D]" />
         </button>
 
         {/* Gece/Gündüz Modu Butonu */}
@@ -78,9 +78,9 @@ export const Header: React.FC<HeaderProps> = ({
           title={isDarkMode ? 'Gündüz Moduna Geç' : 'Gece Moduna Geç'}
         >
           {isDarkMode ? (
-            <Sun className="w-4 h-4 text-[#E8C68C]" />
+            <SunIcon className="w-4 h-4 text-[#E8C68C]" />
           ) : (
-            <Moon className="w-4 h-4 text-[#D6A84D]" />
+            <MoonIcon className="w-4 h-4 text-[#D6A84D]" />
           )}
         </button>
       </div>

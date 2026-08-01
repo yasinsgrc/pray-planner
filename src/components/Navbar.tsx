@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CalendarDays, BookOpen, Settings } from 'lucide-react';
+import { ClockIcon, CalendarDotsIcon, BookOpenIcon, GearSixIcon } from '@phosphor-icons/react';
 
 export type TabType = 'focus' | 'flow' | 'spiritual' | 'settings';
 
@@ -13,22 +13,22 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
     {
       id: 'focus',
       label: 'Ana Ekran',
-      icon: <Clock className="w-5 h-5 stroke-[1.5]" />,
+      icon: <ClockIcon className="w-5 h-5" />,
     },
     {
       id: 'flow',
       label: 'Vakitler',
-      icon: <CalendarDays className="w-5 h-5 stroke-[1.5]" />,
+      icon: <CalendarDotsIcon className="w-5 h-5" />,
     },
     {
       id: 'spiritual',
       label: 'Maneviyat',
-      icon: <BookOpen className="w-5 h-5 stroke-[1.5]" />,
+      icon: <BookOpenIcon className="w-5 h-5" />,
     },
     {
       id: 'settings',
       label: 'Ayarlar',
-      icon: <Settings className="w-5 h-5 stroke-[1.5]" />,
+      icon: <GearSixIcon className="w-5 h-5" />,
     },
   ];
 

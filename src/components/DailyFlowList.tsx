@@ -1,17 +1,17 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import {
-  MoonStar,
-  Sun,
-  SunMedium,
-  SunDim,
-  Sunset,
-  Sparkles,
-  AlertCircle,
-  Volume2,
-  VolumeX,
-  Bell,
-} from 'lucide-react';
+  MoonStarsIcon,
+  SunIcon,
+  CloudSunIcon,
+  SunDimIcon,
+  SunHorizonIcon,
+  SparkleIcon,
+  WarningCircleIcon,
+  SpeakerHighIcon,
+  SpeakerXIcon,
+  BellIcon,
+} from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { PrayerName, SoundMode } from '../types';
 
@@ -22,12 +22,12 @@ interface DailyFlowListProps {
 }
 
 const PRAYER_ICONS: Record<PrayerName, React.ReactNode> = {
-  imsak: <MoonStar className="w-5 h-5" />,
-  gunes: <Sun className="w-5 h-5" />,
-  ogle: <SunMedium className="w-5 h-5" />,
-  ikindi: <SunDim className="w-5 h-5" />,
-  aksam: <Sunset className="w-5 h-5" />,
-  yatsi: <Sparkles className="w-5 h-5" />,
+  imsak: <MoonStarsIcon className="w-5 h-5" />,
+  gunes: <SunHorizonIcon className="w-5 h-5" />,
+  ogle: <SunIcon className="w-5 h-5" />,
+  ikindi: <SunDimIcon className="w-5 h-5" />,
+  aksam: <CloudSunIcon className="w-5 h-5" />,
+  yatsi: <SparkleIcon className="w-5 h-5" />,
 };
 
 export const DailyFlowList: React.FC<DailyFlowListProps> = ({
@@ -72,7 +72,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
               {/* Güneş Sonrası Kerahet Çizgisi */}
               {isGunes && (
                 <div className="my-1.5 p-2 rounded-lg bg-orange-500/5 border-l-2 border-orange-400/60 flex items-center gap-2 text-[11px] text-orange-700 dark:text-orange-300">
-                  <AlertCircle className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                  <WarningCircleIcon className="w-3.5 h-3.5 text-orange-400 shrink-0" />
                   <span>
                     <strong>Kerahet Vakti:</strong> Güneş doğduktan sonra 45 dakika namaz kılınmaz.
                   </span>
@@ -82,7 +82,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
               {/* Öğle Öncesi Kerahet Çizgisi */}
               {isOgle && (
                 <div className="my-1.5 p-2 rounded-lg bg-orange-500/5 border-l-2 border-orange-400/60 flex items-center gap-2 text-[11px] text-orange-700 dark:text-orange-300">
-                  <AlertCircle className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                  <WarningCircleIcon className="w-3.5 h-3.5 text-orange-400 shrink-0" />
                   <span>
                     <strong>İstivâ Keraheti:</strong> Öğleye 45 dk kala namaz kılınmaz.
                   </span>
@@ -92,7 +92,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
               {/* Akşam Öncesi Kerahet Çizgisi */}
               {isAksam && (
                 <div className="my-1.5 p-2 rounded-lg bg-orange-500/5 border-l-2 border-orange-400/60 flex items-center gap-2 text-[11px] text-orange-700 dark:text-orange-300">
-                  <AlertCircle className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                  <WarningCircleIcon className="w-3.5 h-3.5 text-orange-400 shrink-0" />
                   <span>
                     <strong>İstifrâ Keraheti:</strong> Akşama 45 dk kala (kerahet vakti).
                   </span>
@@ -174,22 +174,22 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                     <div className="text-[10px] text-[var(--mist)] flex items-center justify-end gap-1">
                       {soundMode === 'ezan' && (
                         <span className="flex items-center gap-0.5 text-[#D6A84D]">
-                          <Bell className="w-2.5 h-2.5" /> Ezan
+                          <BellIcon className="w-2.5 h-2.5" /> Ezan
                         </span>
                       )}
                       {soundMode === 'tini' && (
                         <span className="flex items-center gap-0.5 text-[#E8C68C]">
-                          <Volume2 className="w-2.5 h-2.5" /> Tını
+                          <SpeakerHighIcon className="w-2.5 h-2.5" /> Tını
                         </span>
                       )}
                       {(soundMode === 'ilahi1' || soundMode === 'ilahi2' || soundMode === 'ilahi3') && (
                         <span className="flex items-center gap-0.5 text-[#E8C68C]">
-                          <Volume2 className="w-2.5 h-2.5" /> İlahi {soundMode.slice(-1)}
+                          <SpeakerHighIcon className="w-2.5 h-2.5" /> İlahi {soundMode.slice(-1)}
                         </span>
                       )}
                       {soundMode === 'sessiz' && (
                         <span className="flex items-center gap-0.5 text-[var(--mist)]">
-                          <VolumeX className="w-2.5 h-2.5" /> Sessiz
+                          <SpeakerXIcon className="w-2.5 h-2.5" /> Sessiz
                         </span>
                       )}
                     </div>
