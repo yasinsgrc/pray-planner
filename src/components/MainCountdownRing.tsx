@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ClockIcon, DeviceMobileIcon, CalendarDotsIcon } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { SunArcDial } from './SunArcDial';
+import { KerahetStrip } from './KerahetStrip';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 
 interface MainCountdownRingProps {
@@ -21,7 +22,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
     nextPrayer,
     timeRemainingFormatted,
     timeRemainingSeconds,
-    currentKerahet,
+    kerahetTimes,
   } = schedule;
 
   // Screen-reader announcement, rounded to the minute so aria-live only
@@ -76,16 +77,8 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           </p>
         )}
 
-        {/* Kerahet: kadranın altında sakin, layout'u kaydırmayan bir satır */}
-        {currentKerahet && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-3 text-micro text-mist"
-          >
-            <span className="text-gold font-medium">{currentKerahet.title}</span> — {currentKerahet.description}
-          </motion.p>
-        )}
+        {/* Kerahet şeridi: kadranın altında kalıcı, layout'u kaydırmayan */}
+        <KerahetStrip kerahetTimes={kerahetTimes} />
       </div>
 
       {/* Alt Alan: Bento Grid (Sıradaki Vakit + Kısayollar) */}

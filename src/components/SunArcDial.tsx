@@ -103,6 +103,17 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
             <circle cx={markerPoint.x} cy={markerPoint.y} r={8} fill="white" />
             <circle cx={markerPoint.x + 3} cy={markerPoint.y - 3} r={7} fill="black" />
           </mask>
+          {/*
+            Same visual recipe as index.css's --pattern-kerahet
+            (45deg, 2px var(--mist) stripe, 6px repeat) — CSS backgrounds
+            don't apply to SVG strokes, so this is the SVG-side equivalent
+            kept in sync with that CSS value (design-refresh-v3 F4: one
+            kerahet visual language across the dial, Vakitler list, and
+            kilit ekranı widget).
+          */}
+          <pattern id="dial-kerahet-pattern" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <rect width="2" height="6" fill="var(--mist)" />
+          </pattern>
         </defs>
 
         {/* Arka plan: kalan (henüz gelmemiş) kısım, segment başına aynı boşluklarla */}
@@ -136,33 +147,16 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
         )}
 
         {/* Kerahet pencereleri: yay üzerinde tarama deseni (sakin, alarm kutusu değil) */}
-        {kerahetHatches.map((k) => {
-          const start = Math.max(0, k.startFrac);
-          const end = Math.min(1, k.endFrac);
-          const hatchCount = Math.max(2, Math.round((end - start) * 90));
-          return (
-            <g key={`kerahet-${k.type}`}>
-              {Array.from({ length: hatchCount + 1 }, (_, i) => start + (i * (end - start)) / hatchCount).map(
-                (frac, i) => {
-                  const inner = polarPoint(cx, cy, radius - 4, frac);
-                  const outer = polarPoint(cx, cy, radius + 4, frac);
-                  return (
-                    <line
-                      key={i}
-                      x1={inner.x}
-                      y1={inner.y}
-                      x2={outer.x}
-                      y2={outer.y}
-                      stroke="var(--mist)"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                    />
-                  );
-                }
-              )}
-            </g>
-          );
-        })}
+        {kerahetHatches.map((k) => (
+          <path
+            key={`kerahet-${k.type}`}
+            d={arcPath(cx, cy, radius, Math.max(0, k.startFrac), Math.min(1, k.endFrac))}
+            stroke="url(#dial-kerahet-pattern)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="butt"
+            fill="none"
+          />
+        ))}
 
         {/* Şu anki an işaretçisi: gündüz dolu daire (--accent), gece hilal (mask ile gerçek kesik) */}
         {isNight ? (

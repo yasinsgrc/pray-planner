@@ -1,6 +1,8 @@
 import React from 'react';
 import { DeviceMobileIcon, LockIcon, CheckIcon } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
+import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels';
+import { formatTime } from '../utils/formatTime';
 import { BottomSheet } from './BottomSheet';
 
 interface LiveActivityWidgetModalProps {
@@ -20,7 +22,12 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
     timeRemainingFormatted,
     ringProgress,
     location,
+    currentKerahet,
+    kerahetTimes,
   } = schedule;
+
+  const now = new Date();
+  const upcomingOrActiveKerahet = currentKerahet ?? kerahetTimes.find((k) => k.startTime > now) ?? null;
 
   const size = 52;
   const strokeWidth = 3;
@@ -94,6 +101,31 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
               <div className="text-[9px] text-gray-400">Sıradaki</div>
             </div>
           </div>
+
+          {/* Kerahet Satırı — aktifse tarama desenli ve vurgulu */}
+          {upcomingOrActiveKerahet && (
+            <div
+              className={`flex items-center gap-1.5 px-1 py-1.5 rounded-lg text-[10px] ${
+                upcomingOrActiveKerahet.isActiveNow ? 'text-gold font-semibold' : 'text-gray-400'
+              }`}
+              style={
+                upcomingOrActiveKerahet.isActiveNow
+                  ? { background: 'repeating-linear-gradient(45deg, rgba(229,183,87,0.15) 0 2px, transparent 2px 6px)' }
+                  : undefined
+              }
+            >
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                style={{ background: 'repeating-linear-gradient(45deg, currentColor 0 1.5px, transparent 1.5px 4px)' }}
+                aria-hidden="true"
+              />
+              <span>
+                {upcomingOrActiveKerahet.isActiveNow
+                  ? `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti — şu an (${formatKerahetRange(upcomingOrActiveKerahet)})`
+                  : `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti ${formatTime(upcomingOrActiveKerahet.startTime)}'de başlıyor`}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-xs text-mist">

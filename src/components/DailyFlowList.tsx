@@ -1,30 +1,19 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import {
-  MinusIcon,
   SpeakerHighIcon,
   SpeakerXIcon,
   BellIcon,
 } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
-import { formatTime } from '../utils/formatTime';
 import { PRAYER_ICON_COMPONENTS } from './prayerIcons';
-import { KerahetInfo, PrayerName, SoundMode } from '../types';
+import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels';
+import { PrayerName, SoundMode } from '../types';
 
 interface DailyFlowListProps {
   schedule: DayPrayerSchedule;
   notifications: Record<PrayerName, SoundMode>;
   onOpenSettings: () => void;
-}
-
-const KERAHET_SHORT_LABEL: Record<KerahetInfo['type'], string> = {
-  gunes_sonrasi: 'İşrâk',
-  ogle_oncesi: 'İstivâ',
-  aksam_oncesi: 'Gurûb',
-};
-
-function formatKerahetRange(k: KerahetInfo): string {
-  return `${formatTime(k.startTime)}–${formatTime(k.endTime)}`;
 }
 
 export const DailyFlowList: React.FC<DailyFlowListProps> = ({
@@ -53,6 +42,16 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
           Ses Ayarları
         </button>
       </div>
+
+      {/* Desen efsanesi: kerahet dilini kadran/liste/kilit ekranında tek yerde açıkla */}
+      <p className="flex items-center gap-1.5 text-micro text-mist">
+        <span
+          className="inline-block w-3 h-3 rounded-sm shrink-0"
+          style={{ background: 'var(--pattern-kerahet)' }}
+          aria-hidden="true"
+        />
+        taralı aralıklar kerahet vaktidir
+      </p>
 
       {/* Vakit Akışı: sol omurga + düğümler */}
       <div>
@@ -183,20 +182,30 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                 </div>
               </motion.div>
 
-              {/* Kerahet segmentleri: omurga üzerinde tarama desenli, sakin */}
+              {/* Kerahet segmentleri: omurganın kendisi taralı banda dönüşür, kartlardan bilinçli olarak zayıf */}
               {kerahetInGap.map((k) => (
-                <div key={k.type} className="flex items-stretch gap-3">
+                <div key={k.type} className="flex items-stretch gap-3 py-1">
                   <div className="relative w-6 flex-shrink-0 flex flex-col items-center">
                     <div
-                      className="absolute top-0 bottom-0 w-0.5"
-                      style={{ borderLeft: '2px dashed var(--hairline)' }}
+                      className="absolute top-0 bottom-0 w-1"
+                      style={{
+                        background: k.isActiveNow
+                          ? `repeating-linear-gradient(45deg, var(--accent) 0 2px, transparent 2px 6px)`
+                          : 'var(--pattern-kerahet)',
+                      }}
                     />
                   </div>
-                  <div className="flex-1 flex items-center gap-1.5 py-1.5 text-[11px] text-mist">
-                    <MinusIcon weight="bold" className="w-3 h-3 shrink-0" />
-                    <span>
-                      <span className="font-medium">{KERAHET_SHORT_LABEL[k.type]}</span> · {formatKerahetRange(k)}
+                  <div
+                    className={`flex-1 rounded-lg px-3 py-1.5 flex items-center justify-between ${
+                      k.isActiveNow ? 'bg-accent/10' : 'bg-paper'
+                    }`}
+                  >
+                    <span
+                      className={`text-micro ${k.isActiveNow ? 'text-accent font-semibold' : 'text-ink font-medium'}`}
+                    >
+                      {KERAHET_SHORT_LABEL[k.type]}
                     </span>
+                    <span className="font-numbers text-micro text-mist">{formatKerahetRange(k)}</span>
                   </div>
                 </div>
               ))}
