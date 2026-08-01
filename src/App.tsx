@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Header } from './components/Header';
 import { MainCountdownRing } from './components/MainCountdownRing';
 import { DailyFlowList } from './components/DailyFlowList';
@@ -26,6 +26,7 @@ import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
 import { DEFAULT_LOCATION } from './data/locations';
 import { getHijriDate } from './utils/hijri';
 import { calculatePrayerTimes } from './utils/prayerCalculator';
+import { playSoundForMode } from './utils/audio';
 
 const LOCAL_STORAGE_KEY = 'vakit_app_settings_v1';
 
@@ -118,6 +119,22 @@ export default function App() {
       settings.calculationMethod
     );
   }, [settings.location, settings.calculationMethod, now]);
+
+  // Uygulama açıkken vakit değişince seçili sesi bir kez otomatik çal
+  const previousActivePrayerRef = useRef<PrayerName | null>(null);
+  useEffect(() => {
+    const activeName = schedule.activePrayer.name;
+    if (
+      previousActivePrayerRef.current !== null &&
+      previousActivePrayerRef.current !== activeName
+    ) {
+      const mode = settings.notifications[activeName];
+      if (mode !== 'sessiz') {
+        playSoundForMode(mode);
+      }
+    }
+    previousActivePrayerRef.current = activeName;
+  }, [schedule.activePrayer.name, settings.notifications]);
 
   // Compute Hijri Date
   const hijriDate = useMemo(() => {

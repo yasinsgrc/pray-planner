@@ -182,6 +182,11 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                           <Volume2 className="w-2.5 h-2.5" /> Tını
                         </span>
                       )}
+                      {(soundMode === 'ilahi1' || soundMode === 'ilahi2' || soundMode === 'ilahi3') && (
+                        <span className="flex items-center gap-0.5 text-[#E8C68C]">
+                          <Volume2 className="w-2.5 h-2.5" /> İlahi {soundMode.slice(-1)}
+                        </span>
+                      )}
                       {soundMode === 'sessiz' && (
                         <span className="flex items-center gap-0.5 text-[var(--mist)]">
                           <VolumeX className="w-2.5 h-2.5" /> Sessiz
