@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BookOpen, Copy, Check, Quote, Share2 } from 'lucide-react';
 import { DAILY_INSPIRATIONS } from '../data/dailyContent';
 
 export const DailyInspirationCard: React.FC = () => {
   const [tab, setTab] = useState<'verse' | 'hadith' | 'dua'>('verse');
   const [copied, setCopied] = useState(false);
+  const [apiVerse, setApiVerse] = useState<{ verse: string; verseRef: string } | null>(null);
 
   // Pick today's inspiration based on day of year
   const todayIndex = Math.floor(
@@ -14,8 +15,30 @@ export const DailyInspirationCard: React.FC = () => {
 
   const content = DAILY_INSPIRATIONS[todayIndex] || DAILY_INSPIRATIONS[0];
 
+  useEffect(() => {
+    let ignore = false;
+
+    fetch('/api/daily-verse')
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => {
+        if (!ignore && data?.verse && data?.verseRef) {
+          setApiVerse({ verse: data.verse, verseRef: data.verseRef });
+        }
+      })
+      .catch(() => {
+        // Ağ hatası: sessizce statik havuzdaki ayete düş
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const verseText = apiVerse?.verse ?? content.verse;
+  const verseRefText = apiVerse?.verseRef ?? content.verseRef;
+
   const getTextToCopy = () => {
-    if (tab === 'verse') return `"${content.verse}" — ${content.verseRef}`;
+    if (tab === 'verse') return `"${verseText}" — ${verseRefText}`;
     if (tab === 'hadith') return `"${content.hadith}" — ${content.hadithRef}`;
     return `"${content.dua}" — ${content.duaRef}`;
   };
@@ -77,13 +100,13 @@ export const DailyInspirationCard: React.FC = () => {
           <Quote className="w-8 h-8 text-[#D6A84D]/15 absolute -top-1 -left-2 pointer-events-none" />
 
           <p className="text-sm font-serif-title text-[var(--ink)] leading-relaxed italic relative z-10 px-2">
-            {tab === 'verse' && content.verse}
+            {tab === 'verse' && verseText}
             {tab === 'hadith' && content.hadith}
             {tab === 'dua' && content.dua}
           </p>
 
           <div className="text-right text-xs font-semibold text-[#D6A84D] mt-3">
-            {tab === 'verse' && content.verseRef}
+            {tab === 'verse' && verseRefText}
             {tab === 'hadith' && content.hadithRef}
             {tab === 'dua' && content.duaRef}
           </div>
