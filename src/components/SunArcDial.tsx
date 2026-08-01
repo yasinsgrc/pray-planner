@@ -19,7 +19,7 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
   const prefersReducedMotion = useReducedMotion();
   const { dayCycleStart, dayCycleEnd, dayCyclePrayers, dayProgress, activePrayer } = schedule;
 
-  const strokeWidth = 3;
+  const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
   const cx = size / 2;
   const cy = size / 2;
@@ -54,21 +54,28 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
         cx={cx}
         cy={cy}
         r={radius}
-        stroke="var(--hairline)"
+        stroke="var(--mist)"
+        strokeOpacity={0.22}
         strokeWidth={strokeWidth}
         fill="transparent"
       />
 
-      {/* 6 vakit için ince kadran çentikleri, gerçek güneş açılarında */}
+      {/*
+        Çentikler ve işaretçi, yay segmentleriyle AYNI referans noktasından
+        (yerel 3 o'clock -- SVG <circle> path'inin doğal başlangıcı) rotate
+        edilmeli; aksi halde üst svg'nin -rotate-90 CSS dönüşümüyle
+        birleştiğinde 90° kayarlar. Bu yüzden hepsi (cx + radius, cy)
+        etrafında, yerel 12 o'clock değil, konumlanıyor.
+      */}
       {segments.map((seg) => (
         <line
           key={`tick-${seg.name}`}
-          x1={cx}
-          y1={cy - radius - 3}
-          x2={cx}
-          y2={cy - radius - 9}
+          x1={cx + radius + 4}
+          y1={cy}
+          x2={cx + radius + 12}
+          y2={cy}
           stroke={`var(--v-${seg.name})`}
-          strokeWidth={2}
+          strokeWidth={2.5}
           strokeLinecap="round"
           transform={`rotate(${seg.startFrac * 360} ${cx} ${cy})`}
         />
@@ -98,11 +105,11 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
       <g transform={`rotate(${markerAngle} ${cx} ${cy})`}>
         {isNight ? (
           <>
-            <circle cx={cx} cy={cy - radius} r={7} fill="var(--gold)" />
-            <circle cx={cx + 3} cy={cy - radius - 2.5} r={6} fill="var(--paper)" />
+            <circle cx={cx + radius} cy={cy} r={8} fill="var(--gold)" />
+            <circle cx={cx + radius - 3} cy={cy - 3} r={7} fill="var(--paper)" />
           </>
         ) : (
-          <circle cx={cx} cy={cy - radius} r={7} fill="var(--gold)" stroke="white" strokeWidth={2} />
+          <circle cx={cx + radius} cy={cy} r={8} fill="var(--gold)" stroke="white" strokeWidth={2} />
         )}
       </g>
     </svg>
