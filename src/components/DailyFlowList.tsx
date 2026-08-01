@@ -44,14 +44,19 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
       </div>
 
       {/* Desen efsanesi: kerahet dilini kadran/liste/kilit ekranında tek yerde açıkla */}
-      <p className="flex items-center gap-1.5 text-micro text-mist">
-        <span
-          className="inline-block w-3 h-3 rounded-sm shrink-0"
-          style={{ background: 'var(--pattern-kerahet)' }}
-          aria-hidden="true"
-        />
-        taralı aralıklar kerahet vaktidir
-      </p>
+      <div className="space-y-0.5">
+        <p className="flex items-center gap-1.5 text-micro text-mist">
+          <span
+            className="inline-block w-3 h-3 rounded-sm shrink-0"
+            style={{ background: 'var(--pattern-kerahet)' }}
+            aria-hidden="true"
+          />
+          taralı aralıklar kerahet vaktidir
+        </p>
+        <p className="text-micro text-mist pl-[18px]">
+          Fıkhî ayrıntılar mezhebe göre farklılık gösterebilir.
+        </p>
+      </div>
 
       {/* Vakit Akışı: sol omurga + düğümler */}
       <div>
