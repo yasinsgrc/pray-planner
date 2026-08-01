@@ -42,6 +42,11 @@ export function playSoftChime() {
       osc.start(startTime);
       osc.stop(startTime + duration);
     });
+
+    const totalDurationMs = ((frequencies.length - 1) * 0.15 + 2.5) * 1000;
+    setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, totalDurationMs + 100);
   } catch (err) {
     console.log('Audio playback error:', err);
   }
@@ -53,10 +58,16 @@ export function playSoftChime() {
  * playback failure (e.g. browser autoplay restrictions) rather than
  * throwing.
  */
+let ezanAudioElement: HTMLAudioElement | null = null;
+
 export function playEzanAudio() {
   try {
-    const audio = new Audio(EZAN_AUDIO_SRC);
-    audio.play().catch((err) => {
+    if (!ezanAudioElement) {
+      ezanAudioElement = new Audio(EZAN_AUDIO_SRC);
+    }
+    ezanAudioElement.pause();
+    ezanAudioElement.currentTime = 0;
+    ezanAudioElement.play().catch((err) => {
       console.log('Ezan sesi çalınamadı:', err);
     });
   } catch (err) {
@@ -91,6 +102,11 @@ export function playIlahiSample(variant: 1 | 2 | 3) {
       osc.start(startTime);
       osc.stop(startTime + duration);
     });
+
+    const totalDurationMs = ((notes.length - 1) * 0.35 + 1.2) * 1000;
+    setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, totalDurationMs + 100);
   } catch (err) {
     console.log('İlahi sesi çalınamadı:', err);
   }
