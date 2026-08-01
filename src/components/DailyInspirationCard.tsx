@@ -68,7 +68,7 @@ export const DailyInspirationCard: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto px-4 py-4">
+    <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 py-4">
       <div className="p-5 rounded-2xl bg-card border border-hairline shadow-sm space-y-4">
         {/* Üst Sekme Başlıkları */}
         <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">

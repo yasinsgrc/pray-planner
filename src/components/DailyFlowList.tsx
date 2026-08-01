@@ -13,6 +13,7 @@ import {
   BellIcon,
 } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
+import { formatTime } from '../utils/formatTime';
 import { KerahetInfo, PrayerName, SoundMode } from '../types';
 
 interface DailyFlowListProps {
@@ -31,14 +32,13 @@ const PRAYER_ICONS: Record<PrayerName, React.ReactNode> = {
 };
 
 const KERAHET_SHORT_LABEL: Record<KerahetInfo['type'], string> = {
-  gunes_sonrasi: 'Güneş Keraheti',
+  gunes_sonrasi: 'İşrâk',
   ogle_oncesi: 'İstivâ',
-  aksam_oncesi: 'İstifrâ',
+  aksam_oncesi: 'Gurûb',
 };
 
 function formatKerahetRange(k: KerahetInfo): string {
-  const fmt = (d: Date) => d.toTimeString().slice(0, 5);
-  return `${fmt(k.startTime)}–${fmt(k.endTime)}`;
+  return `${formatTime(k.startTime)}–${formatTime(k.endTime)}`;
 }
 
 export const DailyFlowList: React.FC<DailyFlowListProps> = ({
@@ -49,7 +49,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
   const { prayers, kerahetTimes, tomorrowImsakTime, tomorrowAksamTime } = schedule;
 
   return (
-    <div className="w-full max-w-md mx-auto px-4 py-6 space-y-4">
+    <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 py-6 space-y-4">
       {/* Başlık */}
       <div className="flex items-center justify-between border-b border-gold/15 pb-3">
         <div>

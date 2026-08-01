@@ -1,5 +1,6 @@
 import { Coordinates, CalculationMethod, PrayerTimes, CalculationParameters } from 'adhan';
 import { LocationItem, PrayerTimeDetails, KerahetInfo, PrayerName } from '../types';
+import { formatTime } from './formatTime';
 
 export function getCalculationParameters(methodName: string): CalculationParameters {
   switch (methodName) {
@@ -20,11 +21,17 @@ export function getCalculationParameters(methodName: string): CalculationParamet
   }
 }
 
-function formatTimeString(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
+// Turkish vowel harmony means a single fixed suffix ('-ye/-ya) is wrong for
+// some prayer names (e.g. "Akşam'ye" should be "Akşam'a") — a fixed lookup
+// is safer than a runtime vowel-harmony algorithm for six known words.
+const PRAYER_LABEL_DATIVE: Record<PrayerName, string> = {
+  imsak: "İmsak'a",
+  gunes: "Güneş'e",
+  ogle: "Öğle'ye",
+  ikindi: "İkindi'ye",
+  aksam: "Akşam'a",
+  yatsi: "Yatsı'ya",
+};
 
 export interface DayPrayerSchedule {
   date: Date;
@@ -121,22 +128,22 @@ function buildDaySchedule(
   const kerahetWindows: Omit<KerahetInfo, 'isActiveNow'>[] = [
     {
       type: 'gunes_sonrasi',
-      title: 'Güneş Keraheti',
-      description: 'Güneş doğduktan sonra 45 dakika kerahet vaktidir.',
+      title: 'İşrâk Vakti',
+      description: 'Güneş doğduktan sonra yaklaşık 45 dakika süren bu aralıkta nafile namaz kılınmaz.',
       startTime: kerahatGunesStart,
       endTime: kerahatGunesEnd,
     },
     {
       type: 'ogle_oncesi',
-      title: 'İstivâ Keraheti',
-      description: 'Öğle vaktine 45 dakika kala kerahet vaktidir.',
+      title: 'İstivâ Vakti',
+      description: 'Güneşin tam tepede olduğu ana kadar süren ~45 dakikalık aralıkta nafile namaz kılınmaz.',
       startTime: kerahatOgleStart,
       endTime: kerahatOgleEnd,
     },
     {
       type: 'aksam_oncesi',
-      title: 'İstifrâ Keraheti',
-      description: 'Güneş batmadan önceki 45 dakika kerahet vaktidir.',
+      title: 'Gurûb Vakti',
+      description: 'Güneş batmadan önceki ~45 dakikada nafile namaz kılınmaz; günün ikindi namazı bu vakitte kılınabilir.',
       startTime: kerahatAksamStart,
       endTime: kerahatAksamEnd,
     },
@@ -230,7 +237,8 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
     return {
       name: p.name,
       label: p.label,
-      timeString: formatTimeString(p.dateObj),
+      labelDative: PRAYER_LABEL_DATIVE[p.name],
+      timeString: formatTime(p.dateObj),
       dateObj: p.dateObj,
       isPast: now > p.dateObj && !isActive,
       isActive,
@@ -242,7 +250,8 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
   const nextPrayer: PrayerTimeDetails = {
     name: nextPrayerName,
     label: nextPrayerLabel,
-    timeString: formatTimeString(nextStartDate),
+    labelDative: PRAYER_LABEL_DATIVE[nextPrayerName],
+    timeString: formatTime(nextStartDate),
     dateObj: nextStartDate,
     isPast: false,
     isActive: false,
@@ -281,8 +290,8 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
     dayCycleEnd,
     dayCyclePrayers,
     dayProgress,
-    tomorrowImsakTime: formatTimeString(day.tomorrowFajr),
-    tomorrowAksamTime: formatTimeString(day.tomorrowMaghrib),
+    tomorrowImsakTime: formatTime(day.tomorrowFajr),
+    tomorrowAksamTime: formatTime(day.tomorrowMaghrib),
   };
 }
 

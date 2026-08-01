@@ -89,6 +89,7 @@ function makeSchedule(prayerTime: Date): DayPrayerSchedule {
   const prayer = {
     name: 'ogle' as const,
     label: 'Öğle',
+    labelDative: "Öğle'ye",
     timeString: '12:00',
     dateObj: prayerTime,
     isPast: false,

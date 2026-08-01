@@ -32,7 +32,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
       : `${nextPrayer.label} vaktine bir dakikadan az kaldı.`;
 
   return (
-    <div className="flex-1 flex flex-col items-center px-4 py-6 max-w-md mx-auto w-full text-center">
+    <div className="flex-1 flex flex-col items-center px-4 py-6 max-w-[var(--shell-w)] mx-auto w-full text-center">
       {/* Gün Kavisi Kadranı: ekranın büyük bölümünü kaplar, optik olarak ortalı */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
         <div className="relative flex flex-col items-center justify-center animate-blur-up">
@@ -47,7 +47,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
               <div aria-hidden="true">
                 {/* Üst Bilgi Etiketi */}
                 <span className="text-xs font-medium text-mist tracking-wide uppercase mb-1 block text-center">
-                  {nextPrayer.label}’ye kalan süre
+                  {nextPrayer.label} vaktine kalan süre
                 </span>
 
                 {/* Geri Sayım Rakamları */}

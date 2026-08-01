@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { HandHeartIcon, ArrowCounterClockwiseIcon } from '@phosphor-icons/react';
+import { ArrowCounterClockwiseIcon } from '@phosphor-icons/react';
 import { playSoftChime } from '../utils/audio';
-import { PRESET_DHIKRS, loadZikirmatikState, saveZikirmatikState } from '../utils/zikirmatikStorage';
+import { PRESET_DHIKRS, ZikirmatikState } from '../utils/zikirmatikStorage';
 import { BottomSheet } from './BottomSheet';
 
 interface ZikirmatikModalProps {
   isOpen: boolean;
   onClose: () => void;
+  state: ZikirmatikState;
+  onChange: (state: ZikirmatikState) => void;
 }
 
 const RING_SIZE = 176;
@@ -18,15 +20,11 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   isOpen,
   onClose,
+  state,
+  onChange,
 }) => {
-  const [selectedDhikrIndex, setSelectedDhikrIndex] = useState(() => loadZikirmatikState().selectedDhikrIndex);
-  const [counter, setCounter] = useState(() => loadZikirmatikState().counter);
-  const [lap, setLap] = useState(() => loadZikirmatikState().lap);
+  const { selectedDhikrIndex, counter, lap } = state;
   const [justCompleted, setJustCompleted] = useState(false);
-
-  useEffect(() => {
-    saveZikirmatikState({ selectedDhikrIndex, counter, lap });
-  }, [selectedDhikrIndex, counter, lap]);
 
   const currentDhikr = PRESET_DHIKRS[selectedDhikrIndex];
   const ringProgress = counter / currentDhikr.target;
@@ -39,18 +37,16 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
     const newCount = counter + 1;
     if (newCount >= currentDhikr.target) {
       playSoftChime();
-      setCounter(0);
-      setLap((prev) => prev + 1);
+      onChange({ selectedDhikrIndex, counter: 0, lap: lap + 1 });
       setJustCompleted(true);
       setTimeout(() => setJustCompleted(false), 700);
     } else {
-      setCounter(newCount);
+      onChange({ selectedDhikrIndex, counter: newCount, lap });
     }
   };
 
   const handleReset = () => {
-    setCounter(0);
-    setLap(0);
+    onChange({ selectedDhikrIndex, counter: 0, lap: 0 });
   };
 
   return (
@@ -61,11 +57,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
           {PRESET_DHIKRS.map((d, idx) => (
             <button
               key={d.title}
-              onClick={() => {
-                setSelectedDhikrIndex(idx);
-                setCounter(0);
-                setLap(0);
-              }}
+              onClick={() => onChange({ selectedDhikrIndex: idx, counter: 0, lap: 0 })}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                 selectedDhikrIndex === idx
                   ? 'bg-gold text-white shadow-xs'

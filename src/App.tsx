@@ -28,6 +28,7 @@ import { DEFAULT_LOCATION } from './data/locations';
 import { getHijriDate } from './utils/hijri';
 import { calculateDaySchedule, deriveLiveSchedule } from './utils/prayerCalculator';
 import { playSoundForMode } from './utils/audio';
+import { ZikirmatikState, loadZikirmatikState, saveZikirmatikState } from './utils/zikirmatikStorage';
 
 const LOCAL_STORAGE_KEY = 'vakit_app_settings_v1';
 
@@ -76,6 +77,14 @@ export default function App() {
   const [isQiblaModalOpen, setIsQiblaModalOpen] = useState(false);
   const [isZikirmatikModalOpen, setIsZikirmatikModalOpen] = useState(false);
   const [isLiveActivityModalOpen, setIsLiveActivityModalOpen] = useState(false);
+
+  // Zikirmatik: single source of truth so the modal and the Maneviyat
+  // preview card always agree (previously the card read localStorage only
+  // at mount and never saw updates made inside the modal).
+  const [zikirState, setZikirState] = useState<ZikirmatikState>(loadZikirmatikState);
+  useEffect(() => {
+    saveZikirmatikState(zikirState);
+  }, [zikirState]);
 
   const [pushStatus, setPushStatus] = useState<PushStatus>('idle');
   const [pushError, setPushError] = useState<string | null>(null);
@@ -221,7 +230,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] max-w-[430px] mx-auto bg-paper text-ink flex flex-col justify-between app-shell-padding selection:bg-gold selection:text-white">
+    <div className="min-h-[100dvh] max-w-[var(--shell-w)] mx-auto bg-paper text-ink flex flex-col justify-between app-shell-padding selection:bg-gold selection:text-white">
       {/* Üst Bar / Header */}
       <Header
         location={settings.location}
@@ -266,6 +275,7 @@ export default function App() {
             {activeTab === 'spiritual' && (
               <SpiritualHub
                 location={settings.location}
+                zikirState={zikirState}
                 onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
                 onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
               />
@@ -308,6 +318,8 @@ export default function App() {
       <ZikirmatikModal
         isOpen={isZikirmatikModalOpen}
         onClose={() => setIsZikirmatikModalOpen(false)}
+        state={zikirState}
+        onChange={setZikirState}
       />
 
       <LiveActivityWidgetModal

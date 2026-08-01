@@ -4,11 +4,12 @@ import { CompassIcon, HandHeartIcon, SparkleIcon } from '@phosphor-icons/react';
 import { DailyInspirationCard } from './DailyInspirationCard';
 import { LocationItem } from '../types';
 import { calculateQiblaBearing } from '../utils/qibla';
-import { PRESET_DHIKRS, loadZikirmatikState } from '../utils/zikirmatikStorage';
+import { PRESET_DHIKRS, ZikirmatikState } from '../utils/zikirmatikStorage';
 import { ESMA_UL_HUSNA } from '../data/esmaulHusna';
 
 interface SpiritualHubProps {
   location: LocationItem;
+  zikirState: ZikirmatikState;
   onOpenQiblaModal: () => void;
   onOpenZikirmatikModal: () => void;
 }
@@ -17,11 +18,11 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 export const SpiritualHub: React.FC<SpiritualHubProps> = ({
   location,
+  zikirState,
   onOpenQiblaModal,
   onOpenZikirmatikModal,
 }) => {
   const qiblaBearing = Math.round(calculateQiblaBearing(location));
-  const zikirState = loadZikirmatikState();
   const lastDhikr = PRESET_DHIKRS[zikirState.selectedDhikrIndex];
 
   const todayEsmaIndex = Math.floor(
@@ -33,7 +34,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
     <div className="flex-1 flex flex-col">
       <DailyInspirationCard />
 
-      <div className="w-full max-w-md mx-auto px-4 grid grid-cols-3 gap-3">
+      <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 grid grid-cols-3 gap-3">
         {/* Kıble Kartı (geniş) */}
         <motion.button
           onClick={onOpenQiblaModal}
@@ -85,7 +86,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.16, duration: 0.5, ease: EASE }}
-        className="w-full max-w-md mx-auto px-4 mt-3 pb-4"
+        className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-3 pb-4"
       >
         <div className="p-5 rounded-2xl bg-gold/10 border border-gold/20 text-center">
           <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-gold uppercase tracking-wider">

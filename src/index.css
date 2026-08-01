@@ -83,6 +83,11 @@
     /* Reserved height of the fixed bottom Navbar, used to keep scrollable
        content clear of it (see .app-shell-padding below). */
     --nav-h: 76px;
+    /* Single source of truth for the app's mobile-shell max-width, so the
+       fixed Navbar and every screen's content container always agree —
+       previously Navbar used max-w-[430px] while screens used max-w-md
+       (448px), an 18px mismatch visible on wide viewports. */
+    --shell-w: 430px;
   }
 
   .dark {

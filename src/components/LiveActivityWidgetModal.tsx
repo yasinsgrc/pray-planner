@@ -46,7 +46,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
           {/* Canlı Widget Kartı */}
           <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-between gap-3 shadow-lg">
             {/* Sol: Küçük Altın Halka */}
-            <div className="relative w-13 h-13 flex items-center justify-center shrink-0">
+            <div className="relative w-[52px] h-[52px] flex items-center justify-center shrink-0">
               <svg width={size} height={size} className="transform -rotate-90">
                 <circle
                   cx={size / 2}

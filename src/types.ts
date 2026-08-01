@@ -12,6 +12,8 @@ export interface LocationItem {
 export interface PrayerTimeDetails {
   name: PrayerName;
   label: string;
+  /** label with the Turkish dative suffix (-a/-e) already applied, e.g. "Akşam'a" — use instead of concatenating a suffix onto `label` (Turkish vowel harmony makes a single fixed suffix wrong for some prayers). */
+  labelDative: string;
   timeString: string; // HH:mm
   dateObj: Date;
   isPast: boolean;

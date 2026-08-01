@@ -85,7 +85,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   const showIOSNotice = isIOSStandaloneNoticeNeeded();
 
   return (
-    <div className="w-full max-w-md mx-auto px-4 py-6 space-y-6">
+    <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 py-6 space-y-6">
       {/* Başlık */}
       <div>
         <h2 className="text-xl font-serif-title font-bold text-ink">

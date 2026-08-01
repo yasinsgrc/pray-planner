@@ -36,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
     <nav
       role="tablist"
       aria-label="Ana gezinme"
-      className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-gold/15 max-w-[430px] mx-auto transition-colors"
+      className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-gold/15 max-w-[var(--shell-w)] mx-auto transition-colors"
     >
       <div className="flex items-center justify-around py-2.5 px-3">
         {tabs.map((tab) => {
