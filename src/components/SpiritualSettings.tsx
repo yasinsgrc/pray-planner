@@ -13,7 +13,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import { AppSettings, PrayerName, SoundMode } from '../types';
-import { playSoftChime, playEzanSample } from '../utils/audio';
+import { playSoftChime, playEzanAudio } from '../utils/audio';
 import type { PushStatus } from '../utils/pushClient';
 
 interface SpiritualSettingsProps {
@@ -125,7 +125,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   <button
                     onClick={() => {
                       onUpdateNotification(prayer, 'ezan');
-                      playEzanSample();
+                      playEzanAudio();
                     }}
                     className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
                       currentMode === 'ezan'

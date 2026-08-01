@@ -35,7 +35,7 @@ export interface HijriDateInfo {
   formatted: string; // e.g. "24 Muharrem 1448"
 }
 
-export type SoundMode = 'ezan' | 'tini' | 'sessiz';
+export type SoundMode = 'ezan' | 'tini' | 'ilahi1' | 'ilahi2' | 'ilahi3' | 'sessiz';
 
 export interface NotificationSettings {
   imsak: SoundMode;
