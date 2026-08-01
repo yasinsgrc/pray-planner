@@ -113,7 +113,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
               <button
                 onClick={onClose}
                 aria-label="Kapat"
-                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-mist cursor-pointer"
+                className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-mist cursor-pointer"
               >
                 <XIcon className="w-5 h-5" />
               </button>

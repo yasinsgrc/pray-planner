@@ -334,7 +334,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                 <button
                   onClick={() => playSoundForMode(opt.value)}
                   aria-label={`${opt.label} sesini önizle`}
-                  className="p-2 rounded-full hover:bg-gold/10 text-gold cursor-pointer shrink-0"
+                  className="p-3.5 rounded-full hover:bg-gold/10 text-gold cursor-pointer shrink-0"
                 >
                   <PlayIcon className="w-4 h-4" />
                 </button>

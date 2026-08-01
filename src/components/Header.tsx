@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Kıble Butonu */}
           <button
             onClick={onOpenQiblaModal}
-            className="p-2.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
+            className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label="Kıble Pusulası"
           >
             <CompassIcon className="w-4 h-4 text-gold" />
@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Zikirmatik Butonu */}
           <button
             onClick={onOpenZikirmatikModal}
-            className="p-2.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
+            className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label="Zikirmatik"
           >
             <HandHeartIcon className="w-4 h-4 text-gold" />
@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Gece/Gündüz Modu Butonu */}
           <button
             onClick={onToggleDarkMode}
-            className="p-2.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
+            className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label={isDarkMode ? 'Gündüz Moduna Geç' : 'Gece Moduna Geç'}
           >
             {isDarkMode ? (

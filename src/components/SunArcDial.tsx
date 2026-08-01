@@ -42,6 +42,18 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
   const isNight = activePrayer.name === 'imsak' || activePrayer.name === 'yatsi';
   const markerAngle = dayProgress * 360;
 
+  // Kerahet windows are always computed against "today" (see
+  // prayerCalculator's kerahetWindows), so during the pre-fajr wrap case
+  // (dayCycleStart = yesterday's fajr) they fall outside this cycle's
+  // [0,1] range and are naturally filtered out below.
+  const kerahetHatches = schedule.kerahetTimes
+    .map((k) => ({
+      type: k.type,
+      startFrac: (k.startTime.getTime() - dayCycleStart.getTime()) / totalMs,
+      endFrac: (k.endTime.getTime() - dayCycleStart.getTime()) / totalMs,
+    }))
+    .filter((k) => k.endFrac > 0 && k.startFrac < 1);
+
   return (
     <svg
       width={size}
@@ -100,6 +112,32 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
           />
         ) : null
       )}
+
+      {/* Kerahet pencereleri: yay üzerinde tarama deseni (sakin, alarm kutusu değil) */}
+      {kerahetHatches.map((k) => {
+        const startDeg = Math.max(0, k.startFrac) * 360;
+        const endDeg = Math.min(1, k.endFrac) * 360;
+        const tickCount = Math.max(2, Math.round((endDeg - startDeg) / 4));
+        return (
+          <g key={`kerahet-${k.type}`}>
+            {Array.from({ length: tickCount + 1 }, (_, i) => startDeg + (i * (endDeg - startDeg)) / tickCount).map(
+              (deg, i) => (
+                <line
+                  key={i}
+                  x1={cx + radius - 4}
+                  y1={cy}
+                  x2={cx + radius + 4}
+                  y2={cy}
+                  stroke="var(--mist)"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  transform={`rotate(${deg} ${cx} ${cy})`}
+                />
+              )
+            )}
+          </g>
+        );
+      })}
 
       {/* Şu anki an işaretçisi: gündüz dolu daire, gece hilal */}
       <g transform={`rotate(${markerAngle} ${cx} ${cy})`}>
