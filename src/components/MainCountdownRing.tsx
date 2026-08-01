@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ClockIcon, DeviceMobileIcon, CalendarDotsIcon } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { SunArcDial } from './SunArcDial';
+import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 
 interface MainCountdownRingProps {
   schedule: DayPrayerSchedule;
@@ -30,6 +31,8 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
     remainingMinutes > 0
       ? `${nextPrayer.label} vaktine yaklaşık ${remainingMinutes} dakika kaldı.`
       : `${nextPrayer.label} vaktine bir dakikadan az kaldı.`;
+
+  const showDialLegend = useDialLegendVisibility();
 
   return (
     <div className="flex-1 flex flex-col items-center px-4 py-6 max-w-[var(--shell-w)] mx-auto w-full text-center">
@@ -66,12 +69,19 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           </div>
         </div>
 
+        {/* Bir kereye mahsus mikro-efsane: kullanıcı 3 gün gördükten sonra kaybolur */}
+        {showDialLegend && (
+          <p className="mt-2 text-micro text-mist">
+            Halka bir günü gösterir — imsaktan imsağa.
+          </p>
+        )}
+
         {/* Kerahet: kadranın altında sakin, layout'u kaydırmayan bir satır */}
         {currentKerahet && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-3 text-[11px] text-mist"
+            className="mt-3 text-micro text-mist"
           >
             <span className="text-gold font-medium">{currentKerahet.title}</span> — {currentKerahet.description}
           </motion.p>

@@ -1,12 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import {
-  MoonStarsIcon,
-  SunIcon,
-  CloudSunIcon,
-  SunDimIcon,
-  SunHorizonIcon,
-  SparkleIcon,
   MinusIcon,
   SpeakerHighIcon,
   SpeakerXIcon,
@@ -14,6 +8,7 @@ import {
 } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { formatTime } from '../utils/formatTime';
+import { PRAYER_ICON_COMPONENTS } from './prayerIcons';
 import { KerahetInfo, PrayerName, SoundMode } from '../types';
 
 interface DailyFlowListProps {
@@ -21,15 +16,6 @@ interface DailyFlowListProps {
   notifications: Record<PrayerName, SoundMode>;
   onOpenSettings: () => void;
 }
-
-const PRAYER_ICONS: Record<PrayerName, React.ReactNode> = {
-  imsak: <MoonStarsIcon className="w-5 h-5" />,
-  gunes: <SunHorizonIcon className="w-5 h-5" />,
-  ogle: <SunIcon className="w-5 h-5" />,
-  ikindi: <SunDimIcon className="w-5 h-5" />,
-  aksam: <CloudSunIcon className="w-5 h-5" />,
-  yatsi: <SparkleIcon className="w-5 h-5" />,
-};
 
 const KERAHET_SHORT_LABEL: Record<KerahetInfo['type'], string> = {
   gunes_sonrasi: 'İşrâk',
@@ -127,7 +113,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                       }`}
                       style={item.isActive ? { backgroundColor: `var(--v-${item.name})` } : undefined}
                     >
-                      {PRAYER_ICONS[item.name]}
+                      {React.createElement(PRAYER_ICON_COMPONENTS[item.name], { className: 'w-5 h-5' })}
                     </div>
 
                     <div className="text-left">
