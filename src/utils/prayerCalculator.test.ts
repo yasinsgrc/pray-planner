@@ -41,3 +41,27 @@ test('deriveLiveSchedule before fajr rolls back to yesterday isha as the active 
   assert.equal(schedule.activePrayer.name, 'yatsi');
   assert.equal(schedule.nextPrayer.name, 'imsak');
 });
+
+test('dayCycle spans today fajr-to-fajr and dayProgress tracks it once fajr has passed', () => {
+  const day = calculateDaySchedule(DEFAULT_LOCATION, FIXED_DAY, 'Diyanet');
+  const noonTick = new Date(day.dhuhr.getTime());
+
+  const schedule = deriveLiveSchedule(day, noonTick);
+
+  assert.equal(schedule.dayCycleStart.getTime(), day.fajr.getTime());
+  assert.equal(schedule.dayCycleEnd.getTime(), day.tomorrowFajr.getTime());
+  assert.equal(schedule.dayCyclePrayers[0].dateObj.getTime(), day.fajr.getTime());
+  assert.ok(schedule.dayProgress > 0 && schedule.dayProgress < 1);
+});
+
+test('dayCycle wraps to the previous day fajr-to-fajr window before today fajr', () => {
+  const day = calculateDaySchedule(DEFAULT_LOCATION, FIXED_DAY, 'Diyanet');
+  const beforeFajr = new Date(day.fajr.getTime() - 60 * 60 * 1000);
+
+  const schedule = deriveLiveSchedule(day, beforeFajr);
+
+  assert.equal(schedule.dayCycleStart.getTime(), day.yesterdayFajr.getTime());
+  assert.equal(schedule.dayCycleEnd.getTime(), day.fajr.getTime());
+  assert.equal(schedule.dayCyclePrayers[0].dateObj.getTime(), day.yesterdayFajr.getTime());
+  assert.ok(schedule.dayProgress > 0 && schedule.dayProgress < 1);
+});

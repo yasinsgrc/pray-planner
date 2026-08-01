@@ -37,6 +37,11 @@ export interface DayPrayerSchedule {
   ringProgress: number; // 0 to 1 (percentage elapsed between active and next)
   kerahetTimes: KerahetInfo[];
   currentKerahet: KerahetInfo | null;
+  /** "Gün Kavisi" full-day dial: imsak-to-imsak cycle containing `now`. */
+  dayCycleStart: Date;
+  dayCycleEnd: Date;
+  dayCyclePrayers: { name: PrayerName; label: string; dateObj: Date }[];
+  dayProgress: number; // 0 to 1, elapsed fraction of dayCycleStart..dayCycleEnd
 }
 
 /**
@@ -48,9 +53,11 @@ export interface RawDaySchedule {
   date: Date;
   location: LocationItem;
   rawPrayers: { name: PrayerName; label: string; dateObj: Date }[];
+  previousRawPrayers: { name: PrayerName; label: string; dateObj: Date }[];
   fajr: Date;
   sunrise: Date;
   dhuhr: Date;
+  yesterdayFajr: Date;
   yesterdayIsha: Date;
   tomorrowFajr: Date;
   kerahetWindows: Omit<KerahetInfo, 'isActiveNow'>[];
@@ -83,6 +90,19 @@ function buildDaySchedule(
     { name: 'ikindi', label: 'İkindi', dateObj: ptToday.asr },
     { name: 'aksam', label: 'Akşam', dateObj: ptToday.maghrib },
     { name: 'yatsi', label: 'Yatsı', dateObj: ptToday.isha },
+  ];
+
+  // ptYesterday is already fully built above (for yesterdayIsha) — reading
+  // its other fields is free, so the dial's pre-fajr wrap case (see
+  // dayCyclePrayers below) gets a real previous-day tick set at no extra
+  // adhan cost.
+  const previousRawPrayers: { name: PrayerName; label: string; dateObj: Date }[] = [
+    { name: 'imsak', label: 'İmsak', dateObj: ptYesterday.fajr },
+    { name: 'gunes', label: 'Güneş', dateObj: ptYesterday.sunrise },
+    { name: 'ogle', label: 'Öğle', dateObj: ptYesterday.dhuhr },
+    { name: 'ikindi', label: 'İkindi', dateObj: ptYesterday.asr },
+    { name: 'aksam', label: 'Akşam', dateObj: ptYesterday.maghrib },
+    { name: 'yatsi', label: 'Yatsı', dateObj: ptYesterday.isha },
   ];
 
   const kerahatGunesStart = new Date(ptToday.sunrise);
@@ -122,9 +142,11 @@ function buildDaySchedule(
     date,
     location,
     rawPrayers,
+    previousRawPrayers,
     fajr: ptToday.fajr,
     sunrise: ptToday.sunrise,
     dhuhr: ptToday.dhuhr,
+    yesterdayFajr: ptYesterday.fajr,
     yesterdayIsha: ptYesterday.isha,
     tomorrowFajr: ptTomorrow.fajr,
     kerahetWindows,
@@ -229,6 +251,16 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
 
   const currentKerahet = kerahetTimes.find((k) => k.isActiveNow) || null;
 
+  // "Gün Kavisi" full-day cycle: imsak-to-imsak containing `now`. Before
+  // today's fajr, `now` still belongs to yesterday's imsak-to-imsak span.
+  const dayCycleStart = now < day.fajr ? day.yesterdayFajr : day.fajr;
+  const dayCycleEnd = now < day.fajr ? day.fajr : day.tomorrowFajr;
+  const dayCyclePrayers = now < day.fajr ? day.previousRawPrayers : rawPrayers;
+  const dayProgress = Math.min(
+    1,
+    Math.max(0, (now.getTime() - dayCycleStart.getTime()) / (dayCycleEnd.getTime() - dayCycleStart.getTime()))
+  );
+
   return {
     date: day.date,
     location: day.location,
@@ -240,6 +272,10 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
     ringProgress,
     kerahetTimes,
     currentKerahet,
+    dayCycleStart,
+    dayCycleEnd,
+    dayCyclePrayers,
+    dayProgress,
   };
 }
 

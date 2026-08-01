@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ClockIcon, WarningIcon, DeviceMobileIcon, CalendarDotsIcon } from '@phosphor-icons/react';
+import { ClockIcon, DeviceMobileIcon, CalendarDotsIcon } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
+import { SunArcDial } from './SunArcDial';
 
 interface MainCountdownRingProps {
   schedule: DayPrayerSchedule;
@@ -19,7 +20,6 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
     nextPrayer,
     timeRemainingFormatted,
     timeRemainingSeconds,
-    ringProgress,
     currentKerahet,
   } = schedule;
 
@@ -31,94 +31,58 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
       ? `${nextPrayer.label} vaktine yaklaşık ${remainingMinutes} dakika kaldı.`
       : `${nextPrayer.label} vaktine bir dakikadan az kaldı.`;
 
-  // Circle SVG dimensions
-  const size = 260; // Responsive width/height
-  const strokeWidth = 2.5; // Thin 2px-3px gold line as specified
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference * (1 - ringProgress);
-
   return (
-    <div className="flex-1 flex flex-col items-center justify-between py-6 px-4 max-w-md mx-auto w-full text-center">
-      {/* Kerahet Uyarısı (Eğer şu an kerahet vaktiyse) */}
-      {currentKerahet && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full mb-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-300"
-        >
-          <WarningIcon className="w-4 h-4 text-amber-500 shrink-0" />
-          <span>
-            <strong className="font-semibold">{currentKerahet.title}:</strong> {currentKerahet.description}
-          </span>
-        </motion.div>
-      )}
+    <div className="flex-1 flex flex-col items-center px-4 py-6 max-w-md mx-auto w-full text-center">
+      {/* Gün Kavisi Kadranı: ekranın büyük bölümünü kaplar, optik olarak ortalı */}
+      <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
+        <div className="relative flex flex-col items-center justify-center animate-blur-up">
+          {/* Glow effect behind golden ring */}
+          <div className="absolute w-[260px] h-[260px] rounded-full bg-gold/5 blur-2xl pointer-events-none" />
 
-      {/* Merkezi Zaman Halkası (Ekranın kalbi) */}
-      <div className="relative my-auto flex flex-col items-center justify-center animate-blur-up">
-        {/* Glow effect behind golden ring */}
-        <div className="absolute w-[240px] h-[240px] rounded-full bg-gold/5 blur-2xl pointer-events-none" />
+          <div className="relative w-[288px] h-[288px] flex items-center justify-center">
+            <SunArcDial schedule={schedule} />
 
-        <div className="relative w-[260px] h-[260px] flex items-center justify-center">
-          <svg
-            width={size}
-            height={size}
-            className="transform -rotate-90 drop-shadow-sm"
-          >
-            {/* Arka plan pasif halka */}
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              stroke="var(--mist)"
-              strokeOpacity={0.25}
-              strokeWidth={strokeWidth}
-              fill="transparent"
-            />
-            {/* Ön plan ilerleyen altın halka */}
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              stroke="var(--gold)"
-              strokeWidth={strokeWidth}
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              fill="transparent"
-              className="transition-all duration-1000 ease-linear"
-            />
-          </svg>
+            {/* Sayacın İçi */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+              <div aria-hidden="true">
+                {/* Üst Bilgi Etiketi */}
+                <span className="text-xs font-medium text-mist tracking-wide uppercase mb-1 block text-center">
+                  {nextPrayer.label}’ye kalan süre
+                </span>
 
-          {/* Sayacın İçi */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
-            <div aria-hidden="true">
-              {/* Üst Bilgi Etiketi */}
-              <span className="text-xs font-medium text-mist tracking-wide uppercase mb-1 block text-center">
-                {nextPrayer.label}’ye kalan süre
-              </span>
-
-              {/* Geri Sayım Rakamları */}
-              <div
-                className="font-numbers font-extrabold tracking-tight text-ink my-1"
-                style={{ fontSize: 'clamp(1.75rem, 8vw, 2.5rem)' }}
-              >
-                {timeRemainingFormatted}
+                {/* Geri Sayım Rakamları */}
+                <div
+                  className="font-numbers font-extrabold tracking-tight text-ink my-1"
+                  style={{ fontSize: 'clamp(1.75rem, 8vw, 2.5rem)' }}
+                >
+                  {timeRemainingFormatted}
+                </div>
               </div>
-            </div>
-            <span className="sr-only" aria-live="polite">{srCountdownText}</span>
+              <span className="sr-only" aria-live="polite">{srCountdownText}</span>
 
-            {/* Alt Bilgi Etiketi */}
-            <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-gold">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-              <span>{activePrayer.label} vaktindesiniz</span>
+              {/* Alt Bilgi Etiketi */}
+              <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-gold">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+                <span>{activePrayer.label} vaktindesiniz</span>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Kerahet: kadranın altında sakin, layout'u kaydırmayan bir satır */}
+        {currentKerahet && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-3 text-[11px] text-mist"
+          >
+            <span className="text-gold font-medium">{currentKerahet.title}</span> — {currentKerahet.description}
+          </motion.p>
+        )}
       </div>
 
       {/* Alt Alan: Bento Grid (Sıradaki Vakit + Kısayollar) */}
-      <div className="w-full grid grid-cols-2 gap-3 mt-4">
+      <div className="w-full grid grid-cols-2 gap-3 mt-4 shrink-0">
         {/* Sıradaki Vakit Kartı (geniş) */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}

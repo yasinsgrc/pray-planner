@@ -106,6 +106,10 @@ function makeSchedule(prayerTime: Date): DayPrayerSchedule {
     ringProgress: 0,
     kerahetTimes: [],
     currentKerahet: null,
+    dayCycleStart: prayerTime,
+    dayCycleEnd: prayerTime,
+    dayCyclePrayers: [prayer],
+    dayProgress: 0,
   };
 }
 
