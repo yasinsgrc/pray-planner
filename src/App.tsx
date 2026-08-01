@@ -274,6 +274,7 @@ export default function App() {
             {activeTab === 'settings' && (
               <SpiritualSettings
                 settings={settings}
+                schedule={schedule}
                 onUpdateSettings={handleUpdateSettings}
                 onUpdateNotification={handleUpdateNotification}
                 pushStatus={pushStatus}
