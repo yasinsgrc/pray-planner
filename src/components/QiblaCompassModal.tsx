@@ -1,6 +1,8 @@
-import React from 'react';
-import { Compass, X, MapPin } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Compass, X, AlertCircle } from 'lucide-react';
 import { LocationItem } from '../types';
+import { useCompassHeading } from '../hooks/useCompassHeading';
+import { isAlignedWithBearing } from '../utils/compassHeading';
 
 interface QiblaCompassModalProps {
   location: LocationItem;
@@ -13,7 +15,8 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  if (!isOpen) return null;
+  const { heading, permissionState, requestPermission } = useCompassHeading(isOpen);
+  const wasAlignedRef = useRef(false);
 
   // Calculate Qibla bearing from user coordinates to Kaaba (Makkah: 21.4225 N, 39.8262 E)
   const kaabaLat = (21.4225 * Math.PI) / 180;
@@ -29,6 +32,21 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
   let qiblaBearing = (Math.atan2(y, x) * 180) / Math.PI;
   qiblaBearing = (qiblaBearing + 360) % 360;
   const qiblaFormatted = Math.round(qiblaBearing);
+
+  const needleRotation =
+    heading !== null ? (qiblaBearing - heading + 360) % 360 : qiblaBearing;
+  const aligned = heading !== null && isAlignedWithBearing(qiblaBearing, heading, 5);
+
+  useEffect(() => {
+    if (aligned && !wasAlignedRef.current && navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    wasAlignedRef.current = aligned;
+  }, [aligned]);
+
+  if (!isOpen) return null;
+
+  const needleColorClass = aligned ? 'text-emerald-500' : 'text-[#D6A84D]';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
@@ -54,7 +72,11 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
         </div>
 
         {/* Pusula Görsel Alanı */}
-        <div className="relative w-52 h-52 mx-auto my-4 flex items-center justify-center rounded-full border-2 border-[#D6A84D]/30 bg-[var(--paper)] shadow-inner">
+        <div
+          className={`relative w-52 h-52 mx-auto my-4 flex items-center justify-center rounded-full border-2 bg-[var(--paper)] shadow-inner transition-colors duration-300 ${
+            aligned ? 'border-emerald-500/50' : 'border-[#D6A84D]/30'
+          }`}
+        >
           {/* Kuzey / Güney / Doğu / Batı İşaretleri */}
           <span className="absolute top-2 text-[10px] font-bold text-red-500">N (Kuzey)</span>
           <span className="absolute bottom-2 text-[10px] font-bold text-[var(--mist)]">S (Güney)</span>
@@ -64,19 +86,31 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
           {/* Dönen Kıble İbresi */}
           <div
             className="absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-out"
-            style={{ transform: `rotate(${qiblaBearing}deg)` }}
+            style={{ transform: `rotate(${needleRotation}deg)` }}
           >
             <div className="flex flex-col items-center justify-start h-full py-3">
               {/* Kâbe Simgesi / Altın İbre Başı */}
-              <div className="w-7 h-7 rounded-lg bg-[#2D2D2D] border-2 border-[#D6A84D] flex items-center justify-center shadow-md">
-                <span className="text-[10px] font-bold text-[#D6A84D]">KÂBE</span>
+              <div
+                className={`w-7 h-7 rounded-lg bg-[#2D2D2D] border-2 flex items-center justify-center shadow-md transition-colors duration-300 ${
+                  aligned ? 'border-emerald-500' : 'border-[#D6A84D]'
+                }`}
+              >
+                <span className={`text-[10px] font-bold ${needleColorClass}`}>KÂBE</span>
               </div>
-              <div className="w-0.5 h-16 bg-[#D6A84D]" />
+              <div
+                className={`w-0.5 h-16 transition-colors duration-300 ${
+                  aligned ? 'bg-emerald-500' : 'bg-[#D6A84D]'
+                }`}
+              />
             </div>
           </div>
 
           {/* Merkez Nokta */}
-          <div className="w-4 h-4 rounded-full bg-[#D6A84D] border-2 border-white shadow-sm z-10" />
+          <div
+            className={`w-4 h-4 rounded-full border-2 border-white shadow-sm z-10 transition-colors duration-300 ${
+              aligned ? 'bg-emerald-500' : 'bg-[#D6A84D]'
+            }`}
+          />
         </div>
 
         <div className="p-3 rounded-xl bg-[#D6A84D]/10 border border-[#D6A84D]/20 text-xs">
@@ -88,6 +122,48 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
             Telefonunuzu düz bir zemin üzerinde tutarak pusula ibresini Kâbe yönüne çeviriniz.
           </p>
         </div>
+
+        {permissionState === 'idle' && (
+          <button
+            onClick={requestPermission}
+            className="w-full py-2.5 px-4 rounded-xl bg-[#D6A84D] hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+          >
+            <Compass className="w-4 h-4" />
+            <span>Pusulayı Etkinleştir</span>
+          </button>
+        )}
+
+        {permissionState === 'denied' && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2 text-left">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[11px] text-red-500">
+                İzin reddedildi. Tarayıcı ayarlarından hareket sensörü iznini açıp tekrar deneyin.
+              </p>
+              <button
+                onClick={requestPermission}
+                className="text-[11px] font-semibold text-[#D6A84D] hover:underline cursor-pointer mt-1"
+              >
+                Tekrar Dene
+              </button>
+            </div>
+          </div>
+        )}
+
+        {permissionState === 'unsupported' && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2 text-left">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-red-500">
+              Cihazınız pusula sensörünü desteklemiyor, açı bilgisini yukarıdan kullanabilirsiniz.
+            </p>
+          </div>
+        )}
+
+        {aligned && (
+          <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+            Kıble yönüne hizalandınız
+          </p>
+        )}
       </div>
     </div>
   );
