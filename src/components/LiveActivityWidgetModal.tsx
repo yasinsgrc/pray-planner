@@ -34,7 +34,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
       <div className="w-full max-w-sm bg-[#121316] text-white border border-gray-800 rounded-3xl shadow-2xl p-5 space-y-5 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-gray-800 pb-3">
           <div className="flex items-center gap-2">
-            <DeviceMobileIcon className="w-5 h-5 text-[#D6A84D]" />
+            <DeviceMobileIcon className="w-5 h-5 text-gold" />
             <div>
               <h3 className="font-serif-title font-bold text-sm text-white">
                 Kilit Ekranı Canlı Etkinliği
@@ -47,6 +47,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
           <button
             onClick={onClose}
             className="p-1 rounded-full hover:bg-gray-800 text-gray-400 cursor-pointer"
+            aria-label="Kapat"
           >
             <XIcon className="w-5 h-5" />
           </button>
@@ -56,7 +57,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
         <div className="p-4 rounded-2xl bg-gradient-to-b from-gray-900 to-black border border-gray-800 space-y-4 shadow-xl">
           <div className="flex items-center justify-between text-[11px] text-gray-400 border-b border-gray-800/80 pb-2">
             <div className="flex items-center gap-1">
-              <LockIcon className="w-3 h-3 text-[#D6A84D]" />
+              <LockIcon className="w-3 h-3 text-gold" />
               <span>Kilit Ekranı</span>
             </div>
             <span>{location.districtName}, {location.cityName}</span>
@@ -79,7 +80,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
                   cx={size / 2}
                   cy={size / 2}
                   r={radius}
-                  stroke="#D6A84D"
+                  stroke="var(--gold)"
                   strokeWidth={strokeWidth}
                   strokeDasharray={circumference}
                   strokeDashoffset={strokeDashoffset}
@@ -87,7 +88,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
                   fill="transparent"
                 />
               </svg>
-              <div className="absolute font-numbers text-[10px] font-bold text-[#D6A84D]">
+              <div className="absolute font-numbers text-[10px] font-bold text-gold">
                 VAKİT
               </div>
             </div>
@@ -100,14 +101,14 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
               <div className="font-numbers text-xl font-extrabold text-white tracking-tight">
                 {timeRemainingFormatted}
               </div>
-              <div className="text-[10px] text-[#D6A84D]">
+              <div className="text-[10px] text-gold">
                 Şu an: {activePrayer.label} ({activePrayer.timeString})
               </div>
             </div>
 
             {/* Sağ: Saat */}
             <div className="text-right shrink-0">
-              <div className="text-xs font-bold text-[#D6A84D] font-numbers">
+              <div className="text-xs font-bold text-gold font-numbers">
                 {nextPrayer.timeString}
               </div>
               <div className="text-[9px] text-gray-400">Sıradaki</div>

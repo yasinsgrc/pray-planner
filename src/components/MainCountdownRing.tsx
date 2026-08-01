@@ -48,7 +48,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
       {/* Merkezi Zaman Halkası (Ekranın kalbi) */}
       <div className="relative my-auto flex flex-col items-center justify-center animate-blur-up">
         {/* Glow effect behind golden ring */}
-        <div className="absolute w-[240px] h-[240px] rounded-full bg-[#D6A84D]/5 blur-2xl pointer-events-none" />
+        <div className="absolute w-[240px] h-[240px] rounded-full bg-gold/5 blur-2xl pointer-events-none" />
 
         <div className="relative w-[260px] h-[260px] flex items-center justify-center">
           <svg
@@ -71,7 +71,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke="#D6A84D"
+              stroke="var(--gold)"
               strokeWidth={strokeWidth}
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
@@ -84,21 +84,21 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           {/* Sayacın İçi */}
           <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
             {/* Üst Bilgi Etiketi */}
-            <span className="text-xs font-medium text-[var(--mist)] tracking-wide uppercase mb-1">
+            <span className="text-xs font-medium text-mist tracking-wide uppercase mb-1">
               {nextPrayer.label}’ye kalan süre
             </span>
 
             {/* Geri Sayım Rakamları */}
             <div
-              className="font-numbers font-extrabold tracking-tight text-[var(--ink)] my-1"
+              className="font-numbers font-extrabold tracking-tight text-ink my-1"
               style={{ fontSize: 'clamp(1.75rem, 8vw, 2.5rem)' }}
             >
               {timeRemainingFormatted}
             </div>
 
             {/* Alt Bilgi Etiketi */}
-            <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#D6A84D]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D6A84D] animate-pulse" />
+            <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-gold">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
               <span>{activePrayer.label} vaktindesiniz</span>
             </div>
           </div>
@@ -114,24 +114,24 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
-          className="col-span-2 p-3.5 rounded-2xl glass-panel border border-[var(--card-border)] shadow-sm flex items-center justify-between px-5 transition-colors"
+          className="col-span-2 p-3.5 rounded-2xl glass-panel border border-hairline shadow-sm flex items-center justify-between px-5 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#D6A84D]/10 text-[#D6A84D] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-gold/10 text-gold flex items-center justify-center">
               <ClockIcon className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <div className="text-[11px] text-[var(--mist)] uppercase tracking-wider font-semibold">
+              <div className="text-[11px] text-mist uppercase tracking-wider font-semibold">
                 Sıradaki Vakit
               </div>
-              <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
+              <div className="text-sm font-bold text-ink font-serif-title">
                 {nextPrayer.label}
               </div>
             </div>
           </div>
 
           <div className="text-right">
-            <div className="font-numbers text-lg font-bold text-[#D6A84D]">
+            <div className="font-numbers text-lg font-bold text-gold">
               {nextPrayer.timeString}
             </div>
           </div>
@@ -145,13 +145,13 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           transition={{ delay: 0.18, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.97 }}
-          className="p-3.5 rounded-2xl bg-[var(--card-bg)]/70 border border-[var(--card-border)]/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-[#D6A84D]/40"
+          className="p-3.5 rounded-2xl bg-card/70 border border-hairline/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-gold/40"
           title="Kilit Ekranı / Canlı Etkinlik Widget'ını Gör"
         >
-          <div className="w-8 h-8 rounded-full bg-[#D6A84D]/10 text-[#D6A84D] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-gold/10 text-gold flex items-center justify-center">
             <DeviceMobileIcon className="w-4 h-4" />
           </div>
-          <span className="text-xs font-semibold text-[var(--ink)] leading-tight">
+          <span className="text-xs font-semibold text-ink leading-tight">
             Kilit Ekranı Görünümü
           </span>
         </motion.button>
@@ -164,12 +164,12 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           transition={{ delay: 0.24, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.97 }}
-          className="p-3.5 rounded-2xl bg-[var(--card-bg)]/70 border border-[var(--card-border)]/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-[#D6A84D]/40"
+          className="p-3.5 rounded-2xl bg-card/70 border border-hairline/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-gold/40"
         >
-          <div className="w-8 h-8 rounded-full bg-[#D6A84D]/10 text-[#D6A84D] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-gold/10 text-gold flex items-center justify-center">
             <CalendarDotsIcon className="w-4 h-4" />
           </div>
-          <span className="text-xs font-semibold text-[var(--ink)] leading-tight">
+          <span className="text-xs font-semibold text-ink leading-tight">
             Tüm Vakitler
           </span>
         </motion.button>

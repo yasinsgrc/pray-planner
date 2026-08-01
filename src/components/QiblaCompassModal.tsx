@@ -46,26 +46,27 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
 
   if (!isOpen) return null;
 
-  const needleColorClass = aligned ? 'text-emerald-500' : 'text-[#D6A84D]';
+  const needleColorClass = aligned ? 'text-emerald-500' : 'text-gold';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-      <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl p-5 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-[#D6A84D]/15 pb-3">
+      <div className="w-full max-w-sm bg-card border border-hairline rounded-2xl shadow-xl p-5 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between border-b border-gold/15 pb-3">
           <div className="flex items-center gap-2 text-left">
-            <CompassIcon className="w-5 h-5 text-[#D6A84D]" />
+            <CompassIcon className="w-5 h-5 text-gold" />
             <div>
-              <h3 className="font-serif-title font-bold text-base text-[var(--ink)]">
+              <h3 className="font-serif-title font-bold text-base text-ink">
                 Kıble Pusulası
               </h3>
-              <p className="text-[10px] text-[var(--mist)]">
+              <p className="text-[10px] text-mist">
                 {location.districtName}, {location.cityName} için derece açısı
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-[var(--mist)] cursor-pointer"
+            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-mist cursor-pointer"
+            aria-label="Kapat"
           >
             <XIcon className="w-5 h-5" />
           </button>
@@ -73,15 +74,15 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
 
         {/* Pusula Görsel Alanı */}
         <div
-          className={`relative w-52 h-52 mx-auto my-4 flex items-center justify-center rounded-full border-2 bg-[var(--paper)] shadow-inner transition-colors duration-300 ${
-            aligned ? 'border-emerald-500/50' : 'border-[#D6A84D]/30'
+          className={`relative w-52 h-52 mx-auto my-4 flex items-center justify-center rounded-full border-2 bg-paper shadow-inner transition-colors duration-300 ${
+            aligned ? 'border-emerald-500/50' : 'border-gold/30'
           }`}
         >
           {/* Kuzey / Güney / Doğu / Batı İşaretleri */}
           <span className="absolute top-2 text-[10px] font-bold text-red-500">N (Kuzey)</span>
-          <span className="absolute bottom-2 text-[10px] font-bold text-[var(--mist)]">S (Güney)</span>
-          <span className="absolute right-2 text-[10px] font-bold text-[var(--mist)]">E (Doğu)</span>
-          <span className="absolute left-2 text-[10px] font-bold text-[var(--mist)]">W (Batı)</span>
+          <span className="absolute bottom-2 text-[10px] font-bold text-mist">S (Güney)</span>
+          <span className="absolute right-2 text-[10px] font-bold text-mist">E (Doğu)</span>
+          <span className="absolute left-2 text-[10px] font-bold text-mist">W (Batı)</span>
 
           {/* Dönen Kıble İbresi */}
           <div
@@ -89,17 +90,17 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
             style={{ transform: `rotate(${needleRotation}deg)` }}
           >
             <div className="flex flex-col items-center justify-start h-full py-3">
-              {/* Kâbe Simgesi / Altın İbre Başı */}
+              {/* Kâbe Simgesi / Altın İbre Başı — bilerek temadan bağımsız koyu (gerçek Kâbe rengi) */}
               <div
                 className={`w-7 h-7 rounded-lg bg-[#2D2D2D] border-2 flex items-center justify-center shadow-md transition-colors duration-300 ${
-                  aligned ? 'border-emerald-500' : 'border-[#D6A84D]'
+                  aligned ? 'border-emerald-500' : 'border-gold'
                 }`}
               >
                 <span className={`text-[10px] font-bold ${needleColorClass}`}>KÂBE</span>
               </div>
               <div
                 className={`w-0.5 h-16 transition-colors duration-300 ${
-                  aligned ? 'bg-emerald-500' : 'bg-[#D6A84D]'
+                  aligned ? 'bg-emerald-500' : 'bg-gold'
                 }`}
               />
             </div>
@@ -108,17 +109,17 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
           {/* Merkez Nokta */}
           <div
             className={`w-4 h-4 rounded-full border-2 border-white shadow-sm z-10 transition-colors duration-300 ${
-              aligned ? 'bg-emerald-500' : 'bg-[#D6A84D]'
+              aligned ? 'bg-emerald-500' : 'bg-gold'
             }`}
           />
         </div>
 
-        <div className="p-3 rounded-xl bg-[#D6A84D]/10 border border-[#D6A84D]/20 text-xs">
-          <div className="text-[11px] text-[var(--mist)]">Kâbe-i Muazzama Açısı</div>
-          <div className="font-numbers text-xl font-extrabold text-[#D6A84D] mt-0.5">
+        <div className="p-3 rounded-xl bg-gold/10 border border-gold/20 text-xs">
+          <div className="text-[11px] text-mist">Kâbe-i Muazzama Açısı</div>
+          <div className="font-numbers text-xl font-extrabold text-gold mt-0.5">
             {qiblaFormatted}°
           </div>
-          <p className="text-[10px] text-[var(--mist)] mt-1">
+          <p className="text-[10px] text-mist mt-1">
             Telefonunuzu düz bir zemin üzerinde tutarak pusula ibresini Kâbe yönüne çeviriniz.
           </p>
         </div>
@@ -126,7 +127,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
         {permissionState === 'idle' && (
           <button
             onClick={requestPermission}
-            className="w-full py-2.5 px-4 rounded-xl bg-[#D6A84D] hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+            className="w-full py-2.5 px-4 rounded-xl bg-gold hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
           >
             <CompassIcon className="w-4 h-4" />
             <span>Pusulayı Etkinleştir</span>
@@ -142,7 +143,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
               </p>
               <button
                 onClick={requestPermission}
-                className="text-[11px] font-semibold text-[#D6A84D] hover:underline cursor-pointer mt-1"
+                className="text-[11px] font-semibold text-gold hover:underline cursor-pointer mt-1"
               >
                 Tekrar Dene
               </button>
@@ -159,7 +160,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
               </p>
               <button
                 onClick={requestPermission}
-                className="text-[11px] font-semibold text-[#D6A84D] hover:underline cursor-pointer mt-1"
+                className="text-[11px] font-semibold text-gold hover:underline cursor-pointer mt-1"
               >
                 Tekrar Dene
               </button>

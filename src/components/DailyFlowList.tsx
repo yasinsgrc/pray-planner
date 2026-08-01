@@ -40,18 +40,18 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
   return (
     <div className="w-full max-w-md mx-auto px-4 py-6 space-y-4">
       {/* Başlık */}
-      <div className="flex items-center justify-between border-b border-[#D6A84D]/15 pb-3">
+      <div className="flex items-center justify-between border-b border-gold/15 pb-3">
         <div>
-          <h2 className="text-lg font-serif-title font-bold text-[var(--ink)]">
+          <h2 className="text-lg font-serif-title font-bold text-ink">
             Günlük Vakit Akışı
           </h2>
-          <p className="text-xs text-[var(--mist)]">
+          <p className="text-xs text-mist">
             Günün 6 ana zaman dilimi ve kerahet vakitleri
           </p>
         </div>
         <button
           onClick={onOpenSettings}
-          className="text-xs font-semibold text-[#D6A84D] hover:underline cursor-pointer"
+          className="text-xs font-semibold text-gold hover:underline cursor-pointer"
         >
           Ses Ayarları
         </button>
@@ -107,10 +107,10 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                 transition={{ delay: index * 0.05 }}
                 className={`relative rounded-xl p-4 transition-all flex items-center justify-between ${
                   item.isActive
-                    ? 'glass-panel shadow-md border-l-4 border-l-[#D6A84D] border-t border-r border-b border-t-[var(--card-border)] border-r-[var(--card-border)] border-b-[var(--card-border)] scale-[1.02]'
+                    ? 'glass-panel shadow-md border-l-4 border-l-gold border-t border-r border-b border-t-hairline border-r-hairline border-b-hairline scale-[1.02]'
                     : item.isPast
-                    ? 'bg-[var(--card-bg)]/40 opacity-40 grayscale-[20%]'
-                    : 'bg-[var(--card-bg)]/70 border border-[var(--card-border)]/50'
+                    ? 'bg-card/40 opacity-40 grayscale-[20%]'
+                    : 'bg-card/70 border border-hairline/50'
                 }`}
               >
                 {/* Sol: İkon ve İsim */}
@@ -118,10 +118,10 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                       item.isActive
-                        ? 'bg-[#D6A84D] text-white shadow-sm'
+                        ? 'bg-gold text-white shadow-sm'
                         : item.isPast
-                        ? 'bg-gray-200 dark:bg-gray-800 text-[var(--mist)]'
-                        : 'bg-[#D6A84D]/10 text-[#D6A84D]'
+                        ? 'bg-gray-200 dark:bg-gray-800 text-mist'
+                        : 'bg-gold/10 text-gold'
                     }`}
                   >
                     {PRAYER_ICONS[item.name]}
@@ -132,14 +132,14 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                       <span
                         className={`font-serif-title font-bold text-base ${
                           item.isActive
-                            ? 'text-[#D6A84D]'
-                            : 'text-[var(--ink)]'
+                            ? 'text-gold'
+                            : 'text-ink'
                         }`}
                       >
                         {item.label}
                       </span>
                       {item.isActive && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#D6A84D]/15 text-[#D6A84D] tracking-wide">
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gold/15 text-gold tracking-wide">
                           ŞU ANKİ VAKİT
                         </span>
                       )}
@@ -149,7 +149,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-[var(--mist)] mt-0.5">
+                    <div className="text-[11px] text-mist mt-0.5">
                       {item.isActive
                         ? 'Şu an bu vakit içerisindesiniz'
                         : item.isPast
@@ -165,30 +165,30 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                     <div
                       className={`font-numbers text-lg font-bold ${
                         item.isActive
-                          ? 'text-[#D6A84D]'
-                          : 'text-[var(--ink)]'
+                          ? 'text-gold'
+                          : 'text-ink'
                       }`}
                     >
                       {item.timeString}
                     </div>
-                    <div className="text-[10px] text-[var(--mist)] flex items-center justify-end gap-1">
+                    <div className="text-[10px] text-mist flex items-center justify-end gap-1">
                       {soundMode === 'ezan' && (
-                        <span className="flex items-center gap-0.5 text-[#D6A84D]">
+                        <span className="flex items-center gap-0.5 text-gold">
                           <BellIcon className="w-2.5 h-2.5" /> Ezan
                         </span>
                       )}
                       {soundMode === 'tini' && (
-                        <span className="flex items-center gap-0.5 text-[#E8C68C]">
+                        <span className="flex items-center gap-0.5 text-sand">
                           <SpeakerHighIcon className="w-2.5 h-2.5" /> Tını
                         </span>
                       )}
                       {(soundMode === 'ilahi1' || soundMode === 'ilahi2' || soundMode === 'ilahi3') && (
-                        <span className="flex items-center gap-0.5 text-[#E8C68C]">
+                        <span className="flex items-center gap-0.5 text-sand">
                           <SpeakerHighIcon className="w-2.5 h-2.5" /> İlahi {soundMode.slice(-1)}
                         </span>
                       )}
                       {soundMode === 'sessiz' && (
-                        <span className="flex items-center gap-0.5 text-[var(--mist)]">
+                        <span className="flex items-center gap-0.5 text-mist">
                           <SpeakerXIcon className="w-2.5 h-2.5" /> Sessiz
                         </span>
                       )}

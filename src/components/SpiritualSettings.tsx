@@ -45,23 +45,23 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
     <div className="w-full max-w-md mx-auto px-4 py-6 space-y-6">
       {/* Başlık */}
       <div>
-        <h2 className="text-xl font-serif-title font-bold text-[var(--ink)]">
+        <h2 className="text-xl font-serif-title font-bold text-ink">
           Manevi Ayarlar & Bildirimler
         </h2>
-        <p className="text-xs text-[var(--mist)] mt-1">
+        <p className="text-xs text-mist mt-1">
           Ruhunuzu ve huzurunuzu yormayan kişiselleştirmeler
         </p>
       </div>
 
       {/* 0. Bildirimleri Etkinleştir */}
-      <FadeIn delay={0} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+      <FadeIn delay={0} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
         <div className="flex items-center gap-2">
-          <BellIcon className="w-4 h-4 text-[#D6A84D]" />
+          <BellIcon className="w-4 h-4 text-gold" />
           <div>
-            <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
+            <div className="text-sm font-bold text-ink font-serif-title">
               Bildirimleri Etkinleştir
             </div>
-            <div className="text-[11px] text-[var(--mist)]">
+            <div className="text-[11px] text-mist">
               Vakit girdiğinde tarayıcı bildirimi alabilmek için izin verin
             </div>
           </div>
@@ -75,7 +75,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           <button
             onClick={onEnablePush}
             disabled={pushStatus === 'loading'}
-            className="w-full py-2.5 px-4 rounded-full bg-[#D6A84D] hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95"
+            className="w-full py-2.5 px-4 rounded-full bg-gold hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95"
           >
             {pushStatus === 'loading' ? 'Bekleniyor...' : 'Bildirimlere İzin Ver'}
           </button>
@@ -92,15 +92,15 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       </FadeIn>
 
       {/* 1. Vakit Bazlı Bildirim Seçimi */}
-      <FadeIn delay={0.06} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-[#D6A84D]/15 pb-2.5">
+      <FadeIn delay={0.06} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">
           <div className="flex items-center gap-2">
-            <BellIcon className="w-4 h-4 text-[#D6A84D]" />
-            <span className="text-sm font-bold text-[var(--ink)] font-serif-title">
+            <BellIcon className="w-4 h-4 text-gold" />
+            <span className="text-sm font-bold text-ink font-serif-title">
               Vakit Bazlı Bildirim Sesleri
             </span>
           </div>
-          <span className="text-[10px] text-[#D6A84D] font-medium bg-[#D6A84D]/10 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] text-gold font-medium bg-gold/10 px-2 py-0.5 rounded-full">
             Özelleştirilebilir
           </span>
         </div>
@@ -114,7 +114,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                 key={prayer}
                 className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800/40 last:border-0"
               >
-                <span className="text-sm font-medium text-[var(--ink)]">
+                <span className="text-sm font-medium text-ink">
                   {PRAYER_LABELS[prayer]}
                 </span>
 
@@ -125,7 +125,8 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                     onUpdateNotification(prayer, mode);
                     playSoundForMode(mode);
                   }}
-                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-[var(--paper)] border border-[#D6A84D]/15 text-[var(--ink)] focus:outline-none focus:border-[#D6A84D] cursor-pointer"
+                  aria-label={`${PRAYER_LABELS[prayer]} bildirim sesi`}
+                  className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-paper border border-gold/15 text-ink focus:outline-none focus:border-gold cursor-pointer"
                 >
                   <option value="ezan">Ezan</option>
                   <option value="ilahi1">İlahi 1</option>
@@ -139,13 +140,13 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           })}
         </div>
 
-        <p className="text-[10px] text-[var(--mist)] pt-1">
+        <p className="text-[10px] text-mist pt-1">
           Ezan sesi:{' '}
           <a
             href="https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-[#D6A84D]"
+            className="underline hover:text-gold"
           >
             Wikimedia Commons, Atcovi
           </a>{' '}
@@ -154,14 +155,14 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       </FadeIn>
 
       {/* 2. Erken Uyarı (Abdest Hatırlatıcı) */}
-      <FadeIn delay={0.12} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+      <FadeIn delay={0.12} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
         <div className="flex items-center gap-2">
-          <ClockIcon className="w-4 h-4 text-[#D6A84D]" />
+          <ClockIcon className="w-4 h-4 text-gold" />
           <div>
-            <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
+            <div className="text-sm font-bold text-ink font-serif-title">
               Abdest & Hazırlık Hatırlatıcı
             </div>
-            <div className="text-[11px] text-[var(--mist)]">
+            <div className="text-[11px] text-mist">
               Vaktin girmesinden önce huzurlu bir hazırlık uyarısı gönderir
             </div>
           </div>
@@ -181,8 +182,8 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               }
               className={`py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer hover:scale-[1.03] active:scale-95 ${
                 notifications.earlyWarningMinutes === mins
-                  ? 'bg-[#D6A84D] text-white border-[#D6A84D] shadow-xs'
-                  : 'bg-[var(--paper)] text-[var(--ink)] border-transparent hover:border-[#D6A84D]/30'
+                  ? 'bg-gold text-white border-gold shadow-xs'
+                  : 'bg-paper text-ink border-transparent hover:border-gold/30'
               }`}
             >
               {mins === 0 ? 'Kapalı' : `${mins} dk`}
@@ -192,16 +193,16 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       </FadeIn>
 
       {/* 3. Gece Modu ve Otomatik Zemin Değişimi */}
-      <FadeIn delay={0.18} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+      <FadeIn delay={0.18} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MoonIcon className="w-4 h-4 text-[#D6A84D]" />
+            <MoonIcon className="w-4 h-4 text-gold" />
             <div>
-              <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
+              <div className="text-sm font-bold text-ink font-serif-title">
                 Gece Teması & Otomatik Dönüşüm
               </div>
-              <div className="text-[11px] text-[var(--mist)]">
-                Gün batımında krem zeminden koyu laciverte (#1A1B1E) geçer
+              <div className="text-[11px] text-mist">
+                Gün batımında krem zeminden koyu laciverte geçer
               </div>
             </div>
           </div>
@@ -220,8 +221,8 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               }
               className={`py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 border text-center cursor-pointer hover:scale-[1.03] active:scale-95 ${
                 themeMode === mode.id
-                  ? 'bg-[#D6A84D] text-white border-[#D6A84D]'
-                  : 'bg-[var(--paper)] text-[var(--ink)] border-transparent hover:border-[#D6A84D]/30'
+                  ? 'bg-gold text-white border-gold'
+                  : 'bg-paper text-ink border-transparent hover:border-gold/30'
               }`}
             >
               {mode.label}
@@ -231,14 +232,14 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       </FadeIn>
 
       {/* 4. Hesaplama Yöntemi */}
-      <FadeIn delay={0.24} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+      <FadeIn delay={0.24} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
         <div className="flex items-center gap-2">
-          <GearIcon className="w-4 h-4 text-[#D6A84D]" />
+          <GearIcon className="w-4 h-4 text-gold" />
           <div>
-            <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
+            <div className="text-sm font-bold text-ink font-serif-title">
               Hesaplama Yöntemi
             </div>
-            <div className="text-[11px] text-[var(--mist)]">
+            <div className="text-[11px] text-mist">
               Diyanet İşleri Başkanlığı ve uluslararası astronomik yöntemler
             </div>
           </div>
@@ -251,7 +252,8 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               calculationMethod: e.target.value as AppSettings['calculationMethod'],
             })
           }
-          className="w-full p-2.5 rounded-xl bg-[var(--paper)] border border-[#D6A84D]/20 text-xs font-semibold text-[var(--ink)] focus:outline-none focus:border-[#D6A84D]"
+          aria-label="Hesaplama yöntemi"
+          className="w-full p-2.5 rounded-xl bg-paper border border-gold/20 text-xs font-semibold text-ink focus:outline-none focus:border-gold"
         >
           <option value="Diyanet">Türkiye Diyanet İşleri Başkanlığı</option>
           <option value="MWL">Müslüman Dünya Ligi (MWL)</option>
@@ -263,27 +265,27 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       </FadeIn>
 
       {/* 4.5 Hicri Tarih Hakkında */}
-      <FadeIn delay={0.3} className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-2">
+      <FadeIn delay={0.3} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
         <div className="flex items-center gap-2">
-          <CalendarDotsIcon className="w-4 h-4 text-[#D6A84D]" />
-          <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
+          <CalendarDotsIcon className="w-4 h-4 text-gold" />
+          <div className="text-sm font-bold text-ink font-serif-title">
             Hicri Tarih Hakkında
           </div>
         </div>
-        <p className="text-[11px] text-[var(--mist)] leading-relaxed">
+        <p className="text-[11px] text-mist leading-relaxed">
           Uygulamadaki hicri tarih, Ümmü'l-Kura takvim verisine dayanan astronomik bir hesaplamadır. Diyanet İşleri Başkanlığı'nın resmi açıklamasından bazı aylarda ±1 gün farklı olabilir; kesin tarih için resmi Diyanet duyurularını esas alınız.
         </p>
       </FadeIn>
 
       {/* 5. İnternetsiz Çevrimdışı Bellek (30 Günlük Local DB) */}
-      <FadeIn delay={0.36} className="p-4 rounded-2xl bg-[#D6A84D]/10 border border-[#D6A84D]/30 flex items-center gap-3">
-        <ShieldCheckIcon className="w-6 h-6 text-[#D6A84D] shrink-0" />
+      <FadeIn delay={0.36} className="p-4 rounded-2xl bg-gold/10 border border-gold/30 flex items-center gap-3">
+        <ShieldCheckIcon className="w-6 h-6 text-gold shrink-0" />
         <div>
-          <div className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5">
+          <div className="text-xs font-bold text-ink flex items-center gap-1.5">
             <span>30 Günlük Çevrimdışı Vakit Paketi Yüklü</span>
             <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
           </div>
-          <p className="text-[11px] text-[var(--mist)] leading-relaxed mt-0.5">
+          <p className="text-[11px] text-mist leading-relaxed mt-0.5">
             İnternet bağlantınız kesilse dahi tüm vakitler ve bildirimler telefonunuzun yerel hafızasından sorunsuz çalışır.
           </p>
         </div>

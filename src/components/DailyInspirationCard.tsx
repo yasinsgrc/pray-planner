@@ -51,23 +51,23 @@ export const DailyInspirationCard: React.FC = () => {
 
   return (
     <div className="w-full max-w-md mx-auto px-4 py-4">
-      <div className="p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-4">
+      <div className="p-5 rounded-2xl bg-card border border-hairline shadow-sm space-y-4">
         {/* Üst Sekme Başlıkları */}
-        <div className="flex items-center justify-between border-b border-[#D6A84D]/15 pb-2.5">
+        <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">
           <div className="flex items-center gap-2">
-            <BookOpenIcon className="w-4 h-4 text-[#D6A84D]" />
-            <span className="text-sm font-bold text-[var(--ink)] font-serif-title">
+            <BookOpenIcon className="w-4 h-4 text-gold" />
+            <span className="text-sm font-bold text-ink font-serif-title">
               Günün Manevi Notu
             </span>
           </div>
 
-          <div className="flex items-center gap-1 bg-[var(--paper)] p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-paper p-1 rounded-xl">
             <button
               onClick={() => setTab('verse')}
               className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
                 tab === 'verse'
-                  ? 'bg-[#D6A84D] text-white'
-                  : 'text-[var(--mist)] hover:text-[var(--ink)]'
+                  ? 'bg-gold text-white'
+                  : 'text-mist hover:text-ink'
               }`}
             >
               Âyet
@@ -76,8 +76,8 @@ export const DailyInspirationCard: React.FC = () => {
               onClick={() => setTab('hadith')}
               className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
                 tab === 'hadith'
-                  ? 'bg-[#D6A84D] text-white'
-                  : 'text-[var(--mist)] hover:text-[var(--ink)]'
+                  ? 'bg-gold text-white'
+                  : 'text-mist hover:text-ink'
               }`}
             >
               Hadis
@@ -86,8 +86,8 @@ export const DailyInspirationCard: React.FC = () => {
               onClick={() => setTab('dua')}
               className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
                 tab === 'dua'
-                  ? 'bg-[#D6A84D] text-white'
-                  : 'text-[var(--mist)] hover:text-[var(--ink)]'
+                  ? 'bg-gold text-white'
+                  : 'text-mist hover:text-ink'
               }`}
             >
               Dua
@@ -97,15 +97,15 @@ export const DailyInspirationCard: React.FC = () => {
 
         {/* Metin İçeriği */}
         <div className="relative py-2">
-          <QuotesIcon className="w-8 h-8 text-[#D6A84D]/15 absolute -top-1 -left-2 pointer-events-none" />
+          <QuotesIcon className="w-8 h-8 text-gold/15 absolute -top-1 -left-2 pointer-events-none" />
 
-          <p className="text-sm font-serif-title text-[var(--ink)] leading-relaxed italic relative z-10 px-2">
+          <p className="text-sm font-serif-title text-ink leading-relaxed italic relative z-10 px-2">
             {tab === 'verse' && verseText}
             {tab === 'hadith' && content.hadith}
             {tab === 'dua' && content.dua}
           </p>
 
-          <div className="text-right text-xs font-semibold text-[#D6A84D] mt-3">
+          <div className="text-right text-xs font-semibold text-gold mt-3">
             {tab === 'verse' && verseRefText}
             {tab === 'hadith' && content.hadithRef}
             {tab === 'dua' && content.duaRef}
@@ -116,7 +116,7 @@ export const DailyInspirationCard: React.FC = () => {
         <div className="flex items-center justify-end gap-2 border-t border-gray-100 dark:border-gray-800/40 pt-2.5">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 text-xs text-[var(--mist)] hover:text-[#D6A84D] transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-xs text-mist hover:text-gold transition-colors cursor-pointer"
           >
             {copied ? (
               <>
