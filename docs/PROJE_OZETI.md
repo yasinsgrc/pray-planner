@@ -6,7 +6,7 @@
 
 ## Teknoloji Yığını
 
-- **Frontend:** React 19 + TypeScript + Vite 6, Tailwind CSS 4, `motion` (animasyon), `lucide-react` (ikonlar)
+- **Frontend:** React 19 + TypeScript + Vite 6, Tailwind CSS 4, `motion` (animasyon), `@phosphor-icons/react` (ikonlar)
 - **Vakit hesaplama:** `adhan` kütüphanesi (Diyanet, MWL, ISNA, Mısır, Karaçi, Mekke yöntemleri desteklenir)
 - **Backend:** Node.js + Express (`server/`), `web-push` (gerçek push bildirimleri için), JSON dosya tabanlı abonelik deposu
 - **Test:** Node'un yerleşik `node:test` çalıştırıcısı, `tsx` üzerinden — ek bir frontend test framework'ü yok
@@ -37,16 +37,16 @@ docs/superpowers/plans/      — her özellik için adım adım implementasyon p
 - **Zikirmatik** (33/100 hedefli sayaç, titreşim + ses geri bildirimi)
 - **Gece/gündüz teması** (otomatik veya manuel)
 - **Web Push bildirimleri** — vakit girince veya erken uyarı anında gerçek tarayıcı bildirimi (uygulama/sekme kapalıyken de çalışır). Express backend + `web-push` + service worker ile. *main dalına alındı.*
-- **Kıble pusulası — canlı cihaz yönü takibi** — telefonu çevirince ibre gerçek zamanlı döner, kıbleye hizalanınca yeşile döner + titreşim. `feature/qibla-live-compass` dalında, henüz main'e alınmadı — bir kritik düzeltme (Android'de mutlak/relative açı sorunu) bekliyor.
+- **Kıble pusulası — canlı cihaz yönü takibi** — telefonu çevirince ibre gerçek zamanlı döner, kıbleye hizalanınca yeşile döner + titreşim. Android `deviceorientationabsolute`/`deviceorientation` ayrımı düzeltildi, main'de.
+- **PWA manifest, ikonlar** — tamamlandı (design refresh v2, B7/B8)
+- **Tasarım/UX cilası** — design refresh v2 + design refinement v3 (Faz A–E) + gerçek headless-browser görsel doğrulama (`npm run visual`) ile kapsamlı revizyondan geçti
 
 ## Devam Eden / Bilinen Eksikler
 
-- Kıble pusulası: Android'de `deviceorientationabsolute` yerine düz `deviceorientation` dinlendiği için ibre gerçek kuzeye değil keyfi bir referansa göre dönebilir — düzeltme sürüyor
 - Konum sistemi hâlâ 16 sabit şehirle sınırlı, serbest arama/geocoding yok
-- PWA manifest, ikonlar, Play Store paketleme (Capacitor) hiç başlanmadı
-- Tasarım/UX cilası yapılmadı
-- Store hazırlığı (gizlilik politikası, ekran görüntüleri) yok
-- `@google/genai`, `express`(bir kısmı artık kullanılıyor), `dotenv` gibi AI Studio şablonundan kalma bazı bağımlılıklar hâlâ kısmen kullanılmıyor
+- Play Store paketleme (Capacitor) hiç başlanmadı
+- Store hazırlığı (gizlilik politikası, ekran görüntüleri, listing metni) yok
+- `@google/genai` zaten kaldırılmıştı; `esbuild`/`autoprefixer` (kullanılmayan AI Studio şablon kalıntıları) ve mükerrer `vite` dependency girişi de temizlendi — `dotenv`/`express` gerçekten kullanılıyor, kalıntı değil
 
 ## Nasıl Çalıştırılır
 
