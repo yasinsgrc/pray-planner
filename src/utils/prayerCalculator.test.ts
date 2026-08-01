@@ -65,3 +65,20 @@ test('dayCycle wraps to the previous day fajr-to-fajr window before today fajr',
   assert.equal(schedule.dayCyclePrayers[0].dateObj.getTime(), day.yesterdayFajr.getTime());
   assert.ok(schedule.dayProgress > 0 && schedule.dayProgress < 1);
 });
+
+test('tomorrowImsakTime/tomorrowAksamTime match tomorrow fajr/maghrib formatted as HH:mm', () => {
+  const day = calculateDaySchedule(DEFAULT_LOCATION, FIXED_DAY, 'Diyanet');
+  const schedule = deriveLiveSchedule(day, day.dhuhr);
+
+  const expectedImsak = `${day.tomorrowFajr.getHours().toString().padStart(2, '0')}:${day.tomorrowFajr
+    .getMinutes()
+    .toString()
+    .padStart(2, '0')}`;
+  const expectedAksam = `${day.tomorrowMaghrib.getHours().toString().padStart(2, '0')}:${day.tomorrowMaghrib
+    .getMinutes()
+    .toString()
+    .padStart(2, '0')}`;
+
+  assert.equal(schedule.tomorrowImsakTime, expectedImsak);
+  assert.equal(schedule.tomorrowAksamTime, expectedAksam);
+});

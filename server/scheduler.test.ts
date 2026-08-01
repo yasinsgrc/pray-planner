@@ -110,6 +110,8 @@ function makeSchedule(prayerTime: Date): DayPrayerSchedule {
     dayCycleEnd: prayerTime,
     dayCyclePrayers: [prayer],
     dayProgress: 0,
+    tomorrowImsakTime: '00:00',
+    tomorrowAksamTime: '00:00',
   };
 }
 

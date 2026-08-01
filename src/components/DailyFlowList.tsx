@@ -7,13 +7,13 @@ import {
   SunDimIcon,
   SunHorizonIcon,
   SparkleIcon,
-  WarningCircleIcon,
+  MinusIcon,
   SpeakerHighIcon,
   SpeakerXIcon,
   BellIcon,
 } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
-import { PrayerName, SoundMode } from '../types';
+import { KerahetInfo, PrayerName, SoundMode } from '../types';
 
 interface DailyFlowListProps {
   schedule: DayPrayerSchedule;
@@ -30,12 +30,23 @@ const PRAYER_ICONS: Record<PrayerName, React.ReactNode> = {
   yatsi: <SparkleIcon className="w-5 h-5" />,
 };
 
+const KERAHET_SHORT_LABEL: Record<KerahetInfo['type'], string> = {
+  gunes_sonrasi: 'Güneş Keraheti',
+  ogle_oncesi: 'İstivâ',
+  aksam_oncesi: 'İstifrâ',
+};
+
+function formatKerahetRange(k: KerahetInfo): string {
+  const fmt = (d: Date) => d.toTimeString().slice(0, 5);
+  return `${fmt(k.startTime)}–${fmt(k.endTime)}`;
+}
+
 export const DailyFlowList: React.FC<DailyFlowListProps> = ({
   schedule,
   notifications,
   onOpenSettings,
 }) => {
-  const { prayers, kerahetTimes } = schedule;
+  const { prayers, kerahetTimes, tomorrowImsakTime, tomorrowAksamTime } = schedule;
 
   return (
     <div className="w-full max-w-md mx-auto px-4 py-6 space-y-4">
@@ -57,148 +68,167 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
         </button>
       </div>
 
-      {/* Vakit Listesi */}
-      <div className="space-y-3">
+      {/* Vakit Akışı: sol omurga + düğümler */}
+      <div>
         {prayers.map((item, index) => {
           const soundMode = notifications[item.name];
-
-          // Check if there is a kerahet window right before this prayer or right after sunrise
-          const isGunes = item.name === 'gunes';
-          const isOgle = item.name === 'ogle';
-          const isAksam = item.name === 'aksam';
+          const nextItem = prayers[index + 1];
+          const kerahetInGap = kerahetTimes.filter(
+            (k) => k.startTime >= item.dateObj && (!nextItem || k.startTime < nextItem.dateObj)
+          );
+          const lineColor = item.isPast || item.isActive ? `var(--v-${item.name})` : 'var(--hairline)';
+          const isLast = index === prayers.length - 1 && kerahetInGap.length === 0;
 
           return (
             <React.Fragment key={item.name}>
-              {/* Güneş Sonrası Kerahet Çizgisi */}
-              {isGunes && (
-                <div className="my-1.5 p-2 rounded-lg bg-orange-500/5 border-l-2 border-orange-400/60 flex items-center gap-2 text-[11px] text-orange-700 dark:text-orange-300">
-                  <WarningCircleIcon className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  <span>
-                    <strong>Kerahet Vakti:</strong> Güneş doğduktan sonra 45 dakika namaz kılınmaz.
-                  </span>
-                </div>
-              )}
-
-              {/* Öğle Öncesi Kerahet Çizgisi */}
-              {isOgle && (
-                <div className="my-1.5 p-2 rounded-lg bg-orange-500/5 border-l-2 border-orange-400/60 flex items-center gap-2 text-[11px] text-orange-700 dark:text-orange-300">
-                  <WarningCircleIcon className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  <span>
-                    <strong>İstivâ Keraheti:</strong> Öğleye 45 dk kala namaz kılınmaz.
-                  </span>
-                </div>
-              )}
-
-              {/* Akşam Öncesi Kerahet Çizgisi */}
-              {isAksam && (
-                <div className="my-1.5 p-2 rounded-lg bg-orange-500/5 border-l-2 border-orange-400/60 flex items-center gap-2 text-[11px] text-orange-700 dark:text-orange-300">
-                  <WarningCircleIcon className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  <span>
-                    <strong>İstifrâ Keraheti:</strong> Akşama 45 dk kala (kerahet vakti).
-                  </span>
-                </div>
-              )}
-
               {/* Vakit Satırı / Kartı */}
               <motion.div
                 layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className={`relative rounded-xl p-4 transition-all flex items-center justify-between ${
-                  item.isActive
-                    ? 'glass-panel shadow-md border-l-4 border-l-gold border-t border-r border-b border-t-hairline border-r-hairline border-b-hairline scale-[1.02]'
-                    : item.isPast
-                    ? 'bg-card/40 opacity-40 grayscale-[20%]'
-                    : 'bg-card/70 border border-hairline/50'
-                }`}
+                className="flex items-stretch gap-3"
               >
-                {/* Sol: İkon ve İsim */}
-                <div className="flex items-center gap-3.5">
+                {/* Omurga: çizgi + düğüm */}
+                <div className="relative w-6 flex-shrink-0 flex flex-col items-center">
+                  {!isLast && (
+                    <div
+                      className="absolute top-5 bottom-0 w-0.5"
+                      style={{
+                        backgroundColor: item.isPast ? lineColor : 'transparent',
+                        borderLeft: item.isPast ? undefined : `2px dashed var(--hairline)`,
+                      }}
+                    />
+                  )}
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                      item.isActive
-                        ? 'bg-gold text-white shadow-sm'
-                        : item.isPast
-                        ? 'bg-gray-200 dark:bg-gray-800 text-mist'
-                        : 'bg-gold/10 text-gold'
+                    className={`relative z-10 mt-4 w-3 h-3 rounded-full border-2 ${
+                      item.isActive ? 'scale-125' : ''
                     }`}
-                  >
-                    {PRAYER_ICONS[item.name]}
-                  </div>
-
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`font-serif-title font-bold text-base ${
-                          item.isActive
-                            ? 'text-gold'
-                            : 'text-ink'
-                        }`}
-                      >
-                        {item.label}
-                      </span>
-                      {item.isActive && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gold/15 text-gold tracking-wide">
-                          ŞU ANKİ VAKİT
-                        </span>
-                      )}
-                      {item.isNext && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 tracking-wide">
-                          SIRADAKİ
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-mist mt-0.5">
-                      {item.isActive
-                        ? 'Şu an bu vakit içerisindesiniz'
-                        : item.isPast
-                        ? 'Geçmiş vakit'
-                        : 'Gelecek vakit'}
-                    </div>
-                  </div>
+                    style={{
+                      backgroundColor: item.isPast || item.isActive ? lineColor : 'var(--paper)',
+                      borderColor: lineColor,
+                    }}
+                  />
                 </div>
 
-                {/* Sağ: Saat ve Bildirim İkonu */}
-                <div className="flex items-center gap-3 text-right">
-                  <div>
+                <div
+                  className={`flex-1 my-1.5 rounded-xl p-4 transition-all flex items-center justify-between ${
+                    item.isActive
+                      ? 'glass-panel shadow-md border-t border-r border-b border-t-hairline border-r-hairline border-b-hairline'
+                      : 'bg-card/70 border border-hairline/50'
+                  }`}
+                  style={item.isActive ? { borderLeft: `3px solid var(--v-${item.name})` } : undefined}
+                >
+                  {/* Sol: İkon ve İsim */}
+                  <div className="flex items-center gap-3.5">
                     <div
-                      className={`font-numbers text-lg font-bold ${
-                        item.isActive
-                          ? 'text-gold'
-                          : 'text-ink'
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                        item.isActive ? 'text-white shadow-sm' : 'bg-gold/10 text-gold'
                       }`}
+                      style={item.isActive ? { backgroundColor: `var(--v-${item.name})` } : undefined}
                     >
-                      {item.timeString}
+                      {PRAYER_ICONS[item.name]}
                     </div>
-                    <div className="text-[10px] text-mist flex items-center justify-end gap-1">
-                      {soundMode === 'ezan' && (
-                        <span className="flex items-center gap-0.5 text-gold">
-                          <BellIcon className="w-2.5 h-2.5" /> Ezan
+
+                    <div className="text-left">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`font-serif-title font-bold text-base ${
+                            item.isActive ? 'text-gold' : item.isPast ? 'text-mist' : 'text-ink'
+                          }`}
+                        >
+                          {item.label}
                         </span>
-                      )}
-                      {soundMode === 'tini' && (
-                        <span className="flex items-center gap-0.5 text-sand">
-                          <SpeakerHighIcon className="w-2.5 h-2.5" /> Tını
-                        </span>
-                      )}
-                      {(soundMode === 'ilahi1' || soundMode === 'ilahi2' || soundMode === 'ilahi3') && (
-                        <span className="flex items-center gap-0.5 text-sand">
-                          <SpeakerHighIcon className="w-2.5 h-2.5" /> İlahi {soundMode.slice(-1)}
-                        </span>
-                      )}
-                      {soundMode === 'sessiz' && (
-                        <span className="flex items-center gap-0.5 text-mist">
-                          <SpeakerXIcon className="w-2.5 h-2.5" /> Sessiz
-                        </span>
-                      )}
+                        {item.isActive && (
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gold/15 text-gold tracking-wide">
+                            ŞU ANKİ VAKİT
+                          </span>
+                        )}
+                        {item.isNext && (
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 tracking-wide">
+                            SIRADAKİ
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-mist mt-0.5">
+                        {item.isActive
+                          ? 'Şu an bu vakit içerisindesiniz'
+                          : item.isPast
+                          ? 'Geçmiş vakit'
+                          : 'Gelecek vakit'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sağ: Saat ve Bildirim Butonu */}
+                  <div className="flex items-center gap-3 text-right">
+                    <div>
+                      <div className={`font-numbers text-lg font-bold ${item.isActive ? 'text-gold' : 'text-ink'}`}>
+                        {item.timeString}
+                      </div>
+                      <button
+                        onClick={onOpenSettings}
+                        className="text-[10px] text-mist flex items-center justify-end gap-1 ml-auto cursor-pointer hover:text-gold transition-colors"
+                        title="Ses ayarını değiştir"
+                      >
+                        {soundMode === 'ezan' && (
+                          <span className="flex items-center gap-0.5 text-gold">
+                            <BellIcon className="w-2.5 h-2.5" /> Ezan
+                          </span>
+                        )}
+                        {soundMode === 'tini' && (
+                          <span className="flex items-center gap-0.5 text-sand">
+                            <SpeakerHighIcon className="w-2.5 h-2.5" /> Tını
+                          </span>
+                        )}
+                        {(soundMode === 'ilahi1' || soundMode === 'ilahi2' || soundMode === 'ilahi3') && (
+                          <span className="flex items-center gap-0.5 text-sand">
+                            <SpeakerHighIcon className="w-2.5 h-2.5" /> İlahi {soundMode.slice(-1)}
+                          </span>
+                        )}
+                        {soundMode === 'sessiz' && (
+                          <span className="flex items-center gap-0.5 text-mist">
+                            <SpeakerXIcon className="w-2.5 h-2.5" /> Sessiz
+                          </span>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
               </motion.div>
+
+              {/* Kerahet segmentleri: omurga üzerinde tarama desenli, sakin */}
+              {kerahetInGap.map((k) => (
+                <div key={k.type} className="flex items-stretch gap-3">
+                  <div className="relative w-6 flex-shrink-0 flex flex-col items-center">
+                    <div
+                      className="absolute top-0 bottom-0 w-0.5"
+                      style={{ borderLeft: '2px dashed var(--hairline)' }}
+                    />
+                  </div>
+                  <div className="flex-1 flex items-center gap-1.5 py-1.5 text-[11px] text-mist">
+                    <MinusIcon weight="bold" className="w-3 h-3 shrink-0" />
+                    <span>
+                      <span className="font-medium">{KERAHET_SHORT_LABEL[k.type]}</span> · {formatKerahetRange(k)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </React.Fragment>
           );
         })}
+      </div>
+
+      {/* Yarın Özeti */}
+      <div className="mt-2 p-4 rounded-2xl bg-card/70 border border-hairline/50 flex items-center justify-between">
+        <div>
+          <div className="text-[11px] text-mist uppercase tracking-wider font-semibold">Yarın</div>
+          <div className="text-sm font-bold text-ink font-serif-title">İmsak & Akşam</div>
+        </div>
+        <div className="text-right font-numbers text-sm font-bold text-ink">
+          <div>{tomorrowImsakTime} <span className="text-mist font-normal">İmsak</span></div>
+          <div>{tomorrowAksamTime} <span className="text-mist font-normal">Akşam</span></div>
+        </div>
       </div>
     </div>
   );

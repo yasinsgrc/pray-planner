@@ -42,6 +42,9 @@ export interface DayPrayerSchedule {
   dayCycleEnd: Date;
   dayCyclePrayers: { name: PrayerName; label: string; dateObj: Date }[];
   dayProgress: number; // 0 to 1, elapsed fraction of dayCycleStart..dayCycleEnd
+  /** "Yarın" summary for the Vakitler screen. */
+  tomorrowImsakTime: string; // HH:mm
+  tomorrowAksamTime: string; // HH:mm
 }
 
 /**
@@ -60,6 +63,7 @@ export interface RawDaySchedule {
   yesterdayFajr: Date;
   yesterdayIsha: Date;
   tomorrowFajr: Date;
+  tomorrowMaghrib: Date;
   kerahetWindows: Omit<KerahetInfo, 'isActiveNow'>[];
 }
 
@@ -149,6 +153,7 @@ function buildDaySchedule(
     yesterdayFajr: ptYesterday.fajr,
     yesterdayIsha: ptYesterday.isha,
     tomorrowFajr: ptTomorrow.fajr,
+    tomorrowMaghrib: ptTomorrow.maghrib,
     kerahetWindows,
   };
 }
@@ -276,6 +281,8 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
     dayCycleEnd,
     dayCyclePrayers,
     dayProgress,
+    tomorrowImsakTime: formatTimeString(day.tomorrowFajr),
+    tomorrowAksamTime: formatTimeString(day.tomorrowMaghrib),
   };
 }
 
