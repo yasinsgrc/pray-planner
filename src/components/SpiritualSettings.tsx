@@ -76,7 +76,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           <button
             onClick={onEnablePush}
             disabled={pushStatus === 'loading'}
-            className="w-full py-2.5 px-4 rounded-xl bg-[#D6A84D] hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-60"
+            className="w-full py-2.5 px-4 rounded-full bg-[#D6A84D] hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95"
           >
             {pushStatus === 'loading' ? 'Bekleniyor...' : 'Bildirimlere İzin Ver'}
           </button>
@@ -180,7 +180,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   },
                 })
               }
-              className={`py-2 px-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+              className={`py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer hover:scale-[1.03] active:scale-95 ${
                 notifications.earlyWarningMinutes === mins
                   ? 'bg-[#D6A84D] text-white border-[#D6A84D] shadow-xs'
                   : 'bg-[var(--paper)] text-[var(--ink)] border-transparent hover:border-[#D6A84D]/30'
@@ -219,7 +219,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               onClick={() =>
                 onUpdateSettings({ themeMode: mode.id as AppSettings['themeMode'] })
               }
-              className={`py-2 px-2 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+              className={`py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 border text-center cursor-pointer hover:scale-[1.03] active:scale-95 ${
                 themeMode === mode.id
                   ? 'bg-[#D6A84D] text-white border-[#D6A84D]'
                   : 'bg-[var(--paper)] text-[var(--ink)] border-transparent hover:border-[#D6A84D]/30'

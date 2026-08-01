@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card-bg)]/90 backdrop-blur-md border-t border-[#D6A84D]/15 max-w-md mx-auto transition-colors">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-[#D6A84D]/15 max-w-md mx-auto transition-colors">
       <div className="flex items-center justify-around py-2.5 px-3">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -42,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
             <button
               key={tab.id}
               onClick={() => onChangeTab(tab.id)}
-              className={`flex flex-col items-center gap-1 transition-all cursor-pointer py-1 px-3 rounded-xl ${
+              className={`flex flex-col items-center gap-1 transition-all duration-200 cursor-pointer py-1 px-3 rounded-xl hover:scale-[1.05] active:scale-95 ${
                 isActive
                   ? 'text-[#D6A84D] font-bold'
                   : 'text-[var(--mist)] hover:text-[var(--ink)]'

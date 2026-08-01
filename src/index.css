@@ -47,6 +47,43 @@
   font-family: 'Montserrat', sans-serif;
 }
 
+/*
+ * Liquid-glass material for elevated chrome (bottom nav, "now" cards, modals).
+ * Deliberately background+blur ONLY -- border/shadow are left to whichever
+ * Tailwind utility classes are applied alongside it at each call site, so
+ * this class never fights a utility like border-l-4 over border-width/color
+ * (both are single-class selectors; whichever rule is later in the
+ * generated stylesheet would otherwise silently win).
+ */
+.glass-panel {
+  background: color-mix(in srgb, var(--card-bg) 65%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@keyframes blurUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.animate-blur-up {
+  animation: blurUpIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-blur-up {
+    animation: none;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

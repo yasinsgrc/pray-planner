@@ -46,7 +46,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
       )}
 
       {/* Merkezi Zaman Halkası (Ekranın kalbi) */}
-      <div className="relative my-auto flex flex-col items-center justify-center">
+      <div className="relative my-auto flex flex-col items-center justify-center animate-blur-up">
         {/* Glow effect behind golden ring */}
         <div className="absolute w-[240px] h-[240px] rounded-full bg-[#D6A84D]/5 blur-2xl pointer-events-none" />
 
@@ -89,7 +89,10 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
             </span>
 
             {/* Geri Sayım Rakamları */}
-            <div className="font-numbers text-3xl sm:text-4xl font-extrabold tracking-tight text-[var(--ink)] my-1">
+            <div
+              className="font-numbers font-extrabold tracking-tight text-[var(--ink)] my-1"
+              style={{ fontSize: 'clamp(1.75rem, 8vw, 2.5rem)' }}
+            >
               {timeRemainingFormatted}
             </div>
 
@@ -107,7 +110,8 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
         {/* Sıradaki Vakit Kartı */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="w-full p-3.5 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm flex items-center justify-between px-5 transition-colors"
+          whileTap={{ scale: 0.98 }}
+          className="w-full p-3.5 rounded-2xl glass-panel border border-[var(--card-border)] shadow-sm flex items-center justify-between px-5 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#D6A84D]/10 text-[#D6A84D] flex items-center justify-center">
@@ -134,7 +138,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
         <div className="flex items-center justify-between text-xs text-[var(--mist)] px-1">
           <button
             onClick={onOpenLiveActivity}
-            className="flex items-center gap-1.5 hover:text-[#D6A84D] transition-colors cursor-pointer py-1"
+            className="flex items-center gap-1.5 hover:text-[#D6A84D] transition-all duration-200 cursor-pointer py-1 hover:scale-[1.03] active:scale-95"
             title="Kilit Ekranı / Canlı Etkinlik Widget'ını Gör"
           >
             <Smartphone className="w-3.5 h-3.5 text-[#D6A84D]" />
@@ -143,7 +147,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
 
           <button
             onClick={onScrollToFlow}
-            className="flex items-center gap-1 hover:text-[#D6A84D] transition-colors cursor-pointer py-1"
+            className="flex items-center gap-1 hover:text-[#D6A84D] transition-all duration-200 cursor-pointer py-1 hover:scale-[1.03] active:scale-95"
           >
             <span>Tüm Vakitler</span>
             <ChevronDown className="w-3.5 h-3.5" />

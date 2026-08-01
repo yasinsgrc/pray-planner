@@ -107,7 +107,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                 transition={{ delay: index * 0.05 }}
                 className={`relative rounded-xl p-4 transition-all flex items-center justify-between ${
                   item.isActive
-                    ? 'bg-[var(--card-bg)] shadow-md border-l-4 border-[#D6A84D] scale-[1.02] border-t border-r border-b border-[var(--card-border)]'
+                    ? 'glass-panel shadow-md border-l-4 border-l-[#D6A84D] border-t border-r border-b border-t-[var(--card-border)] border-r-[var(--card-border)] border-b-[var(--card-border)] scale-[1.02]'
                     : item.isPast
                     ? 'bg-[var(--card-bg)]/40 opacity-40 grayscale-[20%]'
                     : 'bg-[var(--card-bg)]/70 border border-[var(--card-border)]/50'
