@@ -18,9 +18,18 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
     activePrayer,
     nextPrayer,
     timeRemainingFormatted,
+    timeRemainingSeconds,
     ringProgress,
     currentKerahet,
   } = schedule;
+
+  // Screen-reader announcement, rounded to the minute so aria-live only
+  // fires once a minute instead of every second like the visible digits.
+  const remainingMinutes = Math.floor(timeRemainingSeconds / 60);
+  const srCountdownText =
+    remainingMinutes > 0
+      ? `${nextPrayer.label} vaktine yaklaşık ${remainingMinutes} dakika kaldı.`
+      : `${nextPrayer.label} vaktine bir dakikadan az kaldı.`;
 
   // Circle SVG dimensions
   const size = 260; // Responsive width/height
@@ -83,18 +92,21 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
 
           {/* Sayacın İçi */}
           <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
-            {/* Üst Bilgi Etiketi */}
-            <span className="text-xs font-medium text-mist tracking-wide uppercase mb-1">
-              {nextPrayer.label}’ye kalan süre
-            </span>
+            <div aria-hidden="true">
+              {/* Üst Bilgi Etiketi */}
+              <span className="text-xs font-medium text-mist tracking-wide uppercase mb-1 block text-center">
+                {nextPrayer.label}’ye kalan süre
+              </span>
 
-            {/* Geri Sayım Rakamları */}
-            <div
-              className="font-numbers font-extrabold tracking-tight text-ink my-1"
-              style={{ fontSize: 'clamp(1.75rem, 8vw, 2.5rem)' }}
-            >
-              {timeRemainingFormatted}
+              {/* Geri Sayım Rakamları */}
+              <div
+                className="font-numbers font-extrabold tracking-tight text-ink my-1"
+                style={{ fontSize: 'clamp(1.75rem, 8vw, 2.5rem)' }}
+              >
+                {timeRemainingFormatted}
+              </div>
             </div>
+            <span className="sr-only" aria-live="polite">{srCountdownText}</span>
 
             {/* Alt Bilgi Etiketi */}
             <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-gold">

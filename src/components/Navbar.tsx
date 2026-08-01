@@ -33,7 +33,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-gold/15 max-w-[430px] mx-auto transition-colors">
+    <nav
+      role="tablist"
+      aria-label="Ana gezinme"
+      className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-gold/15 max-w-[430px] mx-auto transition-colors"
+    >
       <div className="flex items-center justify-around py-2.5 px-3">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -41,6 +45,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`tabpanel-${tab.id}`}
               onClick={() => onChangeTab(tab.id)}
               className={`flex flex-col items-center gap-1 transition-all duration-200 cursor-pointer py-1 px-3 rounded-xl hover:scale-[1.05] active:scale-95 ${
                 isActive
