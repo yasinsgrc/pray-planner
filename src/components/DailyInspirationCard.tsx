@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpenIcon, CopyIcon, CheckIcon, QuotesIcon } from '@phosphor-icons/react';
+import { BookOpenIcon, CopyIcon, CheckIcon, QuotesIcon, ShareNetworkIcon } from '@phosphor-icons/react';
 import { DAILY_INSPIRATIONS } from '../data/dailyContent';
 
 export const DailyInspirationCard: React.FC = () => {
   const [tab, setTab] = useState<'verse' | 'hadith' | 'dua'>('verse');
   const [copied, setCopied] = useState(false);
   const [apiVerse, setApiVerse] = useState<{ verse: string; verseRef: string } | null>(null);
+  const [verseLoading, setVerseLoading] = useState(true);
 
   // Pick today's inspiration based on day of year
   const todayIndex = Math.floor(
@@ -27,6 +28,9 @@ export const DailyInspirationCard: React.FC = () => {
       })
       .catch(() => {
         // Ağ hatası: sessizce statik havuzdaki ayete düş
+      })
+      .finally(() => {
+        if (!ignore) setVerseLoading(false);
       });
 
     return () => {
@@ -36,6 +40,7 @@ export const DailyInspirationCard: React.FC = () => {
 
   const verseText = apiVerse?.verse ?? content.verse;
   const verseRefText = apiVerse?.verseRef ?? content.verseRef;
+  const isLoadingCurrentTab = tab === 'verse' && verseLoading;
 
   const getTextToCopy = () => {
     if (tab === 'verse') return `"${verseText}" — ${verseRefText}`;
@@ -47,6 +52,19 @@ export const DailyInspirationCard: React.FC = () => {
     navigator.clipboard.writeText(getTextToCopy());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShare = async () => {
+    const text = getTextToCopy();
+    if (navigator.share) {
+      try {
+        await navigator.share({ text, title: 'VAKİT — Günün Manevi Notu' });
+      } catch {
+        // Kullanıcı paylaşımı iptal etti: sessizce yok say
+      }
+    } else {
+      handleCopy();
+    }
   };
 
   return (
@@ -96,24 +114,41 @@ export const DailyInspirationCard: React.FC = () => {
         </div>
 
         {/* Metin İçeriği */}
-        <div className="relative py-2">
+        <div className="relative py-2 min-h-[88px]">
           <QuotesIcon className="w-8 h-8 text-gold/15 absolute -top-1 -left-2 pointer-events-none" />
 
-          <p className="text-sm font-serif-title text-ink leading-relaxed italic relative z-10 px-2">
-            {tab === 'verse' && verseText}
-            {tab === 'hadith' && content.hadith}
-            {tab === 'dua' && content.dua}
-          </p>
+          {isLoadingCurrentTab ? (
+            <div className="space-y-2 px-2 animate-pulse" aria-hidden="true">
+              <div className="h-4 rounded bg-mist/20 w-full" />
+              <div className="h-4 rounded bg-mist/20 w-5/6" />
+              <div className="h-3 rounded bg-mist/20 w-1/3 ml-auto mt-3" />
+            </div>
+          ) : (
+            <>
+              <p className="text-base font-serif-title text-ink leading-loose italic relative z-10 px-2">
+                {tab === 'verse' && verseText}
+                {tab === 'hadith' && content.hadith}
+                {tab === 'dua' && content.dua}
+              </p>
 
-          <div className="text-right text-xs font-semibold text-gold mt-3">
-            {tab === 'verse' && verseRefText}
-            {tab === 'hadith' && content.hadithRef}
-            {tab === 'dua' && content.duaRef}
-          </div>
+              <div className="text-right text-xs font-semibold text-gold mt-3">
+                {tab === 'verse' && verseRefText}
+                {tab === 'hadith' && content.hadithRef}
+                {tab === 'dua' && content.duaRef}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Kopyala / Paylaş */}
-        <div className="flex items-center justify-end gap-2 border-t border-gray-100 dark:border-gray-800/40 pt-2.5">
+        <div className="flex items-center justify-end gap-4 border-t border-gray-100 dark:border-gray-800/40 pt-2.5">
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 text-xs text-mist hover:text-gold transition-colors cursor-pointer"
+          >
+            <ShareNetworkIcon className="w-3.5 h-3.5" />
+            <span>Paylaş</span>
+          </button>
           <button
             onClick={handleCopy}
             className="flex items-center gap-1.5 text-xs text-mist hover:text-gold transition-colors cursor-pointer"

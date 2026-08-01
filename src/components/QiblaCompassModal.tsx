@@ -3,6 +3,7 @@ import { CompassIcon, XIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { LocationItem } from '../types';
 import { useCompassHeading } from '../hooks/useCompassHeading';
 import { isAlignedWithBearing } from '../utils/compassHeading';
+import { calculateQiblaBearing } from '../utils/qibla';
 
 interface QiblaCompassModalProps {
   location: LocationItem;
@@ -18,19 +19,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
   const { heading, permissionState, requestPermission } = useCompassHeading(isOpen);
   const wasAlignedRef = useRef(false);
 
-  // Calculate Qibla bearing from user coordinates to Kaaba (Makkah: 21.4225 N, 39.8262 E)
-  const kaabaLat = (21.4225 * Math.PI) / 180;
-  const kaabaLng = (39.8262 * Math.PI) / 180;
-  const userLat = (location.lat * Math.PI) / 180;
-  const userLng = (location.lng * Math.PI) / 180;
-
-  const y = Math.sin(kaabaLng - userLng);
-  const x =
-    Math.cos(userLat) * Math.tan(kaabaLat) -
-    Math.sin(userLat) * Math.cos(kaabaLng - userLng);
-
-  let qiblaBearing = (Math.atan2(y, x) * 180) / Math.PI;
-  qiblaBearing = (qiblaBearing + 360) % 360;
+  const qiblaBearing = calculateQiblaBearing(location);
   const qiblaFormatted = Math.round(qiblaBearing);
 
   const needleRotation =

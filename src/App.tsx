@@ -9,7 +9,7 @@ import { Header } from './components/Header';
 import { MainCountdownRing } from './components/MainCountdownRing';
 import { DailyFlowList } from './components/DailyFlowList';
 import { SpiritualSettings } from './components/SpiritualSettings';
-import { DailyInspirationCard } from './components/DailyInspirationCard';
+import { SpiritualHub } from './components/SpiritualHub';
 import { Navbar, TabType } from './components/Navbar';
 import { LocationModal } from './components/LocationModal';
 import { QiblaCompassModal } from './components/QiblaCompassModal';
@@ -235,7 +235,7 @@ export default function App() {
       />
 
       {/* Ana İçerik Alanı */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -264,34 +264,11 @@ export default function App() {
             )}
 
             {activeTab === 'spiritual' && (
-              <div className="flex-1 flex flex-col justify-center">
-                <DailyInspirationCard />
-                <div className="w-full max-w-md mx-auto px-4 mt-2 grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setIsQiblaModalOpen(true)}
-                    className="p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold transition-colors cursor-pointer"
-                  >
-                    <div className="text-xs font-bold text-gold uppercase tracking-wider">
-                      Pusula
-                    </div>
-                    <div className="text-sm font-serif-title font-bold text-ink mt-1">
-                      Kıble Açısı
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setIsZikirmatikModalOpen(true)}
-                    className="p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold transition-colors cursor-pointer"
-                  >
-                    <div className="text-xs font-bold text-gold uppercase tracking-wider">
-                      Tesbihat
-                    </div>
-                    <div className="text-sm font-serif-title font-bold text-ink mt-1">
-                      Sakin Zikirmatik
-                    </div>
-                  </button>
-                </div>
-              </div>
+              <SpiritualHub
+                location={settings.location}
+                onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
+                onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
+              />
             )}
 
             {activeTab === 'settings' && (

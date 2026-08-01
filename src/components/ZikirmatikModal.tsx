@@ -1,27 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HandHeartIcon, ArrowCounterClockwiseIcon, XIcon } from '@phosphor-icons/react';
 import { playSoftChime } from '../utils/audio';
+import { PRESET_DHIKRS, loadZikirmatikState, saveZikirmatikState } from '../utils/zikirmatikStorage';
 
 interface ZikirmatikModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const PRESET_DHIKRS = [
-  { title: 'Subhânallah', arabic: 'سُبْحَانَ اللَّهِ', target: 33 },
-  { title: 'Elhamdulillâh', arabic: 'الْحَمْدُ لِلَّهِ', target: 33 },
-  { title: 'Allâhu Akbar', arabic: 'اللَّهُ أَكْبَرُ', target: 33 },
-  { title: 'Lâ ilâhe illallâh', arabic: 'لَا إِلَٰهَ إِلَّا اللَّهُ', target: 100 },
-  { title: 'Estagfirullâh', arabic: 'أَسْتَغْفِرُ اللَّهَ', target: 100 },
-];
-
 export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [selectedDhikrIndex, setSelectedDhikrIndex] = useState(0);
-  const [counter, setCounter] = useState(0);
-  const [lap, setLap] = useState(0);
+  const [selectedDhikrIndex, setSelectedDhikrIndex] = useState(() => loadZikirmatikState().selectedDhikrIndex);
+  const [counter, setCounter] = useState(() => loadZikirmatikState().counter);
+  const [lap, setLap] = useState(() => loadZikirmatikState().lap);
+
+  useEffect(() => {
+    saveZikirmatikState({ selectedDhikrIndex, counter, lap });
+  }, [selectedDhikrIndex, counter, lap]);
 
   if (!isOpen) return null;
 
