@@ -20,6 +20,12 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
     activePrayer,
     nextPrayer,
     timeRemainingFormatted,
+    // Deliberately ringProgress (progress within the current prayer
+    // segment), not the home screen's dayProgress (full imsak-to-imsak
+    // cycle) — this ring simulates a real OS lock-screen widget, and real
+    // "time until next event" widgets are tiny; a full-day ring would be
+    // nearly imperceptible at 52px for most of the day. See
+    // design-refresh-v3 N5.
     ringProgress,
     location,
     currentKerahet,

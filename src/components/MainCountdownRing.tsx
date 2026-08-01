@@ -62,8 +62,14 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
               <span className="sr-only" aria-live="polite">{srCountdownText}</span>
 
               {/* Alt Bilgi Etiketi */}
-              <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-gold">
-                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+              <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-accent">
+                <motion.span
+                  key={activePrayer.name}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="w-1.5 h-1.5 rounded-full bg-accent"
+                />
                 <span>{activePrayer.label} vaktindesiniz</span>
               </div>
             </div>
