@@ -31,6 +31,6 @@ scheduler.start(60000);
 
 const app = createApp({ store, vapidPublicKey: VAPID_PUBLIC_KEY });
 
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`VAKİT push sunucusu http://localhost:${PORT} adresinde çalışıyor.`);
 });

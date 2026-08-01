@@ -21,7 +21,7 @@ function buildPayload(event: NotificationEvent): string {
   const body =
     event.type === 'prayer' ? 'Hayırlı namazlar.' : 'Abdest ve hazırlık için hatırlatma.';
 
-  return JSON.stringify({ title, body, icon: '/icons/notification-icon.png' });
+  return JSON.stringify({ title, body });
 }
 
 export interface PushSenderDeps {

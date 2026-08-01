@@ -89,17 +89,22 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     const subscriptions = deps.store.loadSubscriptions();
 
     for (const sub of subscriptions) {
-      const schedule = deps.calculatePrayerTimes(sub.location, now, sub.calculationMethod);
+      try {
+        const schedule = deps.calculatePrayerTimes(sub.location, now, sub.calculationMethod);
 
-      for (const prayer of schedule.prayers) {
-        const event = shouldNotifyNow(prayer, now, sub.notifications);
-        if (!event) continue;
+        for (const prayer of schedule.prayers) {
+          const event = shouldNotifyNow(prayer, now, sub.notifications);
+          if (!event) continue;
 
-        const key = `${sub.endpoint}:${event.type}:${event.prayerName}:${today}`;
-        if (sentToday.has(key)) continue;
+          const key = `${sub.endpoint}:${event.type}:${event.prayerName}:${today}`;
+          if (sentToday.has(key)) continue;
 
-        sentToday.add(key);
-        await deps.sendPush(sub, event);
+          sentToday.add(key);
+          await deps.sendPush(sub, event);
+        }
+      } catch (err) {
+        console.error(`Zamanlayıcı: abonelik işlenemedi (${sub.endpoint}):`, err);
+        continue;
       }
     }
   }

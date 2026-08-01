@@ -27,7 +27,12 @@ export function createSubscriptionStore(filePath: string): SubscriptionStore {
   function loadSubscriptions(): PushSubscriptionRecord[] {
     ensureFile();
     const raw = readFileSync(filePath, 'utf-8');
-    return JSON.parse(raw) as PushSubscriptionRecord[];
+    try {
+      return JSON.parse(raw) as PushSubscriptionRecord[];
+    } catch (err) {
+      console.warn(`Bozuk abonelik dosyası (${filePath}), boş liste ile devam ediliyor:`, err);
+      return [];
+    }
   }
 
   function saveSubscriptions(subs: PushSubscriptionRecord[]): void {

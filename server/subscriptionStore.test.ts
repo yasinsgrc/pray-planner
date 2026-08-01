@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createSubscriptionStore } from './subscriptionStore';
@@ -73,6 +73,18 @@ test('upsertSubscription replaces an existing record with the same endpoint', ()
   const subs = store.loadSubscriptions();
   assert.equal(subs.length, 1);
   assert.equal(subs[0].calculationMethod, 'MWL');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('loadSubscriptions returns an empty array instead of throwing when the file is corrupted', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'vakit-store-'));
+  const filePath = path.join(dir, 'subs.json');
+  writeFileSync(filePath, '{ not valid json ][', 'utf-8');
+  const store = createSubscriptionStore(filePath);
+
+  const subs = store.loadSubscriptions();
+
+  assert.deepEqual(subs, []);
   rmSync(dir, { recursive: true, force: true });
 });
 

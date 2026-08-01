@@ -2,7 +2,6 @@ self.addEventListener('push', (event) => {
   let data = {
     title: 'VAKİT',
     body: 'Namaz vakti bildirimi',
-    icon: '/icons/notification-icon.png',
   };
 
   try {
@@ -16,7 +15,6 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: data.icon,
     })
   );
 });

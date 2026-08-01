@@ -133,6 +133,41 @@ test('scheduler tick sends a push once and skips duplicate sends in the same min
   assert.equal(sent.length, 1);
 });
 
+test('scheduler tick isolates a throwing subscription so later subscriptions still get processed', async () => {
+  const prayerTime = new Date('2026-08-01T12:00:00.000Z');
+  const badSub = makeSubscription({ endpoint: 'https://push.example.com/bad' });
+  const goodSub = makeSubscription({ endpoint: 'https://push.example.com/good' });
+  const sent: unknown[] = [];
+
+  // calculatePrayerTimes only receives the location, not the subscription, so we
+  // differentiate behavior by call order: first call (badSub) throws, second call
+  // (goodSub) succeeds.
+  let callCount = 0;
+  const scheduler = createScheduler({
+    store: {
+      loadSubscriptions: () => [badSub, goodSub],
+      upsertSubscription: () => {},
+      removeSubscription: () => {},
+    },
+    calculatePrayerTimes: () => {
+      callCount += 1;
+      if (callCount === 1) {
+        throw new Error('corrupted subscription record');
+      }
+      return makeSchedule(prayerTime);
+    },
+    sendPush: async (record, event) => {
+      sent.push({ endpoint: record.endpoint, event });
+    },
+    now: () => prayerTime,
+  });
+
+  await scheduler.tick();
+
+  assert.equal(sent.length, 1);
+  assert.equal((sent[0] as { endpoint: string }).endpoint, goodSub.endpoint);
+});
+
 test('scheduler tick sends again on a new day for the same prayer key', async () => {
   const day1 = new Date('2026-08-01T12:00:00.000Z');
   const day2 = new Date('2026-08-02T12:00:00.000Z');
