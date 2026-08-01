@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { HandHeartIcon, ArrowCounterClockwiseIcon, XIcon } from '@phosphor-icons/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { HandHeartIcon, ArrowCounterClockwiseIcon } from '@phosphor-icons/react';
 import { playSoftChime } from '../utils/audio';
 import { PRESET_DHIKRS, loadZikirmatikState, saveZikirmatikState } from '../utils/zikirmatikStorage';
+import { BottomSheet } from './BottomSheet';
 
 interface ZikirmatikModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const RING_SIZE = 176;
+const RING_STROKE = 4;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   isOpen,
@@ -15,14 +22,15 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   const [selectedDhikrIndex, setSelectedDhikrIndex] = useState(() => loadZikirmatikState().selectedDhikrIndex);
   const [counter, setCounter] = useState(() => loadZikirmatikState().counter);
   const [lap, setLap] = useState(() => loadZikirmatikState().lap);
+  const [justCompleted, setJustCompleted] = useState(false);
 
   useEffect(() => {
     saveZikirmatikState({ selectedDhikrIndex, counter, lap });
   }, [selectedDhikrIndex, counter, lap]);
 
-  if (!isOpen) return null;
-
   const currentDhikr = PRESET_DHIKRS[selectedDhikrIndex];
+  const ringProgress = counter / currentDhikr.target;
+  const ringDashoffset = RING_CIRCUMFERENCE * (1 - ringProgress);
 
   const handleIncrement = () => {
     if (navigator.vibrate) {
@@ -33,6 +41,8 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
       playSoftChime();
       setCounter(0);
       setLap((prev) => prev + 1);
+      setJustCompleted(true);
+      setTimeout(() => setJustCompleted(false), 700);
     } else {
       setCounter(newCount);
     }
@@ -44,24 +54,8 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-      <div className="w-full max-w-sm bg-card border border-hairline rounded-2xl shadow-xl p-5 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-gold/15 pb-3">
-          <div className="flex items-center gap-2">
-            <HandHeartIcon className="w-5 h-5 text-gold" />
-            <h3 className="font-serif-title font-bold text-base text-ink">
-              Sakin Zikirmatik
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-mist cursor-pointer"
-            aria-label="Kapat"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
-        </div>
-
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Sakin Zikirmatik">
+      <div className="text-center space-y-4 pb-2">
         {/* Zikir Seçimi */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {PRESET_DHIKRS.map((d, idx) => (
@@ -84,7 +78,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
         </div>
 
         {/* Zikir Bilgisi */}
-        <div className="py-2">
+        <div className="py-1">
           <div className="text-xl font-bold font-serif-title text-gold">
             {currentDhikr.arabic}
           </div>
@@ -93,19 +87,56 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
           </div>
         </div>
 
-        {/* Sayac Butonu / Dokunma Alanı */}
-        <button
-          onClick={handleIncrement}
-          aria-label="Zikir say"
-          className="w-44 h-44 mx-auto rounded-full bg-gradient-to-b from-gold to-[#c4983e] text-white shadow-lg active:scale-95 transition-transform flex flex-col items-center justify-center cursor-pointer border-4 border-white dark:border-card"
-        >
-          <span className="font-numbers text-5xl font-extrabold tracking-tight">
-            {counter}
-          </span>
-          <span className="text-[10px] uppercase tracking-wider font-semibold opacity-90 mt-1">
-            Çekmek İçin Dokun
-          </span>
-        </button>
+        {/* Sayac Butonu / Dokunma Alanı, ilerleme halkalı */}
+        <div className="relative w-44 h-44 mx-auto">
+          <svg width={RING_SIZE} height={RING_SIZE} className="absolute inset-0 transform -rotate-90">
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_RADIUS}
+              stroke="var(--hairline)"
+              strokeWidth={RING_STROKE}
+              fill="transparent"
+            />
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_RADIUS}
+              stroke="var(--gold)"
+              strokeWidth={RING_STROKE}
+              strokeDasharray={RING_CIRCUMFERENCE}
+              strokeDashoffset={ringDashoffset}
+              strokeLinecap="round"
+              fill="transparent"
+              className="transition-all duration-300 ease-out"
+            />
+          </svg>
+          <motion.button
+            onClick={handleIncrement}
+            aria-label="Zikir say"
+            animate={justCompleted ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-2 rounded-full bg-gradient-to-b from-gold to-[#c4983e] text-white shadow-lg active:scale-95 transition-transform flex flex-col items-center justify-center cursor-pointer border-4 border-white dark:border-card"
+          >
+            <span className="font-numbers text-5xl font-extrabold tracking-tight">
+              {counter}
+            </span>
+            <span className="text-[10px] uppercase tracking-wider font-semibold opacity-90 mt-1">
+              Çekmek İçin Dokun
+            </span>
+          </motion.button>
+          <AnimatePresence>
+            {justCompleted && (
+              <motion.div
+                initial={{ opacity: 0.6, scale: 1 }}
+                animate={{ opacity: 0, scale: 1.3 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.7, ease: 'easeOut' }}
+                className="absolute inset-0 rounded-full border-4 border-gold pointer-events-none"
+              />
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Alt Butonlar */}
         <div className="flex items-center justify-between pt-2">
@@ -121,6 +152,6 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
           </span>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 };

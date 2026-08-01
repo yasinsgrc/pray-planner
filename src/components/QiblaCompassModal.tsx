@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { CompassIcon, XIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { CompassIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { LocationItem } from '../types';
 import { useCompassHeading } from '../hooks/useCompassHeading';
 import { isAlignedWithBearing } from '../utils/compassHeading';
 import { calculateQiblaBearing } from '../utils/qibla';
+import { BottomSheet } from './BottomSheet';
 
 interface QiblaCompassModalProps {
   location: LocationItem;
@@ -33,37 +34,18 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
     wasAlignedRef.current = aligned;
   }, [aligned]);
 
-  if (!isOpen) return null;
-
   const needleColorClass = aligned ? 'text-emerald-500' : 'text-gold';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-      <div className="w-full max-w-sm bg-card border border-hairline rounded-2xl shadow-xl p-5 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-gold/15 pb-3">
-          <div className="flex items-center gap-2 text-left">
-            <CompassIcon className="w-5 h-5 text-gold" />
-            <div>
-              <h3 className="font-serif-title font-bold text-base text-ink">
-                Kıble Pusulası
-              </h3>
-              <p className="text-[10px] text-mist">
-                {location.districtName}, {location.cityName} için derece açısı
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-mist cursor-pointer"
-            aria-label="Kapat"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
-        </div>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Kıble Pusulası">
+      <div className="text-center space-y-4 pb-2">
+        <p className="text-[11px] text-mist -mt-2">
+          {location.districtName}, {location.cityName} için derece açısı
+        </p>
 
         {/* Pusula Görsel Alanı */}
         <div
-          className={`relative w-52 h-52 mx-auto my-4 flex items-center justify-center rounded-full border-2 bg-paper shadow-inner transition-colors duration-300 ${
+          className={`relative w-52 h-52 mx-auto flex items-center justify-center rounded-full border-2 bg-paper shadow-inner transition-colors duration-300 ${
             aligned ? 'border-emerald-500/50' : 'border-gold/30'
           }`}
         >
@@ -163,6 +145,6 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
           </p>
         )}
       </div>
-    </div>
+    </BottomSheet>
   );
 };

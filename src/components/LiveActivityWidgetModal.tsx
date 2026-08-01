@@ -1,6 +1,7 @@
 import React from 'react';
-import { DeviceMobileIcon, LockIcon, XIcon, CheckIcon } from '@phosphor-icons/react';
+import { DeviceMobileIcon, LockIcon, CheckIcon } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
+import { BottomSheet } from './BottomSheet';
 
 interface LiveActivityWidgetModalProps {
   schedule: DayPrayerSchedule;
@@ -13,8 +14,6 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
   isOpen,
   onClose,
 }) => {
-  if (!isOpen) return null;
-
   const {
     activePrayer,
     nextPrayer,
@@ -30,30 +29,11 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
   const strokeDashoffset = circumference * (1 - ringProgress);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm bg-[#121316] text-white border border-gray-800 rounded-3xl shadow-2xl p-5 space-y-5 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-          <div className="flex items-center gap-2">
-            <DeviceMobileIcon className="w-5 h-5 text-gold" />
-            <div>
-              <h3 className="font-serif-title font-bold text-sm text-white">
-                Kilit Ekranı Canlı Etkinliği
-              </h3>
-              <p className="text-[10px] text-gray-400">
-                iOS Live Activity & Android Widget Önizlemesi
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-800 text-gray-400 cursor-pointer"
-            aria-label="Kapat"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
-        </div>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Kilit Ekranı Canlı Etkinliği">
+      <div className="space-y-4 pb-2">
+        <p className="text-[11px] text-mist -mt-2">iOS Live Activity & Android Widget Önizlemesi</p>
 
-        {/* Telefon Kilit Ekranı Simülasyonu */}
+        {/* Telefon Kilit Ekranı Simülasyonu — bilerek temadan bağımsız koyu (gerçek kilit ekranı) */}
         <div className="p-4 rounded-2xl bg-gradient-to-b from-gray-900 to-black border border-gray-800 space-y-4 shadow-xl">
           <div className="flex items-center justify-between text-[11px] text-gray-400 border-b border-gray-800/80 pb-2">
             <div className="flex items-center gap-1">
@@ -116,11 +96,11 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <CheckIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="flex items-center gap-2 text-xs text-mist">
+          <CheckIcon className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>Arka planda ve kilit ekranında altın halka canlı olarak güncellenir.</span>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 };

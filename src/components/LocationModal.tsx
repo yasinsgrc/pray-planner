@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { MagnifyingGlassIcon, MapPinIcon, NavigationArrowIcon, CheckIcon, XIcon } from '@phosphor-icons/react';
+import { MagnifyingGlassIcon, NavigationArrowIcon, CheckIcon } from '@phosphor-icons/react';
 import { LocationItem } from '../types';
 import { POPULAR_LOCATIONS } from '../data/locations';
+import { BottomSheet } from './BottomSheet';
 
 interface LocationModalProps {
   currentLocation: LocationItem;
@@ -63,8 +64,6 @@ export const LocationModal: React.FC<LocationModalProps> = ({
     };
   }, [searchQuery.trim()]);
 
-  if (!isOpen) return null;
-
   const filteredLocations = POPULAR_LOCATIONS.filter((loc) => {
     const q = searchQuery.toLowerCase();
     return (
@@ -121,50 +120,32 @@ export const LocationModal: React.FC<LocationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-      <div className="w-full max-w-md bg-card border border-hairline rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
-        <div className="p-4 border-b border-gold/15 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MapPinIcon className="w-5 h-5 text-gold" />
-            <h3 className="font-serif-title font-bold text-base text-ink">
-              Şehir ve Konum Seçimi
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-mist cursor-pointer"
-            aria-label="Kapat"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
-        </div>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Şehir ve Konum Seçimi">
+      <div className="space-y-3 pb-2">
+        <button
+          onClick={handleUseGPS}
+          disabled={isLocating}
+          className="w-full py-2.5 px-4 rounded-xl bg-gold hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+        >
+          <NavigationArrowIcon className="w-4 h-4 animate-spin-slow" />
+          <span>
+            {isLocating ? 'Konum Alınıyor...' : 'Mevcut Konumumu Otomatik Kullan (GPS)'}
+          </span>
+        </button>
 
-        <div className="p-4 space-y-3 bg-paper">
-          <button
-            onClick={handleUseGPS}
-            disabled={isLocating}
-            className="w-full py-2.5 px-4 rounded-xl bg-gold hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-          >
-            <NavigationArrowIcon className="w-4 h-4 animate-spin-slow" />
-            <span>
-              {isLocating ? 'Konum Alınıyor...' : 'Mevcut Konumumu Otomatik Kullan (GPS)'}
-            </span>
-          </button>
-
-          <div className="relative">
-            <MagnifyingGlassIcon className="w-4 h-4 text-mist absolute left-3 top-3" />
-            <input
-              type="text"
-              placeholder="Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-card border border-gold/20 rounded-xl text-xs font-medium text-ink focus:outline-none focus:border-gold"
-            />
-          </div>
+        <div className="relative">
+          <MagnifyingGlassIcon className="w-4 h-4 text-mist absolute left-3 top-3" />
+          <input
+            type="text"
+            placeholder="Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 bg-paper border border-gold/20 rounded-xl text-xs font-medium text-ink focus:outline-none focus:border-gold"
+          />
         </div>
 
         {searchQuery.trim().length >= 2 && (
-          <div className="px-3 pt-1 pb-2 border-b border-gold/10">
+          <div className="pt-1 pb-2 border-b border-gold/10">
             <div className="text-[10px] font-bold text-mist uppercase tracking-wider px-1 mb-1">
               Arama Sonuçları
             </div>
@@ -214,7 +195,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-1 divide-y divide-gray-100 dark:divide-gray-800/40">
+        <div className="space-y-1 divide-y divide-gray-100 dark:divide-gray-800/40">
           {filteredLocations.map((loc) => {
             const isSelected = loc.id === currentLocation.id;
 
@@ -253,6 +234,6 @@ export const LocationModal: React.FC<LocationModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 };
