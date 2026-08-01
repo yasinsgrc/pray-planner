@@ -40,7 +40,7 @@ Kapsam dışı (bu tasarımın konusu değil): yatay ekran (landscape) düzeltme
 - `DeviceOrientationEvent` tanımsızsa → doğrudan `'unsupported'`, "Cihazınız pusula sensörünü desteklemiyor, açı bilgisini yukarıdan kullanabilirsiniz" uyarısı.
 - iOS'ta `requestPermission()` reddedilir veya reject olursa → `'denied'`, "İzin reddedildi. Tarayıcı ayarlarından hareket sensörü iznini açıp tekrar deneyin." + tekrar deneme butonu.
 - İzin verildi ama 2 saniye içinde event gelmediyse → otomatik `'unsupported'`, aynı uyarı.
-- Modal her açılışta hook'u yeniden mount eder, izin durumu sıfırlanır — global state eklenmez (basitlik tercih edildi); iOS'ta ikinci `requestPermission()` çağrısı native izin penceresini tekrar açmadığı için bu pratikte sorun yaratmaz.
+- **Düzeltme (planlama sırasında fark edildi):** `QiblaCompassModal`, `App.tsx` içinde koşulsuz olarak ağaçta kalıyor (kapalıyken `isOpen === false` ise `null` döndürüyor, unmount olmuyor) — yani hook hiç yeniden mount olmuyor, `permissionState` oturum boyunca korunuyor. Bu aslında daha iyi bir davranış: kullanıcı izni bir kez verince modalı her açtığında tekrar tıklamasına gerek kalmıyor. Sensörün modal kapalıyken arka planda çalışmaya devam etmemesi için hook'a `active: boolean` parametresi eklenir (`useCompassHeading(isOpen)`); event listener'lar yalnızca `active && permissionState === 'granted'` iken bağlanır, `isOpen` `false` olunca temizlenir.
 
 ## Test Yaklaşımı
 
