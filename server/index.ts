@@ -4,6 +4,7 @@ import { createSubscriptionStore, DEFAULT_DATA_FILE } from './subscriptionStore'
 import { configureWebPush, createPushSender, defaultSendNotification } from './push';
 import { createScheduler } from './scheduler';
 import { createGeocodingClient } from './geocoding';
+import { createDailyVerseService } from './dailyVerse';
 import { calculatePrayerTimes } from '../src/utils/prayerCalculator';
 
 const PORT = Number(process.env.SERVER_PORT) || 8787;
@@ -34,6 +35,7 @@ const app = createApp({
   store,
   vapidPublicKey: VAPID_PUBLIC_KEY,
   geocodingClient: createGeocodingClient(),
+  dailyVerseService: createDailyVerseService(),
 });
 
 app.listen(PORT, '127.0.0.1', () => {
