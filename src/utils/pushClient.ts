@@ -64,12 +64,12 @@ export async function subscribeToPush(settings: AppSettings): Promise<PushSyncRe
     return { ok: false, reason: 'Bu tarayıcı bildirimleri desteklemiyor.' };
   }
 
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    return { ok: false, reason: 'Bildirim izni verilmedi.' };
-  }
-
   try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      return { ok: false, reason: 'Bildirim izni verilmedi.' };
+    }
+
     const registration = await registerServiceWorker();
     if (!registration) {
       return { ok: false, reason: 'Service worker kaydedilemedi.' };
@@ -89,7 +89,7 @@ export async function subscribeToPush(settings: AppSettings): Promise<PushSyncRe
       });
     }
 
-    return syncSubscription(subscription, settings);
+    return await syncSubscription(subscription, settings);
   } catch {
     return { ok: false, reason: 'Bildirim aboneliği başarısız oldu.' };
   }
