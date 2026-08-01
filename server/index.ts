@@ -3,6 +3,7 @@ import { createApp } from './app';
 import { createSubscriptionStore, DEFAULT_DATA_FILE } from './subscriptionStore';
 import { configureWebPush, createPushSender, defaultSendNotification } from './push';
 import { createScheduler } from './scheduler';
+import { createGeocodingClient } from './geocoding';
 import { calculatePrayerTimes } from '../src/utils/prayerCalculator';
 
 const PORT = Number(process.env.SERVER_PORT) || 8787;
@@ -29,7 +30,11 @@ const sendPush = createPushSender({
 const scheduler = createScheduler({ store, calculatePrayerTimes, sendPush });
 scheduler.start(60000);
 
-const app = createApp({ store, vapidPublicKey: VAPID_PUBLIC_KEY });
+const app = createApp({
+  store,
+  vapidPublicKey: VAPID_PUBLIC_KEY,
+  geocodingClient: createGeocodingClient(),
+});
 
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`VAKİT push sunucusu http://localhost:${PORT} adresinde çalışıyor.`);
