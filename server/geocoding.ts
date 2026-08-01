@@ -19,7 +19,10 @@ export interface NominatimResult {
 export function mapNominatimResultToLocationItem(result: NominatimResult): LocationItem {
   const address = result.address ?? {};
   const cityName =
-    address.city ?? address.town ?? address.county ?? result.display_name.split(',')[0].trim();
+    address.city ??
+    address.town ??
+    address.county ??
+    (result.display_name ?? '').split(',')[0].trim();
   const districtName = address.suburb ?? address.state_district ?? '';
   const country = address.country ?? '';
 
@@ -43,7 +46,7 @@ const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
 
 export function createGeocodingClient(fetchImpl: typeof fetch = fetch): GeocodingClient {
   async function searchLocations(query: string): Promise<LocationItem[]> {
-    const url = `${NOMINATIM_BASE_URL}/search?q=${encodeURIComponent(query)}&format=jsonv2&addressdetails=1&limit=8`;
+    const url = `${NOMINATIM_BASE_URL}/search?q=${encodeURIComponent(query)}&format=jsonv2&addressdetails=1&limit=8&accept-language=tr`;
     const res = await fetchImpl(url, { headers: { 'User-Agent': USER_AGENT } });
 
     if (!res.ok) {
@@ -55,7 +58,7 @@ export function createGeocodingClient(fetchImpl: typeof fetch = fetch): Geocodin
   }
 
   async function reverseGeocode(lat: number, lng: number): Promise<LocationItem | null> {
-    const url = `${NOMINATIM_BASE_URL}/reverse?lat=${lat}&lon=${lng}&format=jsonv2&addressdetails=1`;
+    const url = `${NOMINATIM_BASE_URL}/reverse?lat=${lat}&lon=${lng}&format=jsonv2&addressdetails=1&accept-language=tr`;
     const res = await fetchImpl(url, { headers: { 'User-Agent': USER_AGENT } });
 
     if (!res.ok) {

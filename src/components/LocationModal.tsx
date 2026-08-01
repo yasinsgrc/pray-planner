@@ -34,26 +34,34 @@ export const LocationModal: React.FC<LocationModalProps> = ({
 
     setSearchStatus('loading');
 
+    let ignore = false;
+
     const timeoutId = window.setTimeout(async () => {
       try {
         const res = await fetch(`/api/geocode?q=${encodeURIComponent(trimmed)}`);
+        if (ignore) return;
         if (!res.ok) {
           setSearchStatus('error');
           setSearchResults([]);
           return;
         }
         const data = await res.json();
+        if (ignore) return;
         const results: LocationItem[] = data.results ?? [];
         setSearchResults(results);
         setSearchStatus(results.length === 0 ? 'no-results' : 'idle');
       } catch {
+        if (ignore) return;
         setSearchStatus('error');
         setSearchResults([]);
       }
     }, 400);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [searchQuery]);
+    return () => {
+      ignore = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchQuery.trim()]);
 
   if (!isOpen) return null;
 
