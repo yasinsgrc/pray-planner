@@ -3,10 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Sakin ve manevi bir namaz vakti sayaç uygulaması: kıble pusulası, zikirmatik, hicri takvim ve günlük manevi notlar." />
+    <meta property="og:title" content="VAKİT — Namaz Vakti ve Manevi Rehber" />
+    <meta property="og:description" content="Sakin ve manevi bir namaz vakti sayaç uygulaması: kıble pusulası, zikirmatik, hicri takvim ve günlük manevi notlar." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512.png" />
+    <meta name="theme-color" content="#F9F7F2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1A1B1E" media="(prefers-color-scheme: dark)" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon-512.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="VAKİT" />
     <title>VAKİT • Sakin ve Manevi</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Montserrat:wght@400;500;600;700&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <script>
+      // FOUC guard: apply the saved theme before React mounts and paints.
+      // 'auto' mode's real sunset/fajr boundary is computed later by React
+      // (it needs the adhan library); this falls back to an approximate
+      // hour-based guess only for that first paint to avoid a flash.
+      (function () {
+        try {
+          var raw = localStorage.getItem('vakit_app_settings_v1');
+          var mode = raw ? JSON.parse(raw).themeMode : 'auto';
+          var isDark;
+          if (mode === 'dark') isDark = true;
+          else if (mode === 'light') isDark = false;
+          else {
+            var h = new Date().getHours();
+            isDark = h >= 20 || h < 6;
+          }
+          if (isDark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          // localStorage bozuksa varsayılan (açık) tema ile devam edilir.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
