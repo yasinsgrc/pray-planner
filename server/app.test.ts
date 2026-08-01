@@ -8,6 +8,7 @@ import type { NotificationSettings } from '../src/types';
 import { createApp } from './app';
 import { createSubscriptionStore } from './subscriptionStore';
 import type { GeocodingClient } from './geocoding';
+import type { DailyVerseService } from './dailyVerse';
 
 function createFakeGeocodingClient(overrides: Partial<GeocodingClient> = {}): GeocodingClient {
   return {
@@ -17,13 +18,21 @@ function createFakeGeocodingClient(overrides: Partial<GeocodingClient> = {}): Ge
   };
 }
 
+function createFakeDailyVerseService(overrides: Partial<DailyVerseService> = {}): DailyVerseService {
+  return {
+    getVerseOfTheDay: async () => ({ verse: 'Test ayet', verseRef: 'Test Suresi, 1. Ayet' }),
+    ...overrides,
+  };
+}
+
 async function withServer(
   run: (baseUrl: string, store: ReturnType<typeof createSubscriptionStore>) => Promise<void>,
-  geocodingClient: GeocodingClient = createFakeGeocodingClient()
+  geocodingClient: GeocodingClient = createFakeGeocodingClient(),
+  dailyVerseService: DailyVerseService = createFakeDailyVerseService()
 ) {
   const dir = mkdtempSync(path.join(tmpdir(), 'vakit-app-'));
   const store = createSubscriptionStore(path.join(dir, 'subs.json'));
-  const app = createApp({ store, vapidPublicKey: 'test-public-key', geocodingClient });
+  const app = createApp({ store, vapidPublicKey: 'test-public-key', geocodingClient, dailyVerseService });
   const server = app.listen(0);
 
   try {
@@ -190,4 +199,39 @@ test('GET /api/reverse-geocode returns location: null when nothing is found', as
     assert.equal(res.status, 200);
     assert.equal(body.location, null);
   });
+});
+
+test('GET /api/daily-verse returns the verse from the daily verse service', async () => {
+  const fakeService = createFakeDailyVerseService({
+    getVerseOfTheDay: async () => ({ verse: 'Örnek meal', verseRef: 'Fâtiha Suresi, 1. Ayet' }),
+  });
+
+  await withServer(
+    async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/daily-verse`);
+      const body = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(body.verse, 'Örnek meal');
+      assert.equal(body.verseRef, 'Fâtiha Suresi, 1. Ayet');
+    },
+    undefined,
+    fakeService
+  );
+});
+
+test('GET /api/daily-verse returns 502 when the service throws', async () => {
+  const fakeService = createFakeDailyVerseService({
+    getVerseOfTheDay: async () => {
+      throw new Error('network down');
+    },
+  });
+
+  await withServer(
+    async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/daily-verse`);
+      assert.equal(res.status, 502);
+    },
+    undefined,
+    fakeService
+  );
 });

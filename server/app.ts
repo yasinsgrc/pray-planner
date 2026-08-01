@@ -2,11 +2,13 @@ import express, { Express } from 'express';
 import type { SubscriptionStore } from './subscriptionStore';
 import type { PushSubscriptionRecord } from './types';
 import type { GeocodingClient } from './geocoding';
+import type { DailyVerseService } from './dailyVerse';
 
 export interface CreateAppDeps {
   store: SubscriptionStore;
   vapidPublicKey: string;
   geocodingClient: GeocodingClient;
+  dailyVerseService: DailyVerseService;
 }
 
 export function createApp(deps: CreateAppDeps): Express {
@@ -80,6 +82,15 @@ export function createApp(deps: CreateAppDeps): Express {
       res.status(200).json({ location });
     } catch {
       res.status(502).json({ error: 'Konum çözümlenirken bir hata oluştu.' });
+    }
+  });
+
+  app.get('/api/daily-verse', async (_req, res) => {
+    try {
+      const verse = await deps.dailyVerseService.getVerseOfTheDay();
+      res.status(200).json(verse);
+    } catch {
+      res.status(502).json({ error: 'Günün ayeti alınamadı.' });
     }
   });
 
