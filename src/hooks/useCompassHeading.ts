@@ -13,12 +13,17 @@ interface DeviceOrientationEventWithPermission {
   requestPermission?: () => Promise<'granted' | 'denied'>;
 }
 
-const NO_DATA_TIMEOUT_MS = 2000;
+interface DeviceOrientationEventWithAbsolute extends DeviceOrientationEvent {
+  webkitCompassHeading?: number;
+}
+
+const NO_DATA_TIMEOUT_MS = 5000;
 
 export function useCompassHeading(active: boolean): CompassHeadingState {
   const [heading, setHeading] = useState<number | null>(null);
   const [permissionState, setPermissionState] = useState<CompassPermissionState>('idle');
   const hasReceivedDataRef = useRef(false);
+  const receivingAbsoluteDataRef = useRef(false);
 
   const requestPermission = useCallback(async () => {
     if (typeof DeviceOrientationEvent === 'undefined') {
@@ -44,11 +49,11 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     if (!active || permissionState !== 'granted') return;
 
     hasReceivedDataRef.current = false;
+    receivingAbsoluteDataRef.current = false;
 
-    function handleOrientation(event: DeviceOrientationEvent) {
+    function acceptEvent(event: DeviceOrientationEventWithAbsolute) {
       const nextHeading = computeHeadingFromOrientationEvent({
-        webkitCompassHeading: (event as unknown as { webkitCompassHeading?: number })
-          .webkitCompassHeading,
+        webkitCompassHeading: event.webkitCompassHeading,
         alpha: event.alpha,
       });
 
@@ -58,6 +63,31 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
       }
     }
 
+    // deviceorientationabsolute is always north-referenced when it fires.
+    function handleOrientationAbsolute(event: Event) {
+      receivingAbsoluteDataRef.current = true;
+      acceptEvent(event as DeviceOrientationEventWithAbsolute);
+    }
+
+    // Plain deviceorientation is only north-referenced when its own
+    // `absolute` flag is true. Once absolute data has started arriving,
+    // ignore stale relative-only events so they don't overwrite it.
+    function handleOrientation(event: DeviceOrientationEvent) {
+      const typedEvent = event as DeviceOrientationEventWithAbsolute;
+      const isAbsolute = typedEvent.absolute === true;
+
+      if (receivingAbsoluteDataRef.current && !isAbsolute) {
+        return;
+      }
+
+      if (isAbsolute) {
+        receivingAbsoluteDataRef.current = true;
+      }
+
+      acceptEvent(typedEvent);
+    }
+
+    window.addEventListener('deviceorientationabsolute', handleOrientationAbsolute);
     window.addEventListener('deviceorientation', handleOrientation);
 
     const timeoutId = window.setTimeout(() => {
@@ -67,6 +97,7 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     }, NO_DATA_TIMEOUT_MS);
 
     return () => {
+      window.removeEventListener('deviceorientationabsolute', handleOrientationAbsolute);
       window.removeEventListener('deviceorientation', handleOrientation);
       window.clearTimeout(timeoutId);
     };

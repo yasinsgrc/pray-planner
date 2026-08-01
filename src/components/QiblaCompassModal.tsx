@@ -153,9 +153,17 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
         {permissionState === 'unsupported' && (
           <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2 text-left">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-red-500">
-              Cihazınız pusula sensörünü desteklemiyor, açı bilgisini yukarıdan kullanabilirsiniz.
-            </p>
+            <div>
+              <p className="text-[11px] text-red-500">
+                Cihazınız pusula sensörünü desteklemiyor, açı bilgisini yukarıdan kullanabilirsiniz.
+              </p>
+              <button
+                onClick={requestPermission}
+                className="text-[11px] font-semibold text-[#D6A84D] hover:underline cursor-pointer mt-1"
+              >
+                Tekrar Dene
+              </button>
+            </div>
           </div>
         )}
 

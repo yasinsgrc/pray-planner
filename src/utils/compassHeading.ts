@@ -6,7 +6,7 @@ export interface OrientationEventLike {
 export function computeHeadingFromOrientationEvent(
   event: OrientationEventLike
 ): number | null {
-  if (typeof event.webkitCompassHeading === 'number') {
+  if (Number.isFinite(event.webkitCompassHeading)) {
     return event.webkitCompassHeading;
   }
   if (event.alpha === null) {

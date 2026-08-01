@@ -26,6 +26,11 @@ test('computeHeadingFromOrientationEvent returns null when alpha is null and no 
   assert.equal(heading, null);
 });
 
+test('computeHeadingFromOrientationEvent falls through to alpha when webkitCompassHeading is NaN', () => {
+  const heading = computeHeadingFromOrientationEvent({ webkitCompassHeading: NaN, alpha: 50 });
+  assert.equal(heading, 310);
+});
+
 test('getAngularDifference returns 0 for identical angles', () => {
   assert.equal(getAngularDifference(90, 90), 0);
 });
