@@ -39,11 +39,28 @@ export interface DayPrayerSchedule {
   currentKerahet: KerahetInfo | null;
 }
 
-export function calculatePrayerTimes(
+/**
+ * The adhan-derived Date objects for one calendar day. Expensive to build
+ * (three `PrayerTimes` instantiations) but independent of the current
+ * moment — only location, calculation method, and calendar day affect it.
+ */
+export interface RawDaySchedule {
+  date: Date;
+  location: LocationItem;
+  rawPrayers: { name: PrayerName; label: string; dateObj: Date }[];
+  fajr: Date;
+  sunrise: Date;
+  dhuhr: Date;
+  yesterdayIsha: Date;
+  tomorrowFajr: Date;
+  kerahetWindows: Omit<KerahetInfo, 'isActiveNow'>[];
+}
+
+function buildDaySchedule(
   location: LocationItem,
-  date: Date = new Date(),
-  methodName: string = 'Diyanet'
-): DayPrayerSchedule {
+  date: Date,
+  methodName: string
+): RawDaySchedule {
   const coords = new Coordinates(location.lat, location.lng);
   const params = getCalculationParameters(methodName);
 
@@ -59,9 +76,6 @@ export function calculatePrayerTimes(
   yesterday.setDate(yesterday.getDate() - 1);
   const ptYesterday = new PrayerTimes(coords, yesterday, params);
 
-  const now = new Date();
-
-  // Define 6 key times for today
   const rawPrayers: { name: PrayerName; label: string; dateObj: Date }[] = [
     { name: 'imsak', label: 'İmsak', dateObj: ptToday.fajr },
     { name: 'gunes', label: 'Güneş', dateObj: ptToday.sunrise },
@@ -71,19 +85,68 @@ export function calculatePrayerTimes(
     { name: 'yatsi', label: 'Yatsı', dateObj: ptToday.isha },
   ];
 
+  const kerahatGunesStart = new Date(ptToday.sunrise);
+  const kerahatGunesEnd = new Date(ptToday.sunrise.getTime() + 45 * 60 * 1000);
+
+  const kerahatOgleStart = new Date(ptToday.dhuhr.getTime() - 45 * 60 * 1000);
+  const kerahatOgleEnd = new Date(ptToday.dhuhr);
+
+  const kerahatAksamStart = new Date(ptToday.maghrib.getTime() - 45 * 60 * 1000);
+  const kerahatAksamEnd = new Date(ptToday.maghrib);
+
+  const kerahetWindows: Omit<KerahetInfo, 'isActiveNow'>[] = [
+    {
+      type: 'gunes_sonrasi',
+      title: 'Güneş Keraheti',
+      description: 'Güneş doğduktan sonra 45 dakika kerahet vaktidir.',
+      startTime: kerahatGunesStart,
+      endTime: kerahatGunesEnd,
+    },
+    {
+      type: 'ogle_oncesi',
+      title: 'İstivâ Keraheti',
+      description: 'Öğle vaktine 45 dakika kala kerahet vaktidir.',
+      startTime: kerahatOgleStart,
+      endTime: kerahatOgleEnd,
+    },
+    {
+      type: 'aksam_oncesi',
+      title: 'İstifrâ Keraheti',
+      description: 'Güneş batmadan önceki 45 dakika kerahet vaktidir.',
+      startTime: kerahatAksamStart,
+      endTime: kerahatAksamEnd,
+    },
+  ];
+
+  return {
+    date,
+    location,
+    rawPrayers,
+    fajr: ptToday.fajr,
+    sunrise: ptToday.sunrise,
+    dhuhr: ptToday.dhuhr,
+    yesterdayIsha: ptYesterday.isha,
+    tomorrowFajr: ptTomorrow.fajr,
+    kerahetWindows,
+  };
+}
+
+function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
+  const { rawPrayers } = day;
+
   // Determine active prayer index
   let activeIndex = 5; // Default to Yatsı
-  if (now < ptToday.fajr) {
+  if (now < day.fajr) {
     activeIndex = 5; // Previous night's Yatsı
-  } else if (now < ptToday.sunrise) {
+  } else if (now < day.sunrise) {
     activeIndex = 0; // İmsak
-  } else if (now < ptToday.dhuhr) {
+  } else if (now < day.dhuhr) {
     activeIndex = 1; // Güneş
-  } else if (now < ptToday.asr) {
+  } else if (now < rawPrayers[3].dateObj) {
     activeIndex = 2; // Öğle
-  } else if (now < ptToday.maghrib) {
+  } else if (now < rawPrayers[4].dateObj) {
     activeIndex = 3; // İkindi
-  } else if (now < ptToday.isha) {
+  } else if (now < rawPrayers[5].dateObj) {
     activeIndex = 4; // Akşam
   } else {
     activeIndex = 5; // Yatsı
@@ -95,16 +158,16 @@ export function calculatePrayerTimes(
   let nextPrayerName: PrayerName;
   let nextPrayerLabel: string;
 
-  if (now < ptToday.fajr) {
+  if (now < day.fajr) {
     // Before today's Fajr: active is yesterday's Yatsı, next is today's Fajr
-    activeStartDate = ptYesterday.isha;
-    nextStartDate = ptToday.fajr;
+    activeStartDate = day.yesterdayIsha;
+    nextStartDate = day.fajr;
     nextPrayerName = 'imsak';
     nextPrayerLabel = 'İmsak';
   } else if (activeIndex === 5) {
     // After today's Isha: active is today's Isha, next is tomorrow's Fajr
-    activeStartDate = ptToday.isha;
-    nextStartDate = ptTomorrow.fajr;
+    activeStartDate = rawPrayers[5].dateObj;
+    nextStartDate = day.tomorrowFajr;
     nextPrayerName = 'imsak';
     nextPrayerLabel = 'İmsak';
   } else {
@@ -134,7 +197,6 @@ export function calculatePrayerTimes(
 
   // Build PrayerTimeDetails array
   const prayers: PrayerTimeDetails[] = rawPrayers.map((p, idx) => {
-    const isPast = now > p.dateObj && idx !== activeIndex;
     const isActive = idx === activeIndex;
     const isNext = p.name === nextPrayerName;
 
@@ -160,48 +222,16 @@ export function calculatePrayerTimes(
     isNext: true,
   };
 
-  // Kerahet Times (45 minutes window for sunrise, pre-noon, pre-sunset)
-  const kerahatGunesStart = new Date(ptToday.sunrise);
-  const kerahatGunesEnd = new Date(ptToday.sunrise.getTime() + 45 * 60 * 1000);
-
-  const kerahatOgleStart = new Date(ptToday.dhuhr.getTime() - 45 * 60 * 1000);
-  const kerahatOgleEnd = new Date(ptToday.dhuhr);
-
-  const kerahatAksamStart = new Date(ptToday.maghrib.getTime() - 45 * 60 * 1000);
-  const kerahatAksamEnd = new Date(ptToday.maghrib);
-
-  const kerahetTimes: KerahetInfo[] = [
-    {
-      type: 'gunes_sonrasi',
-      title: 'Güneş Keraheti',
-      description: 'Güneş doğduktan sonra 45 dakika kerahet vaktidir.',
-      startTime: kerahatGunesStart,
-      endTime: kerahatGunesEnd,
-      isActiveNow: now >= kerahatGunesStart && now <= kerahatGunesEnd,
-    },
-    {
-      type: 'ogle_oncesi',
-      title: 'İstivâ Keraheti',
-      description: 'Öğle vaktine 45 dakika kala kerahet vaktidir.',
-      startTime: kerahatOgleStart,
-      endTime: kerahatOgleEnd,
-      isActiveNow: now >= kerahatOgleStart && now <= kerahatOgleEnd,
-    },
-    {
-      type: 'aksam_oncesi',
-      title: 'İstifrâ Keraheti',
-      description: 'Güneş batmadan önceki 45 dakika kerahet vaktidir.',
-      startTime: kerahatAksamStart,
-      endTime: kerahatAksamEnd,
-      isActiveNow: now >= kerahatAksamStart && now <= kerahatAksamEnd,
-    },
-  ];
+  const kerahetTimes: KerahetInfo[] = day.kerahetWindows.map((k) => ({
+    ...k,
+    isActiveNow: now >= k.startTime && now <= k.endTime,
+  }));
 
   const currentKerahet = kerahetTimes.find((k) => k.isActiveNow) || null;
 
   return {
-    date,
-    location,
+    date: day.date,
+    location: day.location,
     prayers,
     activePrayer,
     nextPrayer,
@@ -211,4 +241,38 @@ export function calculatePrayerTimes(
     kerahetTimes,
     currentKerahet,
   };
+}
+
+/**
+ * Builds one calendar day's adhan-derived prayer times. Expensive
+ * (3x `PrayerTimes` construction) — memoize on
+ * `location + calculationMethod + calendar day`, not on the ticking clock.
+ */
+export function calculateDaySchedule(
+  location: LocationItem,
+  date: Date = new Date(),
+  methodName: string = 'Diyanet'
+): RawDaySchedule {
+  return buildDaySchedule(location, date, methodName);
+}
+
+/**
+ * Cheap per-tick derivation (active/next prayer, countdown, ring progress,
+ * kerahet activity) from an already-built `RawDaySchedule`. Safe to call
+ * every second.
+ */
+export function deriveLiveSchedule(
+  day: RawDaySchedule,
+  now: Date = new Date()
+): DayPrayerSchedule {
+  return deriveFromDay(day, now);
+}
+
+export function calculatePrayerTimes(
+  location: LocationItem,
+  date: Date = new Date(),
+  methodName: string = 'Diyanet'
+): DayPrayerSchedule {
+  const day = buildDaySchedule(location, date, methodName);
+  return deriveFromDay(day, new Date());
 }

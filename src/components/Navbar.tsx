@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-gold/15 max-w-md mx-auto transition-colors">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-gold/15 max-w-[430px] mx-auto transition-colors">
       <div className="flex items-center justify-around py-2.5 px-3">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;

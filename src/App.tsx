@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Header } from './components/Header';
 import { MainCountdownRing } from './components/MainCountdownRing';
 import { DailyFlowList } from './components/DailyFlowList';
@@ -25,10 +26,19 @@ import {
 import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
 import { DEFAULT_LOCATION } from './data/locations';
 import { getHijriDate } from './utils/hijri';
-import { calculatePrayerTimes } from './utils/prayerCalculator';
+import { calculateDaySchedule, deriveLiveSchedule } from './utils/prayerCalculator';
 import { playSoundForMode } from './utils/audio';
 
 const LOCAL_STORAGE_KEY = 'vakit_app_settings_v1';
+
+const PRAYER_ACCENT_VAR: Record<PrayerName, string> = {
+  imsak: '--v-imsak',
+  gunes: '--v-gunes',
+  ogle: '--v-ogle',
+  ikindi: '--v-ikindi',
+  aksam: '--v-aksam',
+  yatsi: '--v-yatsi',
+};
 
 export default function App() {
   // Load settings from localStorage or fallback to defaults
@@ -111,14 +121,20 @@ export default function App() {
     })();
   }, [settings, pushStatus]);
 
-  // Compute prayer schedule for selected location and time
-  const schedule = useMemo(() => {
-    return calculatePrayerTimes(
+  // Expensive adhan computation: only re-runs when location, method, or the
+  // calendar day changes — not on every one-second tick (see B4 in the
+  // design-refresh-v2 spec).
+  const daySchedule = useMemo(() => {
+    return calculateDaySchedule(
       settings.location,
       now,
       settings.calculationMethod
     );
-  }, [settings.location, settings.calculationMethod, now]);
+  }, [settings.location, settings.calculationMethod, now.toDateString()]);
+
+  // Cheap per-tick derivation (active/next prayer, countdown, ring
+  // progress, kerahet activity) from the memoized day schedule.
+  const schedule = useMemo(() => deriveLiveSchedule(daySchedule, now), [daySchedule, now]);
 
   // Uygulama açıkken vakit değişince seçili sesi bir kez otomatik çal
   const previousActivePrayerRef = useRef<PrayerName | null>(null);
@@ -146,10 +162,20 @@ export default function App() {
     if (settings.themeMode === 'dark') return true;
     if (settings.themeMode === 'light') return false;
 
-    // Auto theme mode: Dark after Maghrib (Akşam) or before Fajr (İmsak)
-    const currentHour = now.getHours();
-    return currentHour >= 20 || currentHour < 6;
-  }, [settings.themeMode, now]);
+    // Auto theme mode: dark from today's real Akşam (maghrib) until
+    // today's real İmsak (fajr) — not a fixed hour heuristic.
+    const aksamTime = schedule.prayers.find((p) => p.name === 'aksam')!.dateObj;
+    const imsakTime = schedule.prayers.find((p) => p.name === 'imsak')!.dateObj;
+    return now >= aksamTime || now < imsakTime;
+  }, [settings.themeMode, schedule.prayers, now]);
+
+  // Aktif vakte göre --accent değişkenini güncelle ("Gün Kavisi" vurgu rengi)
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--accent',
+      `var(${PRAYER_ACCENT_VAR[schedule.activePrayer.name]})`
+    );
+  }, [schedule.activePrayer.name]);
 
   // Apply .dark class to root html / body
   useEffect(() => {
@@ -195,11 +221,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col justify-between pb-20 selection:bg-[#D6A84D] selection:text-white">
+    <div className="min-h-[100dvh] max-w-[430px] mx-auto bg-paper text-ink flex flex-col justify-between app-shell-padding selection:bg-gold selection:text-white">
       {/* Üst Bar / Header */}
       <Header
         location={settings.location}
         hijriDate={hijriDate}
+        date={now}
         isDarkMode={isDarkMode}
         onToggleDarkMode={handleToggleDarkMode}
         onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -208,64 +235,75 @@ export default function App() {
       />
 
       {/* Ana İçerik Alanı */}
-      <main className="flex-1 flex flex-col">
-        {activeTab === 'focus' && (
-          <MainCountdownRing
-            schedule={schedule}
-            onScrollToFlow={() => setActiveTab('flow')}
-            onOpenLiveActivity={() => setIsLiveActivityModalOpen(true)}
-          />
-        )}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="flex-1 flex flex-col"
+          >
+            {activeTab === 'focus' && (
+              <MainCountdownRing
+                schedule={schedule}
+                onScrollToFlow={() => setActiveTab('flow')}
+                onOpenLiveActivity={() => setIsLiveActivityModalOpen(true)}
+              />
+            )}
 
-        {activeTab === 'flow' && (
-          <DailyFlowList
-            schedule={schedule}
-            notifications={settings.notifications}
-            onOpenSettings={() => setActiveTab('settings')}
-          />
-        )}
+            {activeTab === 'flow' && (
+              <DailyFlowList
+                schedule={schedule}
+                notifications={settings.notifications}
+                onOpenSettings={() => setActiveTab('settings')}
+              />
+            )}
 
-        {activeTab === 'spiritual' && (
-          <div className="flex-1 flex flex-col justify-center">
-            <DailyInspirationCard />
-            <div className="w-full max-w-md mx-auto px-4 mt-2 grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setIsQiblaModalOpen(true)}
-                className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] text-left hover:border-[#D6A84D] transition-colors cursor-pointer"
-              >
-                <div className="text-xs font-bold text-[#D6A84D] uppercase tracking-wider">
-                  Pusula
-                </div>
-                <div className="text-sm font-serif-title font-bold text-[var(--ink)] mt-1">
-                  Kıble Açısı
-                </div>
-              </button>
+            {activeTab === 'spiritual' && (
+              <div className="flex-1 flex flex-col justify-center">
+                <DailyInspirationCard />
+                <div className="w-full max-w-md mx-auto px-4 mt-2 grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setIsQiblaModalOpen(true)}
+                    className="p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold transition-colors cursor-pointer"
+                  >
+                    <div className="text-xs font-bold text-gold uppercase tracking-wider">
+                      Pusula
+                    </div>
+                    <div className="text-sm font-serif-title font-bold text-ink mt-1">
+                      Kıble Açısı
+                    </div>
+                  </button>
 
-              <button
-                onClick={() => setIsZikirmatikModalOpen(true)}
-                className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] text-left hover:border-[#D6A84D] transition-colors cursor-pointer"
-              >
-                <div className="text-xs font-bold text-[#D6A84D] uppercase tracking-wider">
-                  Tesbihat
+                  <button
+                    onClick={() => setIsZikirmatikModalOpen(true)}
+                    className="p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold transition-colors cursor-pointer"
+                  >
+                    <div className="text-xs font-bold text-gold uppercase tracking-wider">
+                      Tesbihat
+                    </div>
+                    <div className="text-sm font-serif-title font-bold text-ink mt-1">
+                      Sakin Zikirmatik
+                    </div>
+                  </button>
                 </div>
-                <div className="text-sm font-serif-title font-bold text-[var(--ink)] mt-1">
-                  Sakin Zikirmatik
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {activeTab === 'settings' && (
-          <SpiritualSettings
-            settings={settings}
-            onUpdateSettings={handleUpdateSettings}
-            onUpdateNotification={handleUpdateNotification}
-            pushStatus={pushStatus}
-            pushError={pushError}
-            onEnablePush={handleEnablePush}
-          />
-        )}
+            {activeTab === 'settings' && (
+              <SpiritualSettings
+                settings={settings}
+                onUpdateSettings={handleUpdateSettings}
+                onUpdateNotification={handleUpdateNotification}
+                pushStatus={pushStatus}
+                pushError={pushError}
+                onEnablePush={handleEnablePush}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Alt Navigasyon Barı */}

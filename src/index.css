@@ -46,6 +46,9 @@
     --v-yatsi: #2F3A56;
     /* Runtime accent, updated by App.tsx to the active prayer's --v-* value */
     --accent: var(--v-ogle);
+    /* Reserved height of the fixed bottom Navbar, used to keep scrollable
+       content clear of it (see .app-shell-padding below). */
+    --nav-h: 76px;
   }
 
   .dark {
@@ -111,6 +114,11 @@
 
 .animate-blur-up {
   animation: blurUpIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Keeps content clear of the fixed bottom Navbar on every device. */
+.app-shell-padding {
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 24px);
 }
 
 @media (prefers-reduced-motion: reduce) {
