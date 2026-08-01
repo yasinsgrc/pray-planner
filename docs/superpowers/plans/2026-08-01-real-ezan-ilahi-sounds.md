@@ -197,6 +197,8 @@ import { playSoundForMode } from '../utils/audio';
 
 - [ ] **Step 2: Vakit başına 3'lü buton grubunu select ile değiştir**
 
+**Not:** Task 1'in implementer'ı, sildiği `playEzanSample()`'a olan tek referansı (bu dosyada) zaten `playEzanAudio()` ile değiştirerek geçici bir derleme hatasını önledi — yani şu an dosyada `playEzanSample()` değil `playEzanAudio()` yazıyor. Aşağıdaki anchor buna göre güncellenmiştir.
+
 Aşağıdaki bloğu (mevcut "Ezan"/"Tını"/"Sessiz" üç butonlu `<div>`) bul:
 
 ```tsx
@@ -204,7 +206,7 @@ Aşağıdaki bloğu (mevcut "Ezan"/"Tını"/"Sessiz" üç butonlu `<div>`) bul:
                   <button
                     onClick={() => {
                       onUpdateNotification(prayer, 'ezan');
-                      playEzanSample();
+                      playEzanAudio();
                     }}
 ```
 
