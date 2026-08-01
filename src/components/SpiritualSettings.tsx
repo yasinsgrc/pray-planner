@@ -13,11 +13,15 @@ import {
 } from 'lucide-react';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { playSoftChime, playEzanSample } from '../utils/audio';
+import type { PushStatus } from '../utils/pushClient';
 
 interface SpiritualSettingsProps {
   settings: AppSettings;
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
   onUpdateNotification: (prayer: PrayerName, mode: SoundMode) => void;
+  pushStatus: PushStatus;
+  pushError: string | null;
+  onEnablePush: () => void;
 }
 
 const PRAYER_LABELS: Record<PrayerName, string> = {
@@ -33,6 +37,9 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   settings,
   onUpdateSettings,
   onUpdateNotification,
+  pushStatus,
+  pushError,
+  onEnablePush,
 }) => {
   const { notifications, themeMode, calculationMethod } = settings;
 
@@ -46,6 +53,44 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
         <p className="text-xs text-[var(--mist)] mt-1">
           Ruhunuzu ve huzurunuzu yormayan kişiselleştirmeler
         </p>
+      </div>
+
+      {/* 0. Bildirimleri Etkinleştir */}
+      <div className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-3">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-[#D6A84D]" />
+          <div>
+            <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
+              Bildirimleri Etkinleştir
+            </div>
+            <div className="text-[11px] text-[var(--mist)]">
+              Vakit girdiğinde tarayıcı bildirimi alabilmek için izin verin
+            </div>
+          </div>
+        </div>
+
+        {pushStatus === 'granted' ? (
+          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <Check className="w-4 h-4" /> Bildirimler etkin
+          </div>
+        ) : (
+          <button
+            onClick={onEnablePush}
+            disabled={pushStatus === 'loading'}
+            className="w-full py-2.5 px-4 rounded-xl bg-[#D6A84D] hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-60"
+          >
+            {pushStatus === 'loading' ? 'Bekleniyor...' : 'Bildirimlere İzin Ver'}
+          </button>
+        )}
+
+        {pushStatus === 'denied' && (
+          <p className="text-[11px] text-red-500">
+            Bildirim izni reddedildi. Tarayıcı ayarlarından bu site için bildirimlere izin verip tekrar deneyin.
+          </p>
+        )}
+        {pushStatus === 'error' && pushError && (
+          <p className="text-[11px] text-red-500">{pushError}</p>
+        )}
       </div>
 
       {/* 1. Vakit Bazlı Bildirim Seçimi */}
