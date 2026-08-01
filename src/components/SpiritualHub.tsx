@@ -2,13 +2,16 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { CompassIcon, HandHeartIcon, SparkleIcon } from '@phosphor-icons/react';
 import { DailyInspirationCard } from './DailyInspirationCard';
+import { PrayerTracker } from './PrayerTracker';
 import { LocationItem } from '../types';
+import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { calculateQiblaBearing } from '../utils/qibla';
 import { PRESET_DHIKRS, ZikirmatikState } from '../utils/zikirmatikStorage';
 import { ESMA_UL_HUSNA } from '../data/esmaulHusna';
 
 interface SpiritualHubProps {
   location: LocationItem;
+  schedule: DayPrayerSchedule;
   zikirState: ZikirmatikState;
   onOpenQiblaModal: () => void;
   onOpenZikirmatikModal: () => void;
@@ -18,6 +21,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 export const SpiritualHub: React.FC<SpiritualHubProps> = ({
   location,
+  schedule,
   zikirState,
   onOpenQiblaModal,
   onOpenZikirmatikModal,
@@ -33,6 +37,15 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
   return (
     <div className="flex-1 flex flex-col">
       <DailyInspirationCard />
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.02, duration: 0.5, ease: EASE }}
+        className="w-full max-w-[var(--shell-w)] mx-auto px-4 mb-3"
+      >
+        <PrayerTracker schedule={schedule} />
+      </motion.div>
 
       <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 grid grid-cols-3 gap-3">
         {/* Kıble Kartı (geniş) */}
@@ -88,14 +101,16 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
         transition={{ delay: 0.16, duration: 0.5, ease: EASE }}
         className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-3 pb-4"
       >
-        <div className="p-5 rounded-2xl bg-gold/10 border border-gold/20 text-center">
-          <div className="flex items-center justify-center gap-1.5 text-label text-gold font-bold">
-            <SparkleIcon className="w-3.5 h-3.5" />
+        <div className="p-5 rounded-2xl bg-card border border-hairline text-center">
+          <div className="flex items-center justify-center gap-1.5 text-label text-mist font-bold">
+            <SparkleIcon className="w-3.5 h-3.5 text-gold" />
             <span>Günün Esmâsı</span>
           </div>
-          <div className="text-2xl font-serif-title font-bold text-ink mt-2">{todayEsma.arabic}</div>
-          <div className="text-sm font-semibold text-gold mt-1">{todayEsma.transliteration}</div>
-          <p className="text-xs text-mist mt-1.5 leading-relaxed">{todayEsma.meaning}</p>
+          <div className="text-2xl font-serif-title font-bold mt-2" style={{ color: 'var(--accent)' }}>
+            {todayEsma.arabic}
+          </div>
+          <div className="text-sm font-semibold text-ink mt-1">{todayEsma.transliteration}</div>
+          <p className="text-micro text-mist mt-1.5 leading-relaxed">{todayEsma.meaning}</p>
         </div>
       </motion.div>
     </div>

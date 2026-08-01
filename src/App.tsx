@@ -275,6 +275,7 @@ export default function App() {
             {activeTab === 'spiritual' && (
               <SpiritualHub
                 location={settings.location}
+                schedule={schedule}
                 zikirState={zikirState}
                 onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
                 onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
