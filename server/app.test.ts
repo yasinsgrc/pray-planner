@@ -7,13 +7,23 @@ import type { AddressInfo } from 'node:net';
 import type { NotificationSettings } from '../src/types';
 import { createApp } from './app';
 import { createSubscriptionStore } from './subscriptionStore';
+import type { GeocodingClient } from './geocoding';
+
+function createFakeGeocodingClient(overrides: Partial<GeocodingClient> = {}): GeocodingClient {
+  return {
+    searchLocations: async () => [],
+    reverseGeocode: async () => null,
+    ...overrides,
+  };
+}
 
 async function withServer(
-  run: (baseUrl: string, store: ReturnType<typeof createSubscriptionStore>) => Promise<void>
+  run: (baseUrl: string, store: ReturnType<typeof createSubscriptionStore>) => Promise<void>,
+  geocodingClient: GeocodingClient = createFakeGeocodingClient()
 ) {
   const dir = mkdtempSync(path.join(tmpdir(), 'vakit-app-'));
   const store = createSubscriptionStore(path.join(dir, 'subs.json'));
-  const app = createApp({ store, vapidPublicKey: 'test-public-key' });
+  const app = createApp({ store, vapidPublicKey: 'test-public-key', geocodingClient });
   const server = app.listen(0);
 
   try {
@@ -100,5 +110,84 @@ test('POST /api/unsubscribe removes a stored subscription', async () => {
 
     assert.equal(res.status, 200);
     assert.equal(store.loadSubscriptions().length, 0);
+  });
+});
+
+test('GET /api/geocode returns mapped results from the geocoding client', async () => {
+  const fakeClient = createFakeGeocodingClient({
+    searchLocations: async (query) => {
+      assert.equal(query, 'ankara');
+      return [
+        {
+          id: 'x',
+          cityName: 'Ankara',
+          districtName: 'Çankaya',
+          country: 'Türkiye',
+          lat: 39.9,
+          lng: 32.8,
+        },
+      ];
+    },
+  });
+
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.results.length, 1);
+    assert.equal(body.results[0].cityName, 'Ankara');
+  }, fakeClient);
+});
+
+test('GET /api/geocode rejects a query shorter than 2 characters', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/geocode?q=a`);
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GET /api/geocode returns 502 when the geocoding client throws', async () => {
+  const fakeClient = createFakeGeocodingClient({
+    searchLocations: async () => {
+      throw new Error('network down');
+    },
+  });
+
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
+    assert.equal(res.status, 502);
+  }, fakeClient);
+});
+
+test('GET /api/reverse-geocode returns a mapped location', async () => {
+  const fakeClient = createFakeGeocodingClient({
+    reverseGeocode: async (lat, lng) => {
+      assert.equal(lat, 41);
+      assert.equal(lng, 29);
+      return { id: 'y', cityName: 'İstanbul', districtName: '', country: 'Türkiye', lat, lng };
+    },
+  });
+
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/reverse-geocode?lat=41&lng=29`);
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.location.cityName, 'İstanbul');
+  }, fakeClient);
+});
+
+test('GET /api/reverse-geocode rejects non-numeric coordinates', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/reverse-geocode?lat=abc&lng=29`);
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GET /api/reverse-geocode returns location: null when nothing is found', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/reverse-geocode?lat=0&lng=0`);
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.location, null);
   });
 });
