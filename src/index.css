@@ -1,16 +1,51 @@
 @import "tailwindcss";
 
+/*
+ * Tailwind v4 utilities generated from the app's CSS custom properties.
+ * Each entry aliases an existing runtime-themable variable (defined below,
+ * swapped by .dark) rather than a static value, so e.g. `text-gold` stays
+ * correct in both themes instead of baking in the light-mode hex.
+ */
+@theme {
+  --color-paper: var(--paper);
+  --color-card: var(--card-bg);
+  --color-ink: var(--ink);
+  --color-mist: var(--mist);
+  --color-gold: var(--gold);
+  --color-sand: var(--sand);
+  --color-accent: var(--accent);
+  --color-hairline: var(--card-border);
+
+  --color-v-imsak: var(--v-imsak);
+  --color-v-gunes: var(--v-gunes);
+  --color-v-ogle: var(--v-ogle);
+  --color-v-ikindi: var(--v-ikindi);
+  --color-v-aksam: var(--v-aksam);
+  --color-v-yatsi: var(--v-yatsi);
+}
+
 @layer base {
   :root {
     --paper: #F9F7F2;
     --gold: #D6A84D;
     --sand: #E8C68C;
     --ink: #2D2D2D;
-    --mist: #BCB8B1;
+    /* WCAG AA secondary text: >=4.5:1 against both --paper and --card-bg */
+    --mist: #6B6A66;
     --bg-current: #F9F7F2;
     --text-current: #2D2D2D;
     --card-bg: #FFFFFF;
     --card-border: rgba(214, 168, 77, 0.18);
+
+    /* "Gün Kavisi" per-prayer accent palette */
+    --v-imsak: #4A5A7B;
+    --v-gunes: #E3A857;
+    --v-ogle: #D6A84D;
+    --v-ikindi: #C08A46;
+    --v-aksam: #A85D52;
+    --v-yatsi: #2F3A56;
+    /* Runtime accent, updated by App.tsx to the active prayer's --v-* value */
+    --accent: var(--v-ogle);
   }
 
   .dark {
@@ -18,7 +53,7 @@
     --gold: #E5B757;
     --sand: #C9A25E;
     --ink: #ECEAE3;
-    --mist: #787570;
+    --mist: #ABA89F;
     --bg-current: #1A1B1E;
     --text-current: #ECEAE3;
     --card-bg: #24262B;
