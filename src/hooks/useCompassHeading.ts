@@ -58,10 +58,7 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
       }
     }
 
-    const eventName =
-      'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
-
-    window.addEventListener(eventName, handleOrientation);
+    window.addEventListener('deviceorientation', handleOrientation);
 
     const timeoutId = window.setTimeout(() => {
       if (!hasReceivedDataRef.current) {
@@ -70,7 +67,7 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     }, NO_DATA_TIMEOUT_MS);
 
     return () => {
-      window.removeEventListener(eventName, handleOrientation);
+      window.removeEventListener('deviceorientation', handleOrientation);
       window.clearTimeout(timeoutId);
     };
   }, [active, permissionState]);
