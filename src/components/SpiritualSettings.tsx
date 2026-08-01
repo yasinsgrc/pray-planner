@@ -88,7 +88,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
     <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 py-6 space-y-6">
       {/* Başlık */}
       <div>
-        <h2 className="text-xl font-serif-title font-bold text-ink">
+        <h2 className="font-serif-title text-display-l font-bold text-ink">
           Manevi Ayarlar & Bildirimler
         </h2>
         <p className="text-xs text-mist mt-1">
@@ -98,13 +98,13 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
       {/* BİLDİRİMLER */}
       <div className="space-y-3">
-        <div className="text-[11px] font-bold text-mist uppercase tracking-wider px-1">Bildirimler</div>
+        <div className="text-label font-bold text-mist px-1">Bildirimler</div>
 
         <FadeIn delay={0} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <BellIcon className="w-4 h-4 text-gold" />
             <div>
-              <div className="text-sm font-bold text-ink font-serif-title">
+              <div className="text-sm font-bold text-ink">
                 Bildirimleri Etkinleştir
               </div>
               <div className="text-[11px] text-mist">
@@ -150,7 +150,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">
             <div className="flex items-center gap-2">
               <BellIcon className="w-4 h-4 text-gold" />
-              <span className="text-sm font-bold text-ink font-serif-title">
+              <span className="text-sm font-bold text-ink">
                 Vakit Bazlı Bildirim Sesleri
               </span>
             </div>
@@ -195,7 +195,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           <div className="flex items-center gap-2">
             <ClockIcon className="w-4 h-4 text-gold" />
             <div>
-              <div className="text-sm font-bold text-ink font-serif-title">
+              <div className="text-sm font-bold text-ink">
                 Abdest & Hazırlık Hatırlatıcı
               </div>
               <div className="text-[11px] text-mist">
@@ -222,13 +222,13 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
       {/* GÖRÜNÜM */}
       <div className="space-y-3">
-        <div className="text-[11px] font-bold text-mist uppercase tracking-wider px-1">Görünüm</div>
+        <div className="text-label font-bold text-mist px-1">Görünüm</div>
 
         <FadeIn delay={0.18} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <MoonIcon className="w-4 h-4 text-gold" />
             <div>
-              <div className="text-sm font-bold text-ink font-serif-title">
+              <div className="text-sm font-bold text-ink">
                 Gece Teması & Otomatik Dönüşüm
               </div>
               <div className="text-[11px] text-mist">
@@ -258,13 +258,13 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
       {/* HESAPLAMA */}
       <div className="space-y-3">
-        <div className="text-[11px] font-bold text-mist uppercase tracking-wider px-1">Hesaplama</div>
+        <div className="text-label font-bold text-mist px-1">Hesaplama</div>
 
         <FadeIn delay={0.24} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <GearIcon className="w-4 h-4 text-gold" />
             <div>
-              <div className="text-sm font-bold text-ink font-serif-title">
+              <div className="text-sm font-bold text-ink">
                 Hesaplama Yöntemi
               </div>
               <div className="text-[11px] text-mist">
@@ -287,12 +287,12 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
       {/* HAKKINDA */}
       <div className="space-y-3">
-        <div className="text-[11px] font-bold text-mist uppercase tracking-wider px-1">Hakkında</div>
+        <div className="text-label font-bold text-mist px-1">Hakkında</div>
 
         <FadeIn delay={0.3} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
           <div className="flex items-center gap-2">
             <CalendarDotsIcon className="w-4 h-4 text-gold" />
-            <div className="text-sm font-bold text-ink font-serif-title">
+            <div className="text-sm font-bold text-ink">
               Hicri Tarih Hakkında
             </div>
           </div>

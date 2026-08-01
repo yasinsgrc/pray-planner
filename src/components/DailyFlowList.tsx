@@ -53,7 +53,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
       {/* Başlık */}
       <div className="flex items-center justify-between border-b border-gold/15 pb-3">
         <div>
-          <h2 className="text-lg font-serif-title font-bold text-ink">
+          <h2 className="font-serif-title text-display-l font-bold text-ink">
             Günlük Vakit Akışı
           </h2>
           <p className="text-xs text-mist">
@@ -133,7 +133,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                     <div className="text-left">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`font-serif-title font-bold text-base ${
+                          className={`font-bold text-base ${
                             item.isActive ? 'text-gold' : item.isPast ? 'text-mist' : 'text-ink'
                           }`}
                         >
@@ -150,7 +150,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-mist mt-0.5">
+                      <div className="text-micro text-mist mt-0.5">
                         {item.isActive
                           ? 'Şu an bu vakit içerisindesiniz'
                           : item.isPast
@@ -168,7 +168,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                       </div>
                       <button
                         onClick={onOpenSettings}
-                        className="text-[10px] text-mist flex items-center justify-end gap-1 ml-auto cursor-pointer hover:text-gold transition-colors"
+                        className="text-micro text-mist flex items-center justify-end gap-1 ml-auto cursor-pointer hover:text-gold transition-colors"
                         title="Ses ayarını değiştir"
                       >
                         {soundMode === 'ezan' && (
@@ -222,8 +222,8 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
       {/* Yarın Özeti */}
       <div className="mt-2 p-4 rounded-2xl bg-card/70 border border-hairline/50 flex items-center justify-between">
         <div>
-          <div className="text-[11px] text-mist uppercase tracking-wider font-semibold">Yarın</div>
-          <div className="text-sm font-bold text-ink font-serif-title">İmsak & Akşam</div>
+          <div className="text-label text-mist font-semibold">Yarın</div>
+          <div className="text-sm font-bold text-ink">İmsak & Akşam</div>
         </div>
         <div className="text-right font-numbers text-sm font-bold text-ink">
           <div>{tomorrowImsakTime} <span className="text-mist font-normal">İmsak</span></div>

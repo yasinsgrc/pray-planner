@@ -48,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-gold">•</span>
               <span className="opacity-80">{location.cityName}</span>
             </div>
-            <div className="text-[10px] text-mist uppercase tracking-wider font-medium">
+            <div className="text-label text-mist font-medium">
               {location.country}
             </div>
           </div>

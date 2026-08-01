@@ -46,15 +46,12 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
             <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
               <div aria-hidden="true">
                 {/* Üst Bilgi Etiketi */}
-                <span className="text-xs font-medium text-mist tracking-wide uppercase mb-1 block text-center">
+                <span className="text-label font-medium text-mist mb-1 block text-center">
                   {nextPrayer.label} vaktine kalan süre
                 </span>
 
                 {/* Geri Sayım Rakamları */}
-                <div
-                  className="font-numbers font-extrabold tracking-tight text-ink my-1"
-                  style={{ fontSize: 'clamp(1.75rem, 8vw, 2.5rem)' }}
-                >
+                <div className="font-numbers text-display-xl text-ink my-1">
                   {timeRemainingFormatted}
                 </div>
               </div>
@@ -97,10 +94,10 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
               <ClockIcon className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <div className="text-[11px] text-mist uppercase tracking-wider font-semibold">
+              <div className="text-label text-mist font-semibold">
                 Sıradaki Vakit
               </div>
-              <div className="text-sm font-bold text-ink font-serif-title">
+              <div className="text-sm font-bold text-ink">
                 {nextPrayer.label}
               </div>
             </div>

@@ -46,8 +46,8 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
           className="col-span-2 p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold/40 transition-colors cursor-pointer flex items-center justify-between gap-3"
         >
           <div>
-            <div className="text-xs font-bold text-gold uppercase tracking-wider">Pusula</div>
-            <div className="text-base font-serif-title font-bold text-ink mt-1">Kıble Açısı</div>
+            <div className="text-label text-gold font-bold">Pusula</div>
+            <div className="text-base font-bold text-ink mt-1">Kıble Açısı</div>
             <div className="font-numbers text-2xl font-extrabold text-gold mt-1">{qiblaBearing}°</div>
           </div>
           <div className="relative w-14 h-14 rounded-full border-2 border-gold/30 flex items-center justify-center shrink-0">
@@ -89,7 +89,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
         className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-3 pb-4"
       >
         <div className="p-5 rounded-2xl bg-gold/10 border border-gold/20 text-center">
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-gold uppercase tracking-wider">
+          <div className="flex items-center justify-center gap-1.5 text-label text-gold font-bold">
             <SparkleIcon className="w-3.5 h-3.5" />
             <span>Günün Esmâsı</span>
           </div>

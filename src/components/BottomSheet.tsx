@@ -107,7 +107,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
               <div className="w-9 h-1 rounded-full bg-hairline" />
             </div>
             <div className="px-5 pb-2 flex items-center justify-between shrink-0">
-              <h3 id={titleId} className="font-serif-title font-bold text-base text-ink">
+              <h3 id={titleId} className="font-bold text-base text-ink">
                 {title}
               </h3>
               <button

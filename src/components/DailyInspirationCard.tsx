@@ -74,7 +74,7 @@ export const DailyInspirationCard: React.FC = () => {
         <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">
           <div className="flex items-center gap-2">
             <BookOpenIcon className="w-4 h-4 text-gold" />
-            <span className="text-sm font-bold text-ink font-serif-title">
+            <span className="text-sm font-bold text-ink">
               Günün Manevi Notu
             </span>
           </div>
@@ -125,7 +125,7 @@ export const DailyInspirationCard: React.FC = () => {
             </div>
           ) : (
             <>
-              <p className="text-base font-serif-title text-ink leading-loose italic relative z-10 px-2">
+              <p className="text-xl font-serif-title text-ink leading-[1.55] italic relative z-10 px-2">
                 {tab === 'verse' && verseText}
                 {tab === 'hadith' && content.hadith}
                 {tab === 'dua' && content.dua}

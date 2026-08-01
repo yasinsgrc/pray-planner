@@ -146,7 +146,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
 
         {searchQuery.trim().length >= 2 && (
           <div className="pt-1 pb-2 border-b border-gold/10">
-            <div className="text-[10px] font-bold text-mist uppercase tracking-wider px-1 mb-1">
+            <div className="text-label font-bold text-mist px-1 mb-1">
               Arama Sonuçları
             </div>
 
@@ -178,7 +178,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
                     className="w-full p-3 rounded-xl flex items-center justify-between text-left transition-colors cursor-pointer hover:bg-paper text-ink"
                   >
                     <div>
-                      <div className="text-sm font-bold font-serif-title">
+                      <div className="text-sm font-bold">
                         {loc.districtName || loc.cityName}
                         {loc.districtName && (
                           <span className="font-sans text-xs opacity-75 font-normal ml-1">
@@ -213,7 +213,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
                 }`}
               >
                 <div>
-                  <div className="text-sm font-bold font-serif-title">
+                  <div className="text-sm font-bold">
                     {loc.districtName}
                     <span className="font-sans text-xs opacity-75 font-normal ml-1">
                       , {loc.cityName}

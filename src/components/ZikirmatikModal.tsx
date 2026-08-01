@@ -113,7 +113,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
             <span className="font-numbers text-5xl font-extrabold tracking-tight">
               {counter}
             </span>
-            <span className="text-[10px] uppercase tracking-wider font-semibold opacity-90 mt-1">
+            <span className="text-label font-semibold opacity-90 mt-1">
               Çekmek İçin Dokun
             </span>
           </motion.button>
