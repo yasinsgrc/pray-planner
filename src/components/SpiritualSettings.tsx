@@ -10,6 +10,7 @@ import {
   Check,
   Play,
   Settings2,
+  CalendarDays,
 } from 'lucide-react';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { playSoftChime, playEzanSample } from '../utils/audio';
@@ -273,6 +274,19 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           <option value="Egypt">Mısır Genel Ölçüm Heyeti</option>
           <option value="Karachi">Karaçi İslam İlimleri Üniversitesi</option>
         </select>
+      </div>
+
+      {/* 4.5 Hicri Tarih Hakkında */}
+      <div className="p-4 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm space-y-2">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-[#D6A84D]" />
+          <div className="text-sm font-bold text-[var(--ink)] font-serif-title">
+            Hicri Tarih Hakkında
+          </div>
+        </div>
+        <p className="text-[11px] text-[var(--mist)] leading-relaxed">
+          Uygulamadaki hicri tarih, Ümmü'l-Kura takvim verisine dayanan astronomik bir hesaplamadır. Diyanet İşleri Başkanlığı'nın resmi açıklamasından bazı aylarda ±1 gün farklı olabilir; kesin tarih için resmi Diyanet duyurularını esas alınız.
+        </p>
       </div>
 
       {/* 5. İnternetsiz Çevrimdışı Bellek (30 Günlük Local DB) */}
