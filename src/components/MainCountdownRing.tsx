@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ClockIcon, DeviceMobileIcon, CalendarDotsIcon } from '@phosphor-icons/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { SunArcDial } from './SunArcDial';
+import { DialLegend } from './DialLegend';
 import { KerahetStrip } from './KerahetStrip';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 
@@ -55,7 +56,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
                 </span>
 
                 {/* Geri Sayım Rakamları */}
-                <div className="font-numbers text-display-xl text-ink my-1">
+                <div data-testid="countdown" className="font-numbers text-display-xl text-ink my-1">
                   {timeRemainingFormatted}
                 </div>
               </div>
@@ -75,6 +76,8 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
             </div>
           </div>
         </div>
+
+        <DialLegend schedule={schedule} />
 
         {/* Bir kereye mahsus mikro-efsane: kullanıcı 3 gün gördükten sonra kaybolur */}
         {showDialLegend && (

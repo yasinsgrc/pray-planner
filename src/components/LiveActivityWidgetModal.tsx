@@ -108,23 +108,13 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
             </div>
           </div>
 
-          {/* Kerahet Satırı — aktifse tarama desenli ve vurgulu */}
+          {/* Kerahet Satırı: ince kesikli çizgi + tek satır, aktifse vurgulu */}
           {upcomingOrActiveKerahet && (
             <div
-              className={`flex items-center gap-1.5 px-1 py-1.5 rounded-lg text-[10px] ${
-                upcomingOrActiveKerahet.isActiveNow ? 'text-gold font-semibold' : 'text-gray-400'
+              className={`flex items-center gap-1.5 px-1 py-1.5 text-[10px] border-t border-dotted ${
+                upcomingOrActiveKerahet.isActiveNow ? 'text-gold font-semibold border-gold' : 'text-gray-400 border-gray-700'
               }`}
-              style={
-                upcomingOrActiveKerahet.isActiveNow
-                  ? { background: 'repeating-linear-gradient(45deg, rgba(229,183,87,0.15) 0 2px, transparent 2px 6px)' }
-                  : undefined
-              }
             >
-              <span
-                className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
-                style={{ background: 'repeating-linear-gradient(45deg, currentColor 0 1.5px, transparent 1.5px 4px)' }}
-                aria-hidden="true"
-              />
               <span>
                 {upcomingOrActiveKerahet.isActiveNow
                   ? `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti — şu an (${formatKerahetRange(upcomingOrActiveKerahet)})`

@@ -1,8 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { motion, useReducedMotion, AnimatePresence } from 'motion/react';
+import React from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
-import { PRAYER_ICON_COMPONENTS } from './prayerIcons';
-import { formatTime } from '../utils/formatTime';
 import { polarPoint, arcPath } from '../utils/dialGeometry';
 
 interface SunArcDialProps {
@@ -11,22 +9,24 @@ interface SunArcDialProps {
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const REVEAL_DURATION_MS = 3000;
 
 /**
  * "Gün Kavisi Kadranı" — the app's one signature element. A full
  * imsak-to-imsak day cycle (not a "time to next prayer" progress bar): an
  * elapsed arc colored through the day's six accent tones (each segment
- * separated by a small gap instead of unlabeled outer ticks), a marker for
- * the current moment, and on tap, all six prayer names/times briefly
- * labeled on the ring itself.
+ * separated by a small gap instead of unlabeled outer ticks), a small dot
+ * per prayer at its true solar angle, and a marker for the current moment.
+ * Prayer names/times live in the fixed DialLegend row below the dial, not
+ * as floating chips on the ring — floating chips at variable angles can't
+ * be made to never overlap each other or the ring by construction, and
+ * measurement in a real browser confirmed they didn't (design-refresh-v3
+ * Faz 1: "tam etiket modu" / next-prayer chip removed for exactly this
+ * reason).
  */
 export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) => {
   const prefersReducedMotion = useReducedMotion();
   const { dayCycleStart, dayCycleEnd, dayCyclePrayers, dayProgress, activePrayer, nextPrayer, kerahetTimes } =
     schedule;
-  const [showAllLabels, setShowAllLabels] = useState(false);
-  const revealTimeoutRef = useRef<number | null>(null);
 
   const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
@@ -49,6 +49,7 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
       renderStart,
       elapsedEnd,
       hasElapsed: elapsedEnd > renderStart,
+      isNext: prayer.name === nextPrayer.name,
     };
   });
 
@@ -59,41 +60,13 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
   // prayerCalculator's kerahetWindows), so during the pre-fajr wrap case
   // (dayCycleStart = yesterday's fajr) they fall outside this cycle's
   // [0,1] range and are naturally filtered out below.
-  const kerahetHatches = kerahetTimes
+  const kerahetArcs = kerahetTimes
     .map((k) => ({
       type: k.type,
       startFrac: (k.startTime.getTime() - dayCycleStart.getTime()) / totalMs,
       endFrac: (k.endTime.getTime() - dayCycleStart.getTime()) / totalMs,
     }))
     .filter((k) => k.endFrac > 0 && k.startFrac < 1);
-
-  const chipRadius = radius + 26;
-
-  // At most 2 named things at once (marker + next-prayer chip) unless the
-  // user taps the dial, which briefly names all six.
-  const labelChips = showAllLabels
-    ? dayCyclePrayers.map((p) => ({
-        name: p.name,
-        label: p.label,
-        time: p.dateObj,
-        frac: Math.min(1, Math.max(0, (p.dateObj.getTime() - dayCycleStart.getTime()) / totalMs)),
-      }))
-    : [
-        {
-          name: nextPrayer.name,
-          label: nextPrayer.label,
-          time: nextPrayer.dateObj,
-          frac: Math.min(1, Math.max(0, (nextPrayer.dateObj.getTime() - dayCycleStart.getTime()) / totalMs)),
-        },
-      ];
-
-  const handleDialTap = () => {
-    setShowAllLabels(true);
-    if (revealTimeoutRef.current !== null) {
-      window.clearTimeout(revealTimeoutRef.current);
-    }
-    revealTimeoutRef.current = window.setTimeout(() => setShowAllLabels(false), REVEAL_DURATION_MS);
-  };
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -103,17 +76,6 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
             <circle cx={markerPoint.x} cy={markerPoint.y} r={8} fill="white" />
             <circle cx={markerPoint.x + 3} cy={markerPoint.y - 3} r={7} fill="black" />
           </mask>
-          {/*
-            Same visual recipe as index.css's --pattern-kerahet
-            (45deg, 2px var(--mist) stripe, 6px repeat) — CSS backgrounds
-            don't apply to SVG strokes, so this is the SVG-side equivalent
-            kept in sync with that CSS value (design-refresh-v3 F4: one
-            kerahet visual language across the dial, Vakitler list, and
-            kilit ekranı widget).
-          */}
-          <pattern id="dial-kerahet-pattern" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <rect width="2" height="6" fill="var(--mist)" />
-          </pattern>
         </defs>
 
         {/* Arka plan: kalan (henüz gelmemiş) kısım, segment başına aynı boşluklarla */}
@@ -146,17 +108,40 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
           ) : null
         )}
 
-        {/* Kerahet pencereleri: yay üzerinde tarama deseni (sakin, alarm kutusu değil) */}
-        {kerahetHatches.map((k) => (
+        {/*
+          Kerahet pencereleri: halkanın içinde ince bir yay (radius - 7),
+          renkli yayı örtmeden yanında durur. Önceki <pattern> tabanlı
+          tarama denemesi büyütülmüş ekranda bulanık gri bir leke gibi
+          çıkıyordu (gerçek tarayıcıda ölçüldü) — düz, ince, yarı saydam
+          bir yayla değiştirildi (design-refresh-v3 Faz 1).
+        */}
+        {kerahetArcs.map((k) => (
           <path
             key={`kerahet-${k.type}`}
-            d={arcPath(cx, cy, radius, Math.max(0, k.startFrac), Math.min(1, k.endFrac))}
-            stroke="url(#dial-kerahet-pattern)"
-            strokeWidth={strokeWidth}
-            strokeLinecap="butt"
+            d={arcPath(cx, cy, radius - 7, Math.max(0, k.startFrac), Math.min(1, k.endFrac))}
+            stroke="var(--mist)"
+            strokeOpacity={0.45}
+            strokeWidth={2}
+            strokeLinecap="round"
             fill="none"
           />
         ))}
+
+        {/* Her vaktin açısında küçük bir nokta; sıradaki vakit vurgulu */}
+        {segments.map((seg) => {
+          const dot = polarPoint(cx, cy, radius, seg.trueStart);
+          return (
+            <circle
+              key={`dot-${seg.name}`}
+              cx={dot.x}
+              cy={dot.y}
+              r={seg.isNext ? 4 : 2.5}
+              fill={seg.isNext ? 'var(--accent)' : 'var(--paper)'}
+              stroke={seg.isNext ? 'white' : `var(--v-${seg.name})`}
+              strokeWidth={seg.isNext ? 1.5 : 1.5}
+            />
+          );
+        })}
 
         {/* Şu anki an işaretçisi: gündüz dolu daire (--accent), gece hilal (mask ile gerçek kesik) */}
         {isNight ? (
@@ -171,37 +156,6 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
           <circle cx={markerPoint.x} cy={markerPoint.y} r={8} fill="var(--accent)" stroke="white" strokeWidth={2} />
         )}
       </svg>
-
-      {/* Vakit çipleri: normalde yalnızca sıradaki vakit, dokununca hepsi — metin hep yatay */}
-      <button
-        type="button"
-        onClick={handleDialTap}
-        aria-label="Tüm vakit isimlerini göster"
-        className="absolute inset-0 rounded-full cursor-pointer"
-        style={{ background: 'transparent' }}
-      />
-      <AnimatePresence>
-        {labelChips.map((chip) => {
-          const pt = polarPoint(cx, cy, chipRadius, chip.frac);
-          const ChipIcon = PRAYER_ICON_COMPONENTS[chip.name];
-          return (
-            <motion.div
-              key={chip.name}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.25, ease: EASE }}
-              className="absolute flex items-center gap-1 px-2 py-1 rounded-full bg-card border border-hairline text-[11px] font-medium text-ink shadow-sm whitespace-nowrap pointer-events-none"
-              style={{ left: pt.x, top: pt.y, transform: 'translate(-50%, -50%)' }}
-            >
-              <ChipIcon className="w-3 h-3 text-gold" weight="duotone" />
-              <span>
-                {chip.label} {formatTime(chip.time)}
-              </span>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
     </div>
   );
 };

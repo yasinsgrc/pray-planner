@@ -43,15 +43,15 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
         </button>
       </div>
 
-      {/* Desen efsanesi: kerahet dilini kadran/liste/kilit ekranında tek yerde açıkla */}
+      {/* Efsane: kerahet dilini kadran/liste/kilit ekranında tek yerde açıkla */}
       <div className="space-y-0.5">
         <p className="flex items-center gap-1.5 text-micro text-mist">
           <span
-            className="inline-block w-3 h-3 rounded-sm shrink-0"
-            style={{ background: 'var(--pattern-kerahet)' }}
+            className="inline-block w-3 h-0 shrink-0"
+            style={{ borderTop: '2px dotted var(--mist)' }}
             aria-hidden="true"
           />
-          taralı aralıklar kerahet vaktidir
+          kesikli çizgiler kerahet vaktidir
         </p>
         <p className="text-micro text-mist pl-[18px]">
           Fıkhî ayrıntılar mezhebe göre farklılık gösterebilir.
@@ -187,30 +187,19 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                 </div>
               </motion.div>
 
-              {/* Kerahet segmentleri: omurganın kendisi taralı banda dönüşür, kartlardan bilinçli olarak zayıf */}
+              {/* Kerahet segmentleri: omurga kesikli ince çizgiye döner, tek satır etiket — rail/kart yok */}
               {kerahetInGap.map((k) => (
-                <div key={k.type} className="flex items-stretch gap-3 py-1">
+                <div key={k.type} className="flex items-stretch gap-3 py-1.5">
                   <div className="relative w-6 flex-shrink-0 flex flex-col items-center">
                     <div
-                      className="absolute top-0 bottom-0 w-1"
-                      style={{
-                        background: k.isActiveNow
-                          ? `repeating-linear-gradient(45deg, var(--accent) 0 2px, transparent 2px 6px)`
-                          : 'var(--pattern-kerahet)',
-                      }}
+                      className="absolute top-0 bottom-0"
+                      style={{ borderLeft: `2px dotted ${k.isActiveNow ? 'var(--accent)' : 'var(--mist)'}` }}
                     />
                   </div>
-                  <div
-                    className={`flex-1 rounded-lg px-3 py-1.5 flex items-center justify-between ${
-                      k.isActiveNow ? 'bg-accent/10' : 'bg-paper'
-                    }`}
-                  >
-                    <span
-                      className={`text-micro ${k.isActiveNow ? 'text-accent font-semibold' : 'text-ink font-medium'}`}
-                    >
-                      {KERAHET_SHORT_LABEL[k.type]}
+                  <div className="flex-1 flex items-center">
+                    <span className={`text-micro ${k.isActiveNow ? 'text-accent font-semibold' : 'text-mist'}`}>
+                      {KERAHET_SHORT_LABEL[k.type]} keraheti · {formatKerahetRange(k)}
                     </span>
-                    <span className="font-numbers text-micro text-mist">{formatKerahetRange(k)}</span>
                   </div>
                 </div>
               ))}

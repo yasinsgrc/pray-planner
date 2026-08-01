@@ -71,13 +71,16 @@
     --card-bg: #FFFFFF;
     --card-border: rgba(214, 168, 77, 0.18);
 
-    /* "Gün Kavisi" per-prayer accent palette */
-    --v-imsak: #4A5A7B;
-    --v-gunes: #E3A857;
-    --v-ogle: #D6A84D;
-    --v-ikindi: #C08A46;
-    --v-aksam: #A85D52;
-    --v-yatsi: #2F3A56;
+    /* "Gün Kavisi" per-prayer accent palette — replaced with a set that
+       actually reads as 6 distinct tones, not "two golds and two navys"
+       (design-refresh-v3 Faz 1: measured in a real browser, --v-gunes/
+       --v-ogle/--v-ikindi and --v-imsak/--v-yatsi were near-indistinguishable). */
+    --v-imsak: #5B6FA8;
+    --v-gunes: #F0A94C;
+    --v-ogle: #E8C547;
+    --v-ikindi: #C97B3C;
+    --v-aksam: #A34A4A;
+    --v-yatsi: #2E3560;
     /* Runtime accent, updated by App.tsx to the active prayer's --v-* value */
     --accent: var(--v-ogle);
     /* Reserved height of the fixed bottom Navbar, used to keep scrollable
@@ -88,12 +91,6 @@
        previously Navbar used max-w-[430px] while screens used max-w-md
        (448px), an 18px mismatch visible on wide viewports. */
     --shell-w: 430px;
-    /* Single kerahet visual language, reused everywhere it appears
-       (dial, Vakitler list, kilit ekranı widget) — see design-refresh-v3
-       F4. HTML elements use it directly as a background; SunArcDial's SVG
-       stroke uses an equivalent <pattern> def with the same 45deg/2px/6px
-       recipe, since CSS backgrounds don't apply to SVG strokes. */
-    --pattern-kerahet: repeating-linear-gradient(45deg, var(--mist) 0 2px, transparent 2px 6px);
   }
 
   .dark {
@@ -106,6 +103,18 @@
     --text-current: #ECEAE3;
     --card-bg: #24262B;
     --card-border: rgba(229, 183, 87, 0.22);
+
+    /* --v-* was never redefined here before — the light-mode navys
+       (#4A5A7B/#2F3A56) were nearly invisible against #1A1B1E, so the
+       dial's imsak/yatsi segments effectively disappeared in dark mode
+       (measured in a real browser, design-refresh-v3 Faz 1). Brighter,
+       higher-contrast set for the dark background. */
+    --v-imsak: #7B8FC7;
+    --v-gunes: #F5B968;
+    --v-ogle: #F0D264;
+    --v-ikindi: #DB9556;
+    --v-aksam: #C46A66;
+    --v-yatsi: #5A63A0;
   }
 
   body {
@@ -143,14 +152,15 @@
 /* Fluid type scale (design-refresh-v2/v3 spec) — actually applied at each
    call site now, not just defined (see design-refresh-v3 F6.5). */
 /*
- * Ceiling deliberately lower than the original v2 spec's 4.5rem: at 8
- * tabular-num characters ("00:00:00") the countdown lives inside a 288px
- * SunArcDial, and 4.5rem/72px per character would overflow the dial's
- * usable inner width. 3.5rem is the computed realistic ceiling for that
- * layout (see design-refresh-v3 F6.5).
+ * The v2/F6.5 clamp(1.75rem, 8vw, 3.5rem) measured at 31.2px on a real
+ * 390px phone viewport — 8vw never reaches the 3.5rem ceiling on any
+ * phone width, so that ceiling was purely decorative and the countdown
+ * rendered far smaller than a hero element inside a 288px dial should
+ * (design-refresh-v3 Faz 1, measured not assumed). Raised the min/preferred
+ * so 8vw actually lands in a reasonable range: ~45px at 390px.
  */
 .text-display-xl {
-  font-size: clamp(1.75rem, 8vw, 3.5rem);
+  font-size: clamp(2.25rem, 11.5vw, 3rem);
   letter-spacing: -0.02em;
   font-weight: 800;
 }
@@ -210,7 +220,7 @@
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -225,5 +235,16 @@
   background: var(--mist);
   border-radius: 999px;
   opacity: 0.5;
+}
+
+/* Hides the native scrollbar on a deliberately horizontally-scrollable row
+   (e.g. ZikirmatikModal's dhikr picker) while keeping scroll functional —
+   was referenced but never defined (design-refresh-v3 Faz 1). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
