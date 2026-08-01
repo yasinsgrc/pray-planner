@@ -14,6 +14,13 @@ import { LocationModal } from './components/LocationModal';
 import { QiblaCompassModal } from './components/QiblaCompassModal';
 import { ZikirmatikModal } from './components/ZikirmatikModal';
 import { LiveActivityWidgetModal } from './components/LiveActivityWidgetModal';
+import {
+  registerServiceWorker,
+  subscribeToPush,
+  syncSubscription,
+  getExistingPushSubscription,
+  PushStatus,
+} from './utils/pushClient';
 
 import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
 import { DEFAULT_LOCATION } from './data/locations';
@@ -59,6 +66,9 @@ export default function App() {
   const [isZikirmatikModalOpen, setIsZikirmatikModalOpen] = useState(false);
   const [isLiveActivityModalOpen, setIsLiveActivityModalOpen] = useState(false);
 
+  const [pushStatus, setPushStatus] = useState<PushStatus>('idle');
+  const [pushError, setPushError] = useState<string | null>(null);
+
   // Save settings to localStorage
   useEffect(() => {
     try {
@@ -75,6 +85,30 @@ export default function App() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Service worker'ı kaydet ve daha önce izin verilmişse aboneliği tespit et
+  useEffect(() => {
+    registerServiceWorker();
+    (async () => {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        const existing = await getExistingPushSubscription();
+        if (existing) {
+          setPushStatus('granted');
+        }
+      }
+    })();
+  }, []);
+
+  // Ayarlar değiştikçe backend'deki aboneliği güncel tut
+  useEffect(() => {
+    if (pushStatus !== 'granted') return;
+    (async () => {
+      const existing = await getExistingPushSubscription();
+      if (existing) {
+        await syncSubscription(existing, settings);
+      }
+    })();
+  }, [settings, pushStatus]);
 
   // Compute prayer schedule for selected location and time
   const schedule = useMemo(() => {
@@ -129,6 +163,18 @@ export default function App() {
       ...prev,
       themeMode: prev.themeMode === 'dark' ? 'light' : 'dark',
     }));
+  };
+
+  const handleEnablePush = async () => {
+    setPushStatus('loading');
+    setPushError(null);
+    const result = await subscribeToPush(settings);
+    if ('reason' in result) {
+      setPushStatus(result.reason === 'Bildirim izni verilmedi.' ? 'denied' : 'error');
+      setPushError(result.reason);
+    } else {
+      setPushStatus('granted');
+    }
   };
 
   return (
@@ -198,6 +244,9 @@ export default function App() {
             settings={settings}
             onUpdateSettings={handleUpdateSettings}
             onUpdateNotification={handleUpdateNotification}
+            pushStatus={pushStatus}
+            pushError={pushError}
+            onEnablePush={handleEnablePush}
           />
         )}
       </main>
