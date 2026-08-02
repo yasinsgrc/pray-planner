@@ -5,13 +5,22 @@
 // Faz 0 — runtime breakage is invisible to the type checker and bundler.
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
-import { mkdir, readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 import sharp from 'sharp';
 
 const PORT = 4174;
 const BASE_URL = `http://localhost:${PORT}`;
+// A second, deliberately dumb static server (design-refresh-v3 Faz 9 Final)
+// — `vite preview` always has *some* server behind it, so it can't stand in
+// for a genuinely serverless deploy (Netlify etc., no /api/*, no /health).
+// This one mimics that: serves dist/ with an SPA fallback, and either 404s
+// /health + /api/* (matching netlify.toml) or, in "SPA fallback" mode,
+// deliberately does NOT — answering everything including /health with 200 +
+// index.html, the exact failure mode design-refresh-v3 Faz 9 M1 fixed.
+const STATIC_PORT = 4175;
+const STATIC_BASE_URL = `http://localhost:${STATIC_PORT}`;
 const OUT_DIR = path.resolve('.visual');
 const COUNTDOWN_MAX_WIDTH = 210;
 const MIN_TOUCH_TARGET = 44;
@@ -95,6 +104,71 @@ function waitForServer(url, timeoutMs = 15000) {
 
 function describeElement(className) {
   return className && typeof className === 'string' ? className.split(' ').slice(0, 4).join('.') : String(className);
+}
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
+  '.mp3': 'audio/mpeg',
+  '.ico': 'image/x-icon',
+};
+
+/**
+ * A deliberately dumb static file server standing in for a real serverless
+ * host (Netlify etc.) — see the STATIC_PORT comment above for why
+ * `vite preview` can't be reused for this. `mimicBrokenSpaFallback: true`
+ * skips the /health + /api/* 404 rules entirely, falling through to the
+ * catch-all SPA fallback for those paths too — the exact misconfiguration
+ * design-refresh-v3 Faz 9 M1's client-side check must survive on its own.
+ */
+function createStaticServer(distDir, { mimicBrokenSpaFallback = false } = {}) {
+  return http.createServer(async (req, res) => {
+    const url = new URL(req.url, 'http://localhost');
+    const pathname = url.pathname;
+
+    if (!mimicBrokenSpaFallback && (pathname === '/health' || pathname.startsWith('/api/'))) {
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: 'Not found' }));
+      return;
+    }
+
+    let filePath = path.join(distDir, decodeURIComponent(pathname));
+    try {
+      const info = await stat(filePath);
+      if (info.isDirectory()) filePath = path.join(filePath, 'index.html');
+      await stat(filePath);
+    } catch {
+      filePath = path.join(distDir, 'index.html'); // SPA fallback
+    }
+
+    try {
+      const data = await readFile(filePath);
+      res.statusCode = 200;
+      res.setHeader('Content-Type', MIME_TYPES[path.extname(filePath)] ?? 'application/octet-stream');
+      res.end(data);
+    } catch {
+      res.statusCode = 404;
+      res.end('Not found');
+    }
+  });
+}
+
+function listenOnce(server, port) {
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, () => resolve());
+  });
+}
+
+function closeServer(server) {
+  return new Promise((resolve) => server.close(() => resolve()));
 }
 
 /**
@@ -641,6 +715,179 @@ async function checkOfflineSupport(browser) {
   }
 }
 
+/**
+ * Serverless deployment scenario (design-refresh-v3 Faz 9 Final) — the same
+ * dist/ served with no /api/* or /health at all (a genuine 404, matching
+ * netlify.toml), verifying the app correctly manages the server's absence
+ * rather than just assuming a server always exists somewhere.
+ */
+async function checkServerlessScenario(browser) {
+  console.log('\n=== Serverless scenario (no server, 404 on /health and /api/*) ===');
+  const server = createStaticServer(path.resolve('dist'));
+  await listenOnce(server, STATIC_PORT);
+
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 3,
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+
+  const consoleErrors = [];
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') consoleErrors.push(msg.text());
+  });
+  page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+  const dailyVerseRequests = [];
+  page.on('request', (req) => {
+    if (req.url().includes('/api/daily-verse')) dailyVerseRequests.push(req.url());
+  });
+
+  try {
+    await page.goto(STATIC_BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    // apiAvailable false olarak çözülüyor + Ayarlar'da bildirim bölümü hiç
+    // render edilmiyor.
+    await page.getByRole('tab', { name: 'Ayarlar' }).click();
+    await page.waitForTimeout(600); // useApiAvailable'ın /health isteği + 404 çözümü için
+
+    const notificationSectionVisible = await page.evaluate(() =>
+      [...document.querySelectorAll('div')].some((el) => el.textContent.trim() === 'Bildirimleri Etkinleştir')
+    );
+    if (notificationSectionVisible) {
+      violations.push('[serverless] apiAvailable false olmasına rağmen bildirim bölümü hâlâ görünüyor');
+    }
+    const unavailableNoteVisible = await page.evaluate(() =>
+      [...document.querySelectorAll('p')].some((el) =>
+        el.textContent.includes('Vakit bildirimleri bu sürümde kullanılamıyor')
+      )
+    );
+    if (!unavailableNoteVisible) {
+      violations.push('[serverless] "Vakit bildirimleri bu sürümde kullanılamıyor" notu görünmüyor');
+    }
+    // Sunucudan bağımsız çalışan tek gerçek ses özelliği yine de görünmeli.
+    const ezanToggleVisible = await page.evaluate(() =>
+      [...document.querySelectorAll('div')].some((el) => el.textContent.trim() === 'Uygulama Açıkken Ezan Sesi Çal')
+    );
+    if (!ezanToggleVisible) {
+      violations.push('[serverless] sunucudan bağımsız "Uygulama Açıkken Ezan Sesi Çal" ayarı kayboldu');
+    }
+
+    // Konum sheet'inde "İnternette Ara" butonu yok, yerel arama çalışıyor.
+    await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+    await page.waitForTimeout(500);
+    const searchInput = page.getByPlaceholder('Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)');
+    await searchInput.fill('Gebze');
+    await page.waitForTimeout(400);
+
+    const gebzeResultVisible = await page.evaluate(() =>
+      [...document.querySelectorAll('button')].some((el) => el.textContent.includes('Gebze'))
+    );
+    if (!gebzeResultVisible) {
+      violations.push('[serverless] yerel arama "Gebze" için sonuç döndürmedi');
+    }
+    const internetSearchButtonVisible = await page.evaluate(() =>
+      [...document.querySelectorAll('button')].some(
+        (el) => el.textContent.includes('İnternette Ara') || el.textContent.includes('İnternette ara')
+      )
+    );
+    if (internetSearchButtonVisible) {
+      violations.push('[serverless] apiAvailable false olmasına rağmen "İnternette Ara" butonu görünüyor');
+    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+
+    // Gizlilik sheet'i açılıyor, taşma ve kontrast ihlali yok.
+    await page.getByRole('tab', { name: 'Ayarlar' }).click();
+    await page.waitForTimeout(400);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(600);
+    await page.getByRole('button', { name: 'Gizlilik politikasının tamamı →' }).click();
+    await page.waitForTimeout(500);
+    await checkScreen(page, { name: 'serverless' }, 'privacy-sheet');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+
+    if (dailyVerseRequests.length > 0) {
+      violations.push(
+        `[serverless] /api/daily-verse'e ${dailyVerseRequests.length} istek gitti — apiAvailable false iken hiç gitmemeli`
+      );
+    }
+    // Bu senaryoda /health ve /api/* kasıtlı olarak 404 döner (useApiAvailable'ın
+    // probe'u dahil); Chrome bu tür non-2xx fetch yanıtları için "Failed to load
+    // resource...404" satırını JS'in hatayı yakalayıp yakalamadığından bağımsız
+    // olarak konsola düşürür. Bu, senaryonun kasıtlı ürettiği zararsız bir
+    // tanı çıktısıdır — gerçek hatalar (örn. React uyarıları, JS istisnaları) ayrı kalır.
+    const EXPECTED_NETWORK_ERROR_PATTERN = /^Failed to load resource: the server responded with a status of 404/;
+    const unexpectedConsoleErrors = consoleErrors.filter((text) => !EXPECTED_NETWORK_ERROR_PATTERN.test(text));
+    if (unexpectedConsoleErrors.length > 0) {
+      violations.push(`[serverless] konsola ${unexpectedConsoleErrors.length} beklenmeyen hata düştü: ${unexpectedConsoleErrors.join(' | ')}`);
+    }
+
+    console.log('  apiAvailable=false doğru yönetiliyor: bildirim bölümü gizli, yerel arama çalışıyor, günün ayeti isteği yok.');
+  } catch (err) {
+    violations.push(`[serverless] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+    await closeServer(server);
+  }
+}
+
+/**
+ * Regression test for design-refresh-v3 Faz 9 M1: a host whose SPA fallback
+ * answers *every* path with 200 + index.html, including /health — i.e. no
+ * server-side defense at all (netlify.toml's 404 rules absent/misconfigured).
+ * useApiAvailable's body-content check must still resolve false purely from
+ * the client side.
+ */
+async function checkSpaFallbackRegression(browser) {
+  console.log('\n=== SPA-fallback-mimicking regression scenario (/health -> 200 + HTML) ===');
+  const server = createStaticServer(path.resolve('dist'), { mimicBrokenSpaFallback: true });
+  await listenOnce(server, STATIC_PORT);
+
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+
+  try {
+    await page.goto(STATIC_BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    const healthRes = await page.evaluate(async () => {
+      const res = await fetch('/health');
+      return { status: res.status, contentType: res.headers.get('content-type') };
+    });
+    if (healthRes.status !== 200 || !healthRes.contentType?.includes('text/html')) {
+      violations.push(
+        `[spa-fallback-regression] test senaryosu beklendiği gibi kurulmadı: /health -> ${healthRes.status} ${healthRes.contentType}`
+      );
+    }
+
+    await page.getByRole('tab', { name: 'Ayarlar' }).click();
+    await page.waitForTimeout(600);
+
+    const notificationSectionVisible = await page.evaluate(() =>
+      [...document.querySelectorAll('div')].some((el) => el.textContent.trim() === 'Bildirimleri Etkinleştir')
+    );
+    if (notificationSectionVisible) {
+      violations.push(
+        '[spa-fallback-regression] /health 200+HTML döndürüyor ama bildirim bölümü hâlâ görünüyor — useApiAvailable body kontrolü çalışmıyor'
+      );
+    } else {
+      console.log('  /health 200 + HTML döndürse bile apiAvailable doğru şekilde false çözüyor.');
+    }
+  } catch (err) {
+    violations.push(`[spa-fallback-regression] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+    await closeServer(server);
+  }
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
@@ -782,6 +1029,8 @@ async function main() {
       }
 
       await checkOfflineSupport(browser);
+      await checkServerlessScenario(browser);
+      await checkSpaFallbackRegression(browser);
     } finally {
       await browser.close();
     }

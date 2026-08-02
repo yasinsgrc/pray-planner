@@ -21,6 +21,8 @@ import { AppSettings, PrayerName, SoundMode } from '../types';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { playEzanAudio } from '../utils/audio';
 import { PRAYER_LABELS } from '../data/strings';
+import { PRIVACY_SUMMARY } from '../data/privacy';
+import { useApiAvailable } from '../hooks/useApiAvailable';
 import type { PushStatus } from '../utils/pushClient';
 
 interface SpiritualSettingsProps {
@@ -31,6 +33,7 @@ interface SpiritualSettingsProps {
   pushStatus: PushStatus;
   pushError: string | null;
   onEnablePush: () => void;
+  onDisablePush: () => void;
 }
 
 // Yalnızca Bildirim/Sessiz (design-refresh-v3 Faz 7 F1) — hiçbir tarayıcı
@@ -75,11 +78,13 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   pushStatus,
   pushError,
   onEnablePush,
+  onDisablePush,
 }) => {
   const { notifications, themeMode, calculationMethod, playEzanInForeground, prayerAdjustments } = settings;
   const [openSoundSheet, setOpenSoundSheet] = useState<PrayerName | null>(null);
   const [isMethodSheetOpen, setIsMethodSheetOpen] = useState(false);
   const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
+  const apiAvailable = useApiAvailable();
 
   const adjustPrayer = (prayer: PrayerName, delta: number) => {
     const current = prayerAdjustments[prayer] ?? 0;
@@ -107,83 +112,116 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       <div className="space-y-3">
         <div className="text-label font-bold text-mist px-1">Bildirimler</div>
 
-        <FadeIn delay={0} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
-          <div className="flex items-center gap-2">
-            <BellIcon className="w-4 h-4 text-gold-ink" />
-            <div>
-              <div className="text-sm font-bold text-ink">
-                Bildirimleri Etkinleştir
-              </div>
-              <div className="text-[11px] text-mist">
-                Vakit girdiğinde tarayıcı bildirimi alabilmek için izin verin
-              </div>
-            </div>
+        {/* Vakit bildirimleri Express sunucusuna bağlıdır (server/index.ts) —
+            statik dağıtımda (ör. Netlify) sunucu hiç yok. Sunucu-bağımlı
+            kartları apiAvailable === false iken tamamen gizlemek yerine
+            gösterip her adımda hata vermek, kullanıcının tarayıcı bildirim
+            iznini boşuna vermesine yol açardı — izin verilir, sonra sunucuya
+            hiç ulaşılamaz (design-refresh-v3 Faz 9 M2). apiAvailable === null
+            iken (kontrol sürüyor) kartlar bir görünüp bir kaybolmasın diye
+            aynı yükseklikte bir iskelet gösterilir. */}
+        {apiAvailable === null && (
+          <div className="space-y-3" aria-hidden="true">
+            <div className="h-[92px] rounded-2xl bg-card border border-hairline animate-pulse" />
+            <div className="h-[220px] rounded-2xl bg-card border border-hairline animate-pulse" />
           </div>
+        )}
 
-          {pushStatus === 'granted' ? (
-            <div className="flex items-center gap-2 text-xs text-success-ink font-semibold">
-              <CheckIcon className="w-4 h-4" /> Bildirimler etkin
-            </div>
-          ) : (
-            <button
-              onClick={onEnablePush}
-              disabled={pushStatus === 'loading'}
-              className="relative w-full py-2.5 px-4 rounded-full bg-gold hover:bg-gold-hover text-on-gold font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95 before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:inset-x-0"
-            >
-              {pushStatus === 'loading' ? 'Bekleniyor...' : 'Bildirimlere İzin Ver'}
-            </button>
-          )}
+        {apiAvailable === false && (
+          <FadeIn delay={0} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm">
+            <p className="text-xs text-mist text-center">Vakit bildirimleri bu sürümde kullanılamıyor.</p>
+          </FadeIn>
+        )}
 
-          {pushStatus === 'denied' && (
-            <p className="text-[11px] text-danger-ink">
-              Bildirim izni reddedildi. Tarayıcı ayarlarından bu site için bildirimlere izin verip tekrar deneyin.
-            </p>
-          )}
-          {pushStatus === 'error' && pushError && (
-            <p className="text-[11px] text-danger-ink">{pushError}</p>
-          )}
+        {apiAvailable === true && (
+          <>
+            <FadeIn delay={0} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
+              <div className="flex items-center gap-2">
+                <BellIcon className="w-4 h-4 text-gold-ink" />
+                <div>
+                  <div className="text-sm font-bold text-ink">
+                    Bildirimleri Etkinleştir
+                  </div>
+                  <div className="text-[11px] text-mist">
+                    Vakit girdiğinde tarayıcı bildirimi alabilmek için izin verin
+                  </div>
+                </div>
+              </div>
 
-          {showIOSNotice && (
-            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-gold/10 text-[11px] text-mist">
-              <DeviceMobileIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
-              <span>
-                iPhone'da bildirim alabilmek için Safari'de Paylaş → Ana Ekrana Ekle ile uygulamayı yükleyin.
-              </span>
-            </div>
-          )}
-        </FadeIn>
-
-        <FadeIn delay={0.06} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">
-            <div className="flex items-center gap-2">
-              <BellIcon className="w-4 h-4 text-gold-ink" />
-              <span className="text-sm font-bold text-ink">
-                Vakit Bazlı Bildirimler
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            {(Object.keys(PRAYER_LABELS) as PrayerName[]).map((prayer) => {
-              const currentMode = notifications[prayer];
-              const currentLabel = SOUND_OPTIONS.find((o) => o.value === currentMode)?.label ?? currentMode;
-
-              return (
+              {pushStatus === 'granted' ? (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs text-success-ink font-semibold">
+                    <CheckIcon className="w-4 h-4" /> Bildirimler etkin
+                  </div>
+                  <button
+                    onClick={onDisablePush}
+                    className="min-h-[44px] flex items-center text-xs text-mist hover:text-danger-ink cursor-pointer transition-colors"
+                  >
+                    Kapat
+                  </button>
+                </div>
+              ) : (
                 <button
-                  key={prayer}
-                  onClick={() => setOpenSoundSheet(prayer)}
-                  className="w-full flex items-center justify-between py-3 border-b border-hairline last:border-0 cursor-pointer"
+                  onClick={onEnablePush}
+                  disabled={pushStatus === 'loading'}
+                  className="relative w-full py-2.5 px-4 rounded-full bg-gold hover:bg-gold-hover text-on-gold font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95 before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:inset-x-0"
                 >
-                  <span className="text-sm font-medium text-ink">{PRAYER_LABELS[prayer]}</span>
-                  <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-paper text-ink">
-                    {currentLabel}
-                    <CaretDownIcon className="w-3 h-3 text-mist" />
-                  </span>
+                  {pushStatus === 'loading' ? 'Bekleniyor...' : 'Bildirimlere İzin Ver'}
                 </button>
-              );
-            })}
-          </div>
-        </FadeIn>
+              )}
+
+              {pushStatus === 'denied' && (
+                <p className="text-[11px] text-danger-ink">
+                  Bildirim izni reddedildi. Tarayıcı ayarlarından bu site için bildirimlere izin verip tekrar deneyin.
+                </p>
+              )}
+              {pushStatus === 'error' && pushError && (
+                <p className="text-[11px] text-danger-ink">{pushError}</p>
+              )}
+
+              {showIOSNotice && (
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-gold/10 text-[11px] text-mist">
+                  <DeviceMobileIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
+                  <span>
+                    iPhone'da bildirim alabilmek için Safari'de Paylaş → Ana Ekrana Ekle ile uygulamayı yükleyin.
+                  </span>
+                </div>
+              )}
+            </FadeIn>
+
+            <FadeIn delay={0.06} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <BellIcon className="w-4 h-4 text-gold-ink" />
+                  <span className="text-sm font-bold text-ink">
+                    Vakit Bazlı Bildirimler
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                {(Object.keys(PRAYER_LABELS) as PrayerName[]).map((prayer) => {
+                  const currentMode = notifications[prayer];
+                  const currentLabel = SOUND_OPTIONS.find((o) => o.value === currentMode)?.label ?? currentMode;
+
+                  return (
+                    <button
+                      key={prayer}
+                      onClick={() => setOpenSoundSheet(prayer)}
+                      className="w-full flex items-center justify-between py-3 border-b border-hairline last:border-0 cursor-pointer"
+                    >
+                      <span className="text-sm font-medium text-ink">{PRAYER_LABELS[prayer]}</span>
+                      <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-paper text-ink">
+                        {currentLabel}
+                        <CaretDownIcon className="w-3 h-3 text-mist" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </FadeIn>
+          </>
+        )}
 
         {/* Tek gerçekten çalışan ses vaadi: uygulama sekmesi açıkken ezan
             sesini çalmak (design-refresh-v3 Faz 7 F1) — bildirim sesi
@@ -240,37 +278,41 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           </p>
         </FadeIn>
 
-        <FadeIn delay={0.12} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
-          <div className="flex items-center gap-2">
-            <ClockIcon className="w-4 h-4 text-gold-ink" />
-            <div>
-              <div className="text-sm font-bold text-ink">
-                Abdest & Hazırlık Hatırlatıcı
+        {apiAvailable === true && (
+          <>
+            <FadeIn delay={0.12} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
+              <div className="flex items-center gap-2">
+                <ClockIcon className="w-4 h-4 text-gold-ink" />
+                <div>
+                  <div className="text-sm font-bold text-ink">
+                    Abdest & Hazırlık Hatırlatıcı
+                  </div>
+                  <div className="text-[11px] text-mist">
+                    Vaktin girmesinden önce huzurlu bir hazırlık uyarısı gönderir
+                  </div>
+                </div>
               </div>
-              <div className="text-[11px] text-mist">
-                Vaktin girmesinden önce huzurlu bir hazırlık uyarısı gönderir
-              </div>
-            </div>
-          </div>
 
-          <SegmentedControl
-            layoutId="early-warning-segment"
-            value={String(notifications.earlyWarningMinutes)}
-            onChange={(val) =>
-              onUpdateSettings({
-                notifications: { ...notifications, earlyWarningMinutes: Number(val) },
-              })
-            }
-            options={[0, 15, 30, 45, 60].map((mins) => ({
-              value: String(mins),
-              label: mins === 0 ? 'Kapalı' : `${mins} dk`,
-            }))}
-          />
-        </FadeIn>
+              <SegmentedControl
+                layoutId="early-warning-segment"
+                value={String(notifications.earlyWarningMinutes)}
+                onChange={(val) =>
+                  onUpdateSettings({
+                    notifications: { ...notifications, earlyWarningMinutes: Number(val) },
+                  })
+                }
+                options={[0, 15, 30, 45, 60].map((mins) => ({
+                  value: String(mins),
+                  label: mins === 0 ? 'Kapalı' : `${mins} dk`,
+                }))}
+              />
+            </FadeIn>
 
-        <p className="text-micro text-mist text-center px-1">
-          Bildirim sesi cihazınızın bildirim ayarlarına göre çalar.
-        </p>
+            <p className="text-micro text-mist text-center px-1">
+              Bildirim sesi cihazınızın bildirim ayarlarına göre çalar.
+            </p>
+          </>
+        )}
       </div>
 
       {/* GÖRÜNÜM */}
@@ -415,20 +457,9 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
         <FadeIn delay={0.4} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
           <div className="flex items-center gap-2">
             <LockIcon className="w-4 h-4 text-gold-ink" />
-            <div className="text-sm font-bold text-ink">Gizlilik</div>
+            <div className="text-sm font-bold text-ink">Gizlilik ve Kişisel Veriler</div>
           </div>
-          <p className="text-[11px] text-mist leading-relaxed">
-            VAKİT hesap açmanızı istemez, reklam göstermez ve sizi takip etmez. Namaz vakitleri telefonunuzda
-            hesaplanır; bunun için hiçbir sunucuya bağlanılmaz.
-          </p>
-          <p className="text-[11px] text-mist leading-relaxed">
-            Sunucumuza yalnızca vakit bildirimlerini açarsanız veri gönderilir: bildirimi ulaştırabilmek için
-            gereken tarayıcı abonelik adresi ve doğru saati hesaplayabilmek için seçtiğiniz şehir. Adınız,
-            e-postanız veya kimliğiniz hiçbir zaman istenmez.
-          </p>
-          <p className="text-[11px] text-mist leading-relaxed">
-            Bildirimleri kapattığınızda bu kayıt silinir.
-          </p>
+          <p className="text-[11px] text-mist leading-relaxed">{PRIVACY_SUMMARY}</p>
           <button
             onClick={() => setIsPrivacySheetOpen(true)}
             className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"

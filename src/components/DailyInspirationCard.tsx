@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpenIcon, CopyIcon, CheckIcon, QuotesIcon, ShareNetworkIcon } from './icons';
 import { DAILY_INSPIRATIONS } from '../data/dailyContent';
+import { useApiAvailable } from '../hooks/useApiAvailable';
 
 export const DailyInspirationCard: React.FC = () => {
   const [tab, setTab] = useState<'verse' | 'hadith' | 'dua'>('verse');
   const [copied, setCopied] = useState(false);
   const [apiVerse, setApiVerse] = useState<{ verse: string; verseRef: string } | null>(null);
+  const apiAvailable = useApiAvailable();
+  // Sunucu yokken zaten sessizce statik havuza düşüyordu (aşağıdaki catch),
+  // yani "çalışıyordu" — ama her açılışta gereksiz bir istek (ve statik
+  // dağıtımda tüm SPA fallback HTML'inin indirilmesi) anlamına geliyordu.
+  // apiAvailable === true olana kadar deneme bile yapılmaz (design-refresh-v3
+  // Faz 9 M2); null iken (kontrol sürüyor) iskelet zaten aynı görünür.
   const [verseLoading, setVerseLoading] = useState(true);
 
   // Pick today's inspiration based on day of year
@@ -17,6 +24,12 @@ export const DailyInspirationCard: React.FC = () => {
   const content = DAILY_INSPIRATIONS[todayIndex] || DAILY_INSPIRATIONS[0];
 
   useEffect(() => {
+    if (apiAvailable === null) return; // henüz bilinmiyor — bekle
+    if (apiAvailable === false) {
+      setVerseLoading(false);
+      return;
+    }
+
     let ignore = false;
 
     fetch('/api/daily-verse')
@@ -36,7 +49,7 @@ export const DailyInspirationCard: React.FC = () => {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [apiAvailable]);
 
   const verseText = apiVerse?.verse ?? content.verse;
   const verseRefText = apiVerse?.verseRef ?? content.verseRef;

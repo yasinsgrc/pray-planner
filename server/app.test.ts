@@ -70,12 +70,17 @@ const validBody = {
   } satisfies NotificationSettings,
 };
 
-test('GET /health returns 200 ok', async () => {
+test('GET /health returns 200 ok with a service discriminator the client checks for', async () => {
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/health`);
     const body = await res.json();
     assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type')?.includes('application/json'), true);
     assert.equal(body.ok, true);
+    // useApiAvailable.ts (design-refresh-v3 Faz 9 M1) checks this exact
+    // field to tell a real /health response apart from a static host's SPA
+    // fallback answering the same path with 200 + index.html.
+    assert.equal(body.service, 'vakit-api');
   });
 });
 
@@ -129,6 +134,65 @@ test('POST /api/unsubscribe removes a stored subscription', async () => {
 
     assert.equal(res.status, 200);
     assert.equal((await store.loadSubscriptions()).length, 0);
+  });
+});
+
+test('DELETE /api/subscribe removes the matching record — the Gizlilik Politikası "kayıt silinir" promise', async () => {
+  await withServer(async (baseUrl, store) => {
+    await store.upsertSubscription({ ...validBody, updatedAt: new Date().toISOString() });
+
+    const res = await fetch(`${baseUrl}/api/subscribe`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: validBody.endpoint }),
+    });
+
+    assert.equal(res.status, 200);
+    const subs = await store.loadSubscriptions();
+    assert.equal(subs.length, 0);
+  });
+});
+
+test('DELETE /api/subscribe rejects a request missing endpoint', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/subscribe`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('DELETE /api/subscribe does not throw or error when the endpoint was never subscribed', async () => {
+  await withServer(async (baseUrl, store) => {
+    const res = await fetch(`${baseUrl}/api/subscribe`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: 'https://push.example.com/never-existed' }),
+    });
+
+    assert.equal(res.status, 200);
+    assert.equal((await store.loadSubscriptions()).length, 0);
+  });
+});
+
+test('DELETE /api/subscribe only removes the matching record, leaving others untouched', async () => {
+  await withServer(async (baseUrl, store) => {
+    await store.upsertSubscription({ ...validBody, updatedAt: new Date().toISOString() });
+    const other = { ...validBody, endpoint: 'https://push.example.com/other', updatedAt: new Date().toISOString() };
+    await store.upsertSubscription(other);
+
+    const res = await fetch(`${baseUrl}/api/subscribe`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: validBody.endpoint }),
+    });
+
+    assert.equal(res.status, 200);
+    const subs = await store.loadSubscriptions();
+    assert.equal(subs.length, 1);
+    assert.equal(subs[0].endpoint, other.endpoint);
   });
 });
 

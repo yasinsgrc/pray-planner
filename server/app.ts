@@ -20,9 +20,14 @@ export function createApp(deps: CreateAppDeps): Express {
   // platform's own health check, and a fast, single one-time probe the
   // frontend uses to decide whether /api/* exists at all — the identical
   // built bundle is deployed both standalone-static (no server) and
-  // full-stack, so this can't be a build-time decision.
+  // full-stack, so this can't be a build-time decision. `service` is a
+  // discriminator the client checks (useApiAvailable.ts, design-refresh-v3
+  // Faz 9 M1): a static host's SPA fallback (e.g. Netlify's /* -> 200
+  // index.html) answers /health with 200 + an HTML document too, so `res.ok`
+  // alone is a false positive there — the client must confirm the body is
+  // genuinely this JSON shape, not just that *some* 200 came back.
   app.get('/health', (_req, res) => {
-    res.status(200).json({ ok: true });
+    res.status(200).json({ ok: true, service: 'vakit-api' });
   });
 
   app.get('/api/vapid-public-key', (_req, res) => {
@@ -51,6 +56,24 @@ export function createApp(deps: CreateAppDeps): Express {
   });
 
   app.post('/api/unsubscribe', async (req, res) => {
+    const { endpoint } = req.body ?? {};
+
+    if (!endpoint) {
+      res.status(400).json({ error: 'endpoint gerekli.' });
+      return;
+    }
+
+    await deps.store.removeSubscription(endpoint);
+    res.status(200).json({ ok: true });
+  });
+
+  // Gizlilik Politikası'nın "bildirimleri kapattığınızda kayıt silinir"
+  // sözünü gerçekten tutan uç (design-refresh-v3 Faz 9 M5) — istemci
+  // tarafında pushClient.ts'in unsubscribeFromPush'u, kullanıcı bildirimleri
+  // kapattığında bunu çağırır. removeSubscription zaten var olmayan bir
+  // endpoint için de sessizce başarılı döner (subscriptionStore.ts), yani
+  // burada ayrıca "kayıt bulunamadı" hata dalı gerekmiyor.
+  app.delete('/api/subscribe', async (req, res) => {
     const { endpoint } = req.body ?? {};
 
     if (!endpoint) {

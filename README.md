@@ -91,6 +91,43 @@ konmalıdır, asla gizli bir anahtar değil.
 
 ## Dağıtım
 
+VAKİT iki bağımsız şekilde dağıtılabilir. Hangisini seçtiğin, hangi
+özelliklerin çalışacağını belirler — istemci bunu build zamanında değil,
+`/health` ucuna tek seferlik bir istekle **çalışma zamanında** kendisi
+tespit eder (`src/hooks/useApiAvailable.ts`), yani aynı `dist/` çıktısı her
+iki senaryoda da kullanılabilir.
+
+| Özellik | Statik (Netlify vb.) | Tam Yığın (Node host) |
+| --- | :---: | :---: |
+| Namaz vakitleri (cihazda hesaplanır) | ✅ | ✅ |
+| Konum seçimi (81 il + yerel liste, ~430 kayıt) | ✅ | ✅ |
+| Çevrimdışı önbellek (service worker) | ✅ | ✅ |
+| Kıble pusulası, Zikirmatik, Hicri takvim | ✅ | ✅ |
+| Gizlilik Politikası sayfası | ✅ | ✅ |
+| Genişletilmiş konum araması ("İnternette Ara") | ❌ | ✅ |
+| Günün ayeti (harici API) | ❌ (sabit havuza düşer) | ✅ |
+| Vakit bildirimleri (Web Push) | ❌ (bölüm hiç görünmez) | ✅ |
+
+### Statik (Netlify)
+
+Sunucu yok — repo kökündeki `netlify.toml` build komutunu (`npm run
+build`), yayın dizinini (`dist`), yönlendirmeleri ve cache header'larını
+zaten tanımlıyor; Netlify'a bağlamak yeterli. `/health` ve `/api/*` bilinçli
+olarak 404 döner (SPA fallback'in `/* -> /index.html` kuralından *önce*
+sırada) — `useApiAvailable` bu 404'ü görüp bildirim/genişletilmiş-arama
+arayüzünü tamamen gizler; aksi halde Netlify'ın kendi SPA fallback'i
+`/health`'e de 200 + `index.html` dönerdi, ki bu bir sunucu varmış gibi
+yanlış bir sinyal olurdu (`server/app.ts`'in gerçek `/health` yanıtı, bu
+yanlış pozitifi ayırt etmek için ayrıca bir `service: "vakit-api"` alanı
+taşır).
+
+```bash
+npm install
+npm run build   # netlify.toml zaten bunu çalıştırır — elle gerekmez
+```
+
+### Tam Yığın (tek origin Node host)
+
 Uygulama frontend'i `/api/*`'a **göreli** istek atar, yani sunucu
 kullanılacaksa frontend ile API'nin **aynı origin'de** olması gerekir:
 
@@ -100,15 +137,15 @@ npm run build     # dist/ oluşturur, precache sürümünü sw.js'e gömer
 npm start          # Express, dist/'i statik olarak servis eder + /api/* + SPA fallback
 ```
 
+Gerekli ortam değişkenleri: `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` (bildirim
+göndermek için zorunlu), isteğe bağlı `DATABASE_URL` (tanımlıysa abonelikler
+Postgres'te kalıcı olarak saklanır — bkz. Ortam Değişkenleri tablosu).
+
 Sunucu `0.0.0.0`'a bağlanır ve `PORT` (veya `SERVER_PORT`) değişkenini okur
 — Render/Railway/Fly/Heroku gibi platformlarda ek yapılandırma gerekmez.
 `index.html` ve `sw.js` `no-cache`, hash'li `/assets/*` dosyaları
 `immutable, max-age=31536000` cache header'ı ile servis edilir. `GET
 /health` bir sağlık kontrolü ucu olarak kullanılabilir.
-
-Yalnızca statik dağıtım da mümkündür (`dist/`'i herhangi bir statik host'a
-koymak) — bu durumda push bildirimleri, genişletilmiş arama ve günün ayeti
-devre dışı kalır, geri kalan her şey çalışır.
 
 ## Test ve Doğrulama
 

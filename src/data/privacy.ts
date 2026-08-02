@@ -1,0 +1,114 @@
+/**
+ * Gizlilik Politikası içeriği (design-refresh-v3 Faz 9 M4) — bölüm başlığı +
+ * gövde olarak yapılandırılmış, sabit veri. Bu dosyanın metnini üretme veya
+ * değiştirme: buradaki içerik design-refresh-v3 Faz 8'de sağlanan taslaktan
+ * doğrudan aktarılmıştır (kaynak kodundaki gerçek veri akışlarına göre
+ * hazırlanmış, hukuki danışmanlık değildir). Köşeli parantezli alanlar
+ * ([AD SOYAD] gibi) VITE_PRIVACY_* ortam değişkenleri dolduruluncaya kadar
+ * olduğu gibi kalır — bkz. src/utils/privacyConfig.ts, .env.example.
+ *
+ * `body` içinde çift satır sonu (\n\n) yeni bir paragraf başlatır; "- " ile
+ * başlayan satırlar madde işaretli liste olarak render edilir
+ * (PrivacyPolicyModal.tsx). Köşeli parantezli alanların PrivacyPolicyModal
+ * içinde ayrıca kırmızı bir "[TANIMLANMADI]" uyarısına dönüştürülmesi
+ * gerekmiyor artık — env değeri varsa metne enjekte edilecek yer tutucular
+ * ({{ENTITY_NAME}} gibi) kullanılıyor, bkz. PrivacyPolicyModal.tsx'teki
+ * interpolate() fonksiyonu.
+ */
+export interface PrivacySection {
+  title: string;
+  body: string;
+}
+
+export const PRIVACY_LAST_UPDATED = '2 Ağustos 2026';
+
+export const PRIVACY_SECTIONS: PrivacySection[] = [
+  {
+    title: '1. Veri Sorumlusu',
+    body:
+      'Ad / Unvan: {{ENTITY_NAME}}\nAdres: {{ADDRESS}}\nE-posta: {{CONTACT_EMAIL}}\nWeb: {{APP_URL}}\n\n' +
+      '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca veri sorumlusu sıfatıyla hareket eden taraf yukarıda belirtilmiştir.',
+  },
+  {
+    title: '2. Özet',
+    body:
+      'VAKİT bir namaz vakti uygulamasıdır. Tasarım ilkesi, mümkün olan her şeyin cihazınızda kalmasıdır:\n\n' +
+      '- Hesap açmanız gerekmez. Ad, e-posta, telefon numarası veya benzeri bir kimlik bilgisi istenmez ve toplanmaz.\n' +
+      '- Namaz vakitleri cihazınızda hesaplanır. Vakit bilgisi için hiçbir sunucuya bağlanılmaz; hesaplama, seçtiğiniz konumun enlem ve boylamı kullanılarak telefonunuzun içinde yapılır.\n' +
+      '- Reklam ve izleme yoktur. Uygulamada hiçbir analitik, ölçümleme, reklam veya kullanıcı takip aracı bulunmaz.\n' +
+      '- Sunucuya yalnızca bildirimleri açarsanız veri gönderilir. Bildirim özelliğini kullanmazsanız hiçbir kişisel veriniz tarafımıza iletilmez.',
+  },
+  {
+    title: '3. Cihazınızda Saklanan, Bize Gönderilmeyen Veriler',
+    body:
+      'Aşağıdaki bilgiler yalnızca tarayıcınızın yerel deposunda (localStorage) tutulur, sunucularımıza hiçbir koşulda gönderilmez ve tarafımızca erişilemez:\n\n' +
+      '- Seçtiğiniz konum (şehir/ilçe, koordinat, saat dilimi)\n' +
+      '- Tema tercihiniz (açık / koyu / otomatik)\n' +
+      '- Bildirim ses ve erken uyarı tercihleriniz\n' +
+      '- Hesaplama yöntemi tercihiniz\n' +
+      '- Zikirmatik sayaç durumunuz ve günlük zikir kaydınız\n\n' +
+      'Bu verileri istediğiniz an tarayıcınızın site verilerini temizleme özelliğiyle silebilirsiniz.',
+  },
+  {
+    title: '4. Bildirim Özelliğini Açtığınızda İşlenen Veriler',
+    body:
+      'Vakit bildirimlerini etkinleştirdiğinizde, bildirimin doğru saatte gönderilebilmesi için aşağıdaki veriler sunucumuzda saklanır:\n\n' +
+      '- Tarayıcı push abonelik adresi (endpoint) — bildirimin cihazınıza ulaştırılabilmesi için zorunludur\n' +
+      '- Push şifreleme anahtarları (p256dh, auth) — bildirim içeriğinin yalnızca sizin cihazınızca açılabilmesi için zorunludur\n' +
+      '- Seçtiğiniz konumun adı ve koordinatları — namaz vakitlerinin doğru hesaplanabilmesi için gereklidir\n' +
+      '- Hesaplama yöntemi tercihiniz — vakitlerin tercihinize uygun hesaplanması için gereklidir\n' +
+      '- Bildirim tercihleriniz (hangi vakit, ses, erken uyarı) — yalnızca istediğiniz bildirimlerin gönderilmesi için gereklidir\n' +
+      '- Kaydın son güncellenme tarihi — kayıt yönetimi ve temizliği için\n\n' +
+      'Bu kayıt kimliğinizle ilişkilendirilmez. Adınız, e-postanız, telefon numaranız veya cihaz kimliğiniz saklanmaz. Konum bilgisi, GPS\'ten alınan hassas konumunuz değil, sizin seçtiğiniz şehir/ilçe merkezinin koordinatıdır.\n\n' +
+      'Hukuki sebep: KVKK m.5/2-c — bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması (talep ettiğiniz bildirim hizmetinin sunulabilmesi). Bildirimi kapattığınızda bu hukuki sebep ortadan kalkar ve kayıt silinir.',
+  },
+  {
+    title: '5. Konum Bilgisi',
+    body:
+      'Konumunuz iki şekilde belirlenebilir:\n\n' +
+      '- Listeden seçim (varsayılan): Uygulamanın içine gömülü şehir/ilçe listesinden seçim yaparsınız. Bu işlem tamamen çevrimdışıdır, hiçbir veri dışarı çıkmaz.\n' +
+      '- "Konumumu Otomatik Kullan (GPS)": Yalnızca bu butona bastığınızda ve tarayıcı izni verdiğinizde cihazınızın konumu okunur. Koordinat, bulunduğunuz yerin adını belirlemek için tek seferlik olarak OpenStreetMap Nominatim servisine gönderilir. Koordinatınız tarafımızca kaydedilmez.\n\n' +
+      'Uygulama arka planda konumunuzu takip etmez. Farklı bir şehre gittiğinizde bir öneri gösterilebilir; bu kontrol yalnızca uygulama ön plana geldiğinde ve daha önce konum izni vermişseniz yapılır, konumunuz hiçbir yere gönderilmez ve konum otomatik olarak değiştirilmez — kararı siz verirsiniz.',
+  },
+  {
+    title: '6. Üçüncü Taraf Hizmetler',
+    body:
+      '- OpenStreetMap Nominatim: Yerel listede bulunamayan bir yeri "İnternette Ara" ile aradığınızda veya GPS ile konum bulduğunuzda — arama metniniz veya koordinatınız ve sunucumuzun IP adresi (sizin IP\'niz değil) ona ulaşır.\n' +
+      '- Tarayıcı push servisi (Google FCM, Apple veya Mozilla): Bildirimleri açtığınızda — push abonelik adresiniz ve şifrelenmiş bildirim içeriği ona ulaşır.\n' +
+      '- ummahapi.com: Maneviyat sekmesindeki günlük ayet çekilirken — yalnızca sunucumuzun isteği gider, size ait hiçbir bilgi gönderilmez.\n' +
+      '- {{HOSTING_PROVIDER}}: Uygulamayı her açtığınızda — standart sunucu erişim kayıtları (IP adresi, tarih, istek yolu) ona ulaşır.\n\n' +
+      'Bu hizmetlerin kendi gizlilik politikaları geçerlidir.\n\n' +
+      'Konum arama sonuçları © OpenStreetMap katkıcıları, ODbL lisansı altında sunulmaktadır.',
+  },
+  {
+    title: '7. Saklama Süresi',
+    body:
+      '- Bildirim abonelik kaydınız, siz bildirimleri kapatana kadar saklanır.\n' +
+      '- Bildirimleri kapattığınızda kayıt sunucudan silinir.\n' +
+      '- Tarayıcınızın push aboneliği geçersiz hale gelirse (uygulamayı kaldırma, site verilerini silme vb.) kayıt ilk başarısız gönderimde otomatik olarak silinir.\n' +
+      '- Sunucu erişim kayıtları {{LOG_RETENTION_DAYS}} gün boyunca tutulur.',
+  },
+  {
+    title: '8. Haklarınız',
+    body:
+      'KVKK m.11 uyarınca; kişisel verilerinizin işlenip işlenmediğini öğrenme, işlenmişse buna ilişkin bilgi talep etme, işlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme, eksik veya yanlış işlenmiş olması hâlinde düzeltilmesini isteme, silinmesini veya yok edilmesini isteme ve bu işlemlerin verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme haklarına sahipsiniz.\n\n' +
+      'En hızlı yol: Uygulamada Ayarlar ekranından bildirimleri kapatmanız, sunucudaki kaydınızın silinmesi için yeterlidir.\n\n' +
+      'Diğer talepleriniz için: {{CONTACT_EMAIL}}',
+  },
+  {
+    title: '9. Güvenlik',
+    body:
+      '- Tüm bağlantılar HTTPS üzerinden şifrelenir.\n' +
+      '- Bildirim içerikleri, yalnızca cihazınızda çözülebilecek şekilde uçtan uca şifrelenerek (VAPID / Web Push protokolü) gönderilir.\n' +
+      '- Sunucuda parola, ödeme bilgisi veya kimlik belgesi saklanmaz; bu tür veriler hiçbir aşamada talep edilmez.',
+  },
+  {
+    title: '10. Değişiklikler',
+    body: 'Bu metinde değişiklik yapılması hâlinde güncelleme tarihi yenilenir ve önemli değişiklikler uygulama içinde duyurulur.',
+  },
+];
+
+/** Ayarlar > Hakkında kartındaki kısa özet — tam metnin ilk paragrafı değil, ayrı ve daha kısa bir giriş. */
+export const PRIVACY_SUMMARY =
+  'VAKİT hesap açmanızı istemez, reklam göstermez ve sizi takip etmez. Namaz vakitleri telefonunuzda hesaplanır; bunun için hiçbir sunucuya bağlanılmaz. ' +
+  'Sunucumuza yalnızca vakit bildirimlerini açarsanız veri gönderilir. Bildirimleri kapattığınızda bu kayıt silinir.';

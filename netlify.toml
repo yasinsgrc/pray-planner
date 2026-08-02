@@ -1,0 +1,71 @@
+# Statik dağıtım için (Express sunucusu yok — design-refresh-v3 Faz 9 M3).
+# Namaz vakitleri, konum arama (434 kayıtlık yerel liste) ve çevrimdışı
+# önbellek sunucu gerektirmeden tam çalışır; push bildirimleri, genişletilmiş
+# arama ve günün ayeti bu dağıtımda devre dışı kalır (bkz. README > Dağıtım).
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Sıra önemli: Netlify ilk eşleşen kuralı uygular. /health ve /api/* için
+# özel 404 kuralları, aşağıdaki genel SPA fallback'inden (/* -> index.html)
+# ÖNCE gelmeli — aksi halde bu yollara da 200 + index.html HTML'i dönerdi.
+# Bu, src/hooks/useApiAvailable.ts'in `res.ok` tek başına yeterli değil
+# diye body'yi doğrulamasının ikinci savunma katmanıdır: sunucu olmadan bu
+# yollara gerçekten 404 dönmesi, istemci tarafı kontrolün asla yanlış
+# pozitif üretmemesini sağlar.
+[[redirects]]
+  from = "/health"
+  to = "/health"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/api/*"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# index.html ve sw.js asla önbelleğe alınmaz — aksi halde bir kullanıcı yeni
+# bir sürüm hiç göremez (design-refresh-v3 Faz 5 F1: service worker kendi
+# sürümünü index.html/sw.js'in gerçekten yeniden çekilmesine dayanarak
+# tespit eder). /assets/* ve /fonts/* içerik hash'li olduğundan (Vite,
+# içerik değişince dosya adını değiştirir) sonsuza kadar önbelleğe alınabilir
+# — aynı URL asla farklı bayt döndürmez.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

@@ -94,6 +94,52 @@ export async function syncSubscription(
   }
 }
 
+/**
+ * Cancels the browser's own push subscription and deletes the matching
+ * server record (design-refresh-v3 Faz 9 M5) — the Gizlilik Politikası
+ * promises "bildirimleri kapattığınızda kayıt silinir"; before this, only
+ * an already-expired (404/410) record was ever cleaned up server-side, a
+ * user-initiated disable didn't delete anything. `apiAvailable` must be
+ * checked by the caller and passed in — this module has no React state of
+ * its own, and on a serverless deployment the DELETE call should never
+ * even be attempted (there's nothing to delete, and no /api/* exists to
+ * receive it).
+ */
+export async function unsubscribeFromPush(apiAvailable: boolean): Promise<PushSyncResult> {
+  if (!('serviceWorker' in navigator)) {
+    return { ok: true };
+  }
+
+  try {
+    const subscription = await getExistingPushSubscription();
+    if (!subscription) {
+      return { ok: true };
+    }
+
+    const { endpoint } = subscription;
+    await subscription.unsubscribe();
+
+    if (apiAvailable) {
+      try {
+        await fetch('/api/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint }),
+        });
+      } catch {
+        // Sunucudaki kayıt silinemedi ama tarayıcı aboneliği zaten iptal
+        // edildi — kullanıcı için "bildirimler kapalı" zaten doğru; kayıt
+        // en geç bir sonraki başarısız gönderimde otomatik temizlenir
+        // (server/push.ts, 404/410 -> removeSubscription).
+      }
+    }
+
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: 'Bildirim aboneliği iptal edilemedi.' };
+  }
+}
+
 export async function subscribeToPush(settings: AppSettings): Promise<PushSyncResult> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     return { ok: false, reason: 'Bu tarayıcı bildirimleri desteklemiyor.' };

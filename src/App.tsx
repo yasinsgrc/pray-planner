@@ -24,8 +24,10 @@ import {
   subscribeToPush,
   syncSubscription,
   getExistingPushSubscription,
+  unsubscribeFromPush,
   PushStatus,
 } from './utils/pushClient';
+import { useApiAvailable } from './hooks/useApiAvailable';
 
 import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
 import { DEFAULT_LOCATION } from './data/locations';
@@ -158,6 +160,7 @@ export default function App() {
 
   const [pushStatus, setPushStatus] = useState<PushStatus>('idle');
   const [pushError, setPushError] = useState<string | null>(null);
+  const apiAvailable = useApiAvailable();
 
   // Offline-ready service worker (design-refresh-v3 Faz 4 F1).
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -408,6 +411,18 @@ export default function App() {
     }
   };
 
+  // Gizlilik Politikası'nın sözünü tutar: kullanıcı bildirimleri kapattığında
+  // hem tarayıcı aboneliği iptal edilir hem sunucudaki kayıt silinir
+  // (design-refresh-v3 Faz 9 M5). apiAvailable === false iken bu buton zaten
+  // görünmez (SpiritualSettings'in bildirim bölümü tamamen gizli) — yine de
+  // unsubscribeFromPush kendi içinde apiAvailable'ı kontrol ederek sunucu
+  // çağrısını atlıyor, tanımsız bir true/false yerine güvenli bir varsayılan.
+  const handleDisablePush = async () => {
+    setPushStatus('loading');
+    await unsubscribeFromPush(apiAvailable === true);
+    setPushStatus('idle');
+  };
+
   return (
     <div className="min-h-[100dvh] max-w-[var(--shell-w)] mx-auto bg-paper text-ink flex flex-col justify-between app-shell-padding selection:bg-gold selection:text-white">
       {/* Üst Bar / Header */}
@@ -533,6 +548,7 @@ export default function App() {
                 pushStatus={pushStatus}
                 pushError={pushError}
                 onEnablePush={handleEnablePush}
+                onDisablePush={handleDisablePush}
               />
             )}
           </motion.div>
