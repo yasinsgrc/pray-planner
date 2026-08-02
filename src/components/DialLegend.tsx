@@ -15,7 +15,7 @@ interface DialLegendProps {
  * max-width shell cannot overflow by construction.
  */
 export const DialLegend: React.FC<DialLegendProps> = ({ schedule }) => {
-  const { dayCyclePrayers, nextPrayer } = schedule;
+  const { dayCyclePrayers, nextPrayer, resolvedTimeZone } = schedule;
 
   return (
     <div className="grid grid-cols-6 gap-1 w-full mt-3">
@@ -33,7 +33,7 @@ export const DialLegend: React.FC<DialLegendProps> = ({ schedule }) => {
               className="font-numbers text-[11px] leading-tight"
               style={{ color: isNext ? 'var(--accent-ink)' : 'var(--mist)', fontWeight: isNext ? 700 : 500 }}
             >
-              {formatTime(p.dateObj)}
+              {formatTime(p.dateObj, resolvedTimeZone)}
             </span>
           </div>
         );

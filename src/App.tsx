@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { WifiSlashIcon, ArrowsClockwiseIcon, MapPinIcon } from './components/icons';
 import { Header } from './components/Header';
 import { MainCountdownRing } from './components/MainCountdownRing';
 import { DailyFlowList } from './components/DailyFlowList';
@@ -17,6 +18,7 @@ import { ZikirmatikModal } from './components/ZikirmatikModal';
 import { LiveActivityWidgetModal } from './components/LiveActivityWidgetModal';
 import {
   registerServiceWorker,
+  applyServiceWorkerUpdate,
   subscribeToPush,
   syncSubscription,
   getExistingPushSubscription,
@@ -28,6 +30,7 @@ import { DEFAULT_LOCATION } from './data/locations';
 import { getHijriDate } from './utils/hijri';
 import { calculateDaySchedule, deriveLiveSchedule } from './utils/prayerCalculator';
 import { playSoundForMode } from './utils/audio';
+import { findNearestLocation, haversineDistanceKm } from './utils/geo';
 import { ZikirmatikState, loadZikirmatikState, saveZikirmatikState } from './utils/zikirmatikStorage';
 
 const LOCAL_STORAGE_KEY = 'vakit_app_settings_v1';
@@ -98,6 +101,13 @@ export default function App() {
   const [pushStatus, setPushStatus] = useState<PushStatus>('idle');
   const [pushError, setPushError] = useState<string | null>(null);
 
+  // Offline-ready service worker (design-refresh-v3 Faz 4 F1).
+  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+  const [isOffline, setIsOffline] = useState(() =>
+    typeof navigator !== 'undefined' ? !navigator.onLine : false
+  );
+
   // Save settings to localStorage
   useEffect(() => {
     try {
@@ -117,7 +127,9 @@ export default function App() {
 
   // Service worker'ı kaydet ve daha önce izin verilmişse aboneliği tespit et
   useEffect(() => {
-    registerServiceWorker();
+    registerServiceWorker(() => setIsUpdateAvailable(true)).then((registration) => {
+      if (registration) setSwRegistration(registration);
+    });
     (async () => {
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         const existing = await getExistingPushSubscription();
@@ -127,6 +139,102 @@ export default function App() {
       }
     })();
   }, []);
+
+  // A new service worker only takes over once the user taps "Yenile" (see
+  // handleApplyUpdate) — this reload picks up the version it just
+  // activated. Reloading here rather than inside the click handler itself
+  // guarantees the page doesn't reload before the new worker is actually
+  // controlling it.
+  //
+  // controllerchange ALSO fires on a page's very first load, the moment
+  // the just-installed worker calls clients.claim() to take over a page
+  // that loaded before any worker existed — that's not an update (this
+  // load already has the freshest content), so it must not trigger a
+  // reload. Only reload when this page was already controlled by some
+  // worker at load time and control has now passed to a different one.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const hadControllerAtLoad = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    const handleControllerChange = () => {
+      if (!hadControllerAtLoad || reloaded) return;
+      reloaded = true;
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+  }, []);
+
+  // Çevrimdışı durum satırı — vakitler zaten cihazda hesaplanıyor, yalnızca
+  // bilgilendirme amaçlı (design-refresh-v3 Faz 4 F1).
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const handleApplyUpdate = () => {
+    if (!swRegistration) return;
+    applyServiceWorkerUpdate(swRegistration);
+    setIsUpdateAvailable(false);
+  };
+
+  // "Başka bir şehirdesiniz gibi görünüyor" önerisi — sessizce hiçbir
+  // zaman otomatik değiştirmez, yalnızca öneride bulunur (design-refresh-v3
+  // Faz 4 F2). watchPosition bilerek kullanılmıyor: sürekli GPS dinlemek
+  // pili gereksiz tüketir, namaz vakti bu kadar sık takip gerektirmez.
+  // Yalnızca uygulama öne geldiğinde ve konum izni zaten verilmişse tek
+  // seferlik sessiz bir kontrol yapılır.
+  const [locationSuggestion, setLocationSuggestion] = useState<LocationItem | null>(null);
+  useEffect(() => {
+    if (!('geolocation' in navigator) || !('permissions' in navigator)) return;
+
+    const checkLocationDrift = async () => {
+      try {
+        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (status.state !== 'granted') return;
+      } catch {
+        return; // Permissions API desteklenmiyor — sessizce yok say, alert yok
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const distanceKm = haversineDistanceKm(
+            settings.location.lat,
+            settings.location.lng,
+            latitude,
+            longitude
+          );
+          if (distanceKm > 25) {
+            const nearest = findNearestLocation(latitude, longitude);
+            setLocationSuggestion({ ...nearest, id: `gps-${Date.now()}`, lat: latitude, lng: longitude });
+          }
+        },
+        () => {
+          // Sessiz arka plan kontrolü — hata durumunda kullanıcıyı rahatsız etme
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 10 * 60 * 1000 }
+      );
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') checkLocationDrift();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [settings.location]);
+
+  const handleAcceptLocationSuggestion = () => {
+    if (!locationSuggestion) return;
+    setSettings((prev) => ({ ...prev, location: locationSuggestion }));
+    setLocationSuggestion(null);
+  };
 
   // Ayarlar değiştikçe backend'deki aboneliği güncel tut
   useEffect(() => {
@@ -172,8 +280,8 @@ export default function App() {
 
   // Compute Hijri Date
   const hijriDate = useMemo(() => {
-    return getHijriDate(now);
-  }, [now]);
+    return getHijriDate(now, schedule.resolvedTimeZone);
+  }, [now, schedule.resolvedTimeZone]);
 
   // Dark Mode calculation: checks auto mode or manual mode
   const isDarkMode = useMemo(() => {
@@ -249,12 +357,69 @@ export default function App() {
         location={settings.location}
         hijriDate={hijriDate}
         date={now}
+        timeZone={schedule.resolvedTimeZone}
         isDarkMode={isDarkMode}
         onToggleDarkMode={handleToggleDarkMode}
         onOpenLocationModal={() => setIsLocationModalOpen(true)}
         onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
         onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
       />
+
+      {/* Çevrimdışı durum satırı — vakitler cihazda hesaplandığı için
+          işlevsellik kaybı yok, bu yalnızca bilgilendirme (design-refresh-v3
+          Faz 4 F1). */}
+      {isOffline && (
+        <div className="w-full max-w-[var(--shell-w)] mx-auto px-4">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-hairline text-micro text-mist">
+            <WifiSlashIcon className="w-3.5 h-3.5 shrink-0" />
+            <span>Çevrimdışısınız — vakitler cihazınızda hesaplanmaya devam ediyor.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Yeni sürüm hazır satırı — kullanıcı onayı olmadan sayfa yenilenmez. */}
+      {isUpdateAvailable && (
+        <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-2">
+          <button
+            onClick={handleApplyUpdate}
+            className="min-h-[44px] w-full flex items-center justify-center gap-2 px-3 rounded-xl bg-gold/10 border border-gold/20 text-xs font-semibold text-gold-ink cursor-pointer hover:bg-gold/15 transition-colors"
+          >
+            <ArrowsClockwiseIcon className="w-4 h-4 shrink-0" />
+            Yeni sürüm hazır — Yenile
+          </button>
+        </div>
+      )}
+
+      {/* Konum değişikliği önerisi — kullanıcı onayı olmadan konum asla
+          değişmez, yalnızca öneri sunulur (design-refresh-v3 Faz 4 F2). */}
+      {locationSuggestion && (
+        <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-2">
+          <div className="p-3 rounded-xl bg-card border border-hairline">
+            <div className="flex items-start gap-2">
+              <MapPinIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
+              <p className="text-xs text-ink flex-1">
+                Başka bir şehirdesiniz gibi görünüyor —{' '}
+                <span className="font-semibold">{locationSuggestion.districtName}</span> vakitlerine
+                geçilsin mi?
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-4 mt-2">
+              <button
+                onClick={() => setLocationSuggestion(null)}
+                className="min-h-[44px] px-3 text-xs font-semibold text-mist hover:text-ink transition-colors cursor-pointer"
+              >
+                Kal
+              </button>
+              <button
+                onClick={handleAcceptLocationSuggestion}
+                className="min-h-[44px] px-3 text-xs font-semibold text-gold-ink hover:underline cursor-pointer"
+              >
+                Geç
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ana İçerik Alanı */}
       <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">

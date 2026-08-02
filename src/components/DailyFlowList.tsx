@@ -21,7 +21,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
   notifications,
   onOpenSettings,
 }) => {
-  const { prayers, kerahetTimes, tomorrowImsakTime, tomorrowAksamTime } = schedule;
+  const { prayers, kerahetTimes, tomorrowImsakTime, tomorrowAksamTime, resolvedTimeZone } = schedule;
 
   return (
     <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 py-6 space-y-4">
@@ -203,7 +203,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                   </div>
                   <div className="flex-1 flex items-center">
                     <span className={`text-micro ${k.isActiveNow ? 'text-accent-ink font-semibold' : 'text-mist'}`}>
-                      {KERAHET_SHORT_LABEL[k.type]} keraheti · {formatKerahetRange(k)}
+                      {KERAHET_SHORT_LABEL[k.type]} keraheti · {formatKerahetRange(k, resolvedTimeZone)}
                     </span>
                   </div>
                 </div>

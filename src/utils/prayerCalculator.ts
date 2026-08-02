@@ -1,6 +1,7 @@
 import { Coordinates, CalculationMethod, PrayerTimes, CalculationParameters } from 'adhan';
 import { LocationItem, PrayerTimeDetails, KerahetInfo, PrayerName } from '../types';
 import { formatTime } from './formatTime';
+import { resolveTimeZone } from './timezone';
 
 export function getCalculationParameters(methodName: string): CalculationParameters {
   switch (methodName) {
@@ -36,6 +37,8 @@ const PRAYER_LABEL_DATIVE: Record<PrayerName, string> = {
 export interface DayPrayerSchedule {
   date: Date;
   location: LocationItem;
+  /** location.timeZone, resolved via guessTimeZone when absent — every display formatter should use this, not the device's zone. */
+  resolvedTimeZone: string;
   prayers: PrayerTimeDetails[];
   activePrayer: PrayerTimeDetails;
   nextPrayer: PrayerTimeDetails;
@@ -167,6 +170,7 @@ function buildDaySchedule(
 
 function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
   const { rawPrayers } = day;
+  const resolvedTimeZone = resolveTimeZone(day.location);
 
   // Determine active prayer index
   let activeIndex = 5; // Default to Yatsı
@@ -238,7 +242,7 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
       name: p.name,
       label: p.label,
       labelDative: PRAYER_LABEL_DATIVE[p.name],
-      timeString: formatTime(p.dateObj),
+      timeString: formatTime(p.dateObj, resolvedTimeZone),
       dateObj: p.dateObj,
       isPast: now > p.dateObj && !isActive,
       isActive,
@@ -251,7 +255,7 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
     name: nextPrayerName,
     label: nextPrayerLabel,
     labelDative: PRAYER_LABEL_DATIVE[nextPrayerName],
-    timeString: formatTime(nextStartDate),
+    timeString: formatTime(nextStartDate, resolvedTimeZone),
     dateObj: nextStartDate,
     isPast: false,
     isActive: false,
@@ -278,6 +282,7 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
   return {
     date: day.date,
     location: day.location,
+    resolvedTimeZone,
     prayers,
     activePrayer,
     nextPrayer,
@@ -290,8 +295,8 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
     dayCycleEnd,
     dayCyclePrayers,
     dayProgress,
-    tomorrowImsakTime: formatTime(day.tomorrowFajr),
-    tomorrowAksamTime: formatTime(day.tomorrowMaghrib),
+    tomorrowImsakTime: formatTime(day.tomorrowFajr, resolvedTimeZone),
+    tomorrowAksamTime: formatTime(day.tomorrowMaghrib, resolvedTimeZone),
   };
 }
 

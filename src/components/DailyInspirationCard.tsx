@@ -84,7 +84,7 @@ export const DailyInspirationCard: React.FC = () => {
               onClick={() => setTab('verse')}
               className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'verse'
-                  ? 'bg-gold text-[#2D2D2D]'
+                  ? 'bg-gold text-on-gold'
                   : 'text-mist hover:text-ink'
               }`}
             >
@@ -94,7 +94,7 @@ export const DailyInspirationCard: React.FC = () => {
               onClick={() => setTab('hadith')}
               className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'hadith'
-                  ? 'bg-gold text-[#2D2D2D]'
+                  ? 'bg-gold text-on-gold'
                   : 'text-mist hover:text-ink'
               }`}
             >
@@ -104,7 +104,7 @@ export const DailyInspirationCard: React.FC = () => {
               onClick={() => setTab('dua')}
               className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'dua'
-                  ? 'bg-gold text-[#2D2D2D]'
+                  ? 'bg-gold text-on-gold'
                   : 'text-mist hover:text-ink'
               }`}
             >

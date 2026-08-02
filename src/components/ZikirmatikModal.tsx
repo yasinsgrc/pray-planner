@@ -63,7 +63,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
               onClick={() => onChange({ selectedDhikrIndex: idx, counter: 0, lap: 0 })}
               className={`px-3 py-3.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                 selectedDhikrIndex === idx
-                  ? 'bg-gold text-[#2D2D2D] shadow-xs'
+                  ? 'bg-gold text-on-gold shadow-xs'
                   : 'bg-paper text-mist hover:text-ink'
               }`}
             >
@@ -111,7 +111,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
             aria-label="Zikir say"
             animate={justCompleted ? { scale: [1, 1.12, 1] } : { scale: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-2 rounded-full bg-gradient-to-b from-gold to-[#c4983e] text-[#2D2D2D] shadow-lg active:scale-95 transition-transform flex flex-col items-center justify-center cursor-pointer border-4 border-white dark:border-card"
+            className="absolute inset-2 rounded-full bg-gradient-to-b from-gold to-gold-hover text-on-gold shadow-lg active:scale-95 transition-transform flex flex-col items-center justify-center cursor-pointer border-4 border-white dark:border-card"
           >
             <span className="font-numbers text-5xl font-extrabold tracking-tight">
               {counter}

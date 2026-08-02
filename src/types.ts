@@ -7,6 +7,15 @@ export interface LocationItem {
   country: string;
   lat: number;
   lng: number;
+  /**
+   * IANA zone name (e.g. "Europe/Istanbul"). Optional because it comes
+   * from the server's geocoding response for searched/GPS locations
+   * (server/geocoding.ts, which this app's rules keep off-limits to edit)
+   * — those responses never include one. Every consumer must fall back to
+   * `guessTimeZone(lat, lng)` (see utils/timezone.ts) when absent, never
+   * silently assume the device's own zone.
+   */
+  timeZone?: string;
 }
 
 export interface PrayerTimeDetails {

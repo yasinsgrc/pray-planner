@@ -7,6 +7,6 @@ export const KERAHET_SHORT_LABEL: Record<KerahetInfo['type'], string> = {
   aksam_oncesi: 'Gurûb',
 };
 
-export function formatKerahetRange(k: KerahetInfo): string {
-  return `${formatTime(k.startTime)}–${formatTime(k.endTime)}`;
+export function formatKerahetRange(k: KerahetInfo, timeZone?: string): string {
+  return `${formatTime(k.startTime, timeZone)}–${formatTime(k.endTime, timeZone)}`;
 }

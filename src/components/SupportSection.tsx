@@ -28,12 +28,29 @@ import {
 export const SupportSection: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyUnavailable, setCopyUnavailable] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
-  const handleCopyIban = () => {
+  // navigator.clipboard only exists in a secure context (HTTPS/localhost) —
+  // if this app is ever served over plain HTTP, it's undefined and calling
+  // it directly throws a TypeError, silently breaking the button (design-
+  // refresh-v3 Faz 4 F4). The IBAN itself is also always rendered as
+  // select-all text below, not only on failure, so manual copy works
+  // regardless of what the Clipboard API does.
+  const handleCopyIban = async () => {
     if (!SUPPORT_IBAN) return;
-    navigator.clipboard.writeText(SUPPORT_IBAN);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (!navigator.clipboard) {
+      setCopyUnavailable(true);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(SUPPORT_IBAN);
+      setCopied(true);
+      setCopyUnavailable(false);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyUnavailable(true);
+    }
   };
 
   const handleShareApp = async () => {
@@ -48,8 +65,18 @@ export const SupportSection: React.FC = () => {
       } catch {
         // Kullanıcı paylaşımı iptal etti: sessizce yok say
       }
-    } else {
-      navigator.clipboard.writeText(shareData.url);
+      return;
+    }
+    // Web Share API yoksa (ör. test/masaüstü ortamı) sessizce panoya
+    // kopyalamak butonu "hiçbir şey yapmamış" gibi gösterir — aynı
+    // "Kopyalandı" geri bildirimini burada da ver.
+    if (!navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(shareData.url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // Pano da kullanılamıyor — sessizce yok say, buton en azından çökmüyor
     }
   };
 
@@ -83,21 +110,33 @@ export const SupportSection: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-paper border border-hairline">
               <div className="text-xs font-bold text-ink mb-1">Havale / EFT</div>
               <div className="text-[11px] text-mist mb-2">{SUPPORT_NAME}</div>
-              <button
-                onClick={handleCopyIban}
-                className="min-h-[44px] w-full flex items-center justify-between gap-2 px-3 rounded-lg bg-card border border-hairline cursor-pointer"
-              >
-                <span className="font-numbers text-xs text-ink [overflow-wrap:anywhere] text-left">
+              <div className="min-h-[44px] w-full flex items-center justify-between gap-2 px-3 rounded-lg bg-card border border-hairline">
+                {/* select-text: IBAN her zaman elle seçilip kopyalanabilir,
+                    yalnızca Clipboard API başarısız olduğunda değil — bazı
+                    tarayıcı/izin durumlarında API sessizce kullanılamaz
+                    olabilir (design-refresh-v3 Faz 4 F4). */}
+                <span className="font-numbers text-xs text-ink [overflow-wrap:anywhere] text-left select-text">
                   {SUPPORT_IBAN}
                 </span>
-                {copied ? (
-                  <CheckIcon className="w-4 h-4 text-success-ink shrink-0" />
-                ) : (
-                  <CopyIcon className="w-4 h-4 text-mist shrink-0" />
-                )}
-              </button>
+                <button
+                  onClick={handleCopyIban}
+                  aria-label="IBAN'ı kopyala"
+                  className="min-h-[44px] min-w-[44px] -my-2 -mr-1 flex items-center justify-center shrink-0 rounded-lg hover:bg-gold/10 cursor-pointer"
+                >
+                  {copied ? (
+                    <CheckIcon className="w-4 h-4 text-success-ink" />
+                  ) : (
+                    <CopyIcon className="w-4 h-4 text-mist" />
+                  )}
+                </button>
+              </div>
               {copied && (
                 <div className="text-[11px] text-success-ink font-medium mt-1.5">Kopyalandı</div>
+              )}
+              {copyUnavailable && (
+                <div className="text-[11px] text-mist mt-1.5">
+                  Otomatik kopyalama kullanılamıyor — IBAN'ı yukarıdan elle seçip kopyalayabilirsiniz.
+                </div>
               )}
             </div>
           )}
@@ -122,7 +161,16 @@ export const SupportSection: React.FC = () => {
                 onClick={handleShareApp}
                 className="min-h-[44px] flex items-center gap-2 px-3 rounded-lg bg-card border border-hairline text-xs font-semibold text-ink cursor-pointer"
               >
-                <ShareNetworkIcon className="w-4 h-4 shrink-0" /> Uygulamayı Paylaş
+                {shareCopied ? (
+                  <>
+                    <CheckIcon className="w-4 h-4 shrink-0 text-success-ink" />
+                    <span className="text-success-ink">Bağlantı kopyalandı</span>
+                  </>
+                ) : (
+                  <>
+                    <ShareNetworkIcon className="w-4 h-4 shrink-0" /> Uygulamayı Paylaş
+                  </>
+                )}
               </button>
               {hasStoreReview && (
                 <a

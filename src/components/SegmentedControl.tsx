@@ -41,7 +41,7 @@ export function SegmentedControl<T extends string>({
                brighter still) — a fixed dark ink reads reliably on it,
                unlike text-white which measured 1.87:1-2.19:1 (design-
                refresh-v3 Faz 2 F1: any visible text must clear 4.5:1). */
-            value === opt.value ? 'text-[#2D2D2D]' : 'text-ink hover:text-gold-ink'
+            value === opt.value ? 'text-on-gold' : 'text-ink hover:text-gold-ink'
           }`}
         >
           {value === opt.value && (

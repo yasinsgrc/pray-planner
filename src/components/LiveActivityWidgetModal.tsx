@@ -5,6 +5,18 @@ import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels'
 import { formatTime } from '../utils/formatTime';
 import { BottomSheet } from './BottomSheet';
 
+/**
+ * The gray/black hex values inside this file's lock-screen simulation
+ * (bg-gradient-to-b from-[#111827] to-black, border-[#1f2937], text-
+ * [#9ca3af]/[#d1d5db], etc.) are INTENTIONALLY not theme tokens and must
+ * stay that way — this card simulates a real OS lock screen, which is
+ * always dark regardless of whether VAKİT itself is in light or dark mode
+ * (design-refresh-v3 Faz 3/4). Do not migrate these to --ink/--mist or any
+ * other themed variable in a future pass; they're deliberately fixed,
+ * not a leftover raw-color bug like the ones design-refresh-v3 Faz 3
+ * migrated elsewhere in the app.
+ */
+
 interface LiveActivityWidgetModalProps {
   schedule: DayPrayerSchedule;
   isOpen: boolean;
@@ -30,6 +42,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
     location,
     currentKerahet,
     kerahetTimes,
+    resolvedTimeZone,
   } = schedule;
 
   const now = new Date();
@@ -117,8 +130,8 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
             >
               <span>
                 {upcomingOrActiveKerahet.isActiveNow
-                  ? `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti — şu an (${formatKerahetRange(upcomingOrActiveKerahet)})`
-                  : `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti ${formatTime(upcomingOrActiveKerahet.startTime)}'de başlıyor`}
+                  ? `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti — şu an (${formatKerahetRange(upcomingOrActiveKerahet, resolvedTimeZone)})`
+                  : `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti ${formatTime(upcomingOrActiveKerahet.startTime, resolvedTimeZone)}'de başlıyor`}
               </span>
             </div>
           )}

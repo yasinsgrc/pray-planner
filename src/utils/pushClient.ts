@@ -16,9 +16,44 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+/**
+ * Registers the service worker and, if `onUpdateAvailable` is given, calls
+ * it once a NEW version has finished installing and is sitting idle,
+ * waiting to take over (design-refresh-v3 Faz 4 F1). It never activates
+ * itself — see applyServiceWorkerUpdate, called only from the user's own
+ * "Yenile" tap, so a page never gets pulled out from under someone mid-use.
+ */
+export async function registerServiceWorker(
+  onUpdateAvailable?: () => void
+): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
-  return navigator.serviceWorker.register(SERVICE_WORKER_URL);
+  const registration = await navigator.serviceWorker.register(SERVICE_WORKER_URL);
+
+  if (onUpdateAvailable) {
+    // A worker can already be sitting in "waiting" if this page loaded
+    // while an update was pending from an earlier visit.
+    if (registration.waiting && navigator.serviceWorker.controller) {
+      onUpdateAvailable();
+    }
+    registration.addEventListener('updatefound', () => {
+      const installing = registration.installing;
+      if (!installing) return;
+      installing.addEventListener('statechange', () => {
+        // controller already set = this is an update to an already-running
+        // app, not the very first install (which has nothing to "update").
+        if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+          onUpdateAvailable();
+        }
+      });
+    });
+  }
+
+  return registration;
+}
+
+/** Tells a waiting service worker to activate — only ever called from the user's own "Yenile" tap. */
+export function applyServiceWorkerUpdate(registration: ServiceWorkerRegistration) {
+  registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
 }
 
 export async function getExistingPushSubscription(): Promise<PushSubscription | null> {

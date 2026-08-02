@@ -98,7 +98,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
         {permissionState === 'idle' && (
           <button
             onClick={requestPermission}
-            className="w-full min-h-[48px] px-4 rounded-xl bg-gold hover:bg-[#c4983e] text-[#2D2D2D] font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+            className="w-full min-h-[48px] px-4 rounded-xl bg-gold hover:bg-gold-hover text-on-gold font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
           >
             <CompassIcon className="w-4 h-4" />
             <span>Pusulayı Etkinleştir</span>

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { MagnifyingGlassIcon, NavigationArrowIcon, CheckIcon } from './icons';
+import { MagnifyingGlassIcon, NavigationArrowIcon, CheckIcon, WarningCircleIcon } from './icons';
 import { LocationItem } from '../types';
 import { POPULAR_LOCATIONS } from '../data/locations';
+import { findNearestLocation } from '../utils/geo';
+import { guessTimeZone } from '../utils/timezone';
 import { BottomSheet } from './BottomSheet';
 
 interface LocationModalProps {
@@ -21,6 +23,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocating, setIsLocating] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<LocationItem[]>([]);
   const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
 
@@ -48,7 +51,12 @@ export const LocationModal: React.FC<LocationModalProps> = ({
         }
         const data = await res.json();
         if (ignore) return;
-        const results: LocationItem[] = data.results ?? [];
+        // server/geocoding.ts (off-limits to edit) never sets timeZone —
+        // fill it in client-side so results display in their own zone.
+        const results: LocationItem[] = (data.results ?? []).map((loc: LocationItem) => ({
+          ...loc,
+          timeZone: loc.timeZone ?? guessTimeZone(loc.lat, loc.lng),
+        }));
         setSearchResults(results);
         setSearchStatus(results.length === 0 ? 'no-results' : 'idle');
       } catch {
@@ -75,47 +83,60 @@ export const LocationModal: React.FC<LocationModalProps> = ({
 
   const handleUseGPS = () => {
     if (!navigator.geolocation) {
-      alert('Cihazınızda GPS desteği bulunamadı.');
+      setGpsError('Cihazınızda GPS desteği bulunamadı.');
       return;
     }
 
+    setGpsError(null);
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // Nearest known city's name paired with the GPS's own precise
+        // coordinates — used both as the immediate result and as the
+        // fallback if reverse-geocoding fails or there's no backend at
+        // all (this app can be deployed statically, without the Express
+        // server, in which case /api/reverse-geocode always 404s).
+        const nearest = findNearestLocation(latitude, longitude);
         const fallbackLoc: LocationItem = {
+          ...nearest,
           id: `gps-${Date.now()}`,
-          cityName: 'Mevcut Konum',
-          districtName: 'GPS Tespiti',
-          country: 'Türkiye',
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
+          lat: latitude,
+          lng: longitude,
         };
 
         try {
-          const res = await fetch(
-            `/api/reverse-geocode?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`
-          );
+          const res = await fetch(`/api/reverse-geocode?lat=${latitude}&lng=${longitude}`);
           if (res.ok) {
             const data = await res.json();
             if (data.location) {
               setIsLocating(false);
-              onSelectLocation({ ...data.location, id: `gps-${Date.now()}` });
+              onSelectLocation({
+                ...data.location,
+                id: `gps-${Date.now()}`,
+                timeZone: data.location.timeZone ?? guessTimeZone(data.location.lat, data.location.lng),
+              });
               onClose();
               return;
             }
           }
         } catch {
-          // Ağ hatası: sessizce sabit etikete düş
+          // Ağ hatası: sessizce en yakın bilinen şehre düş
         }
 
         setIsLocating(false);
         onSelectLocation(fallbackLoc);
         onClose();
       },
-      () => {
+      (error) => {
         setIsLocating(false);
-        alert('GPS konumu alınamadı. Varsayılan listeden şehir seçebilirsiniz.');
-      }
+        if (error.code === error.PERMISSION_DENIED) {
+          setGpsError('Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açabilirsiniz.');
+        } else {
+          setGpsError('Konum alınamadı. Aşağıdaki listeden şehir seçebilirsiniz.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     );
   };
 
@@ -125,13 +146,20 @@ export const LocationModal: React.FC<LocationModalProps> = ({
         <button
           onClick={handleUseGPS}
           disabled={isLocating}
-          className="w-full min-h-[48px] px-4 rounded-xl bg-gold hover:bg-[#c4983e] text-[#2D2D2D] font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+          className="w-full min-h-[48px] px-4 rounded-xl bg-gold hover:bg-gold-hover text-on-gold font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
         >
           <NavigationArrowIcon className="w-4 h-4 animate-spin-slow" />
           <span>
             {isLocating ? 'Konum Alınıyor...' : 'Mevcut Konumumu Otomatik Kullan (GPS)'}
           </span>
         </button>
+
+        {gpsError && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-danger/10 border border-danger/20 text-left">
+            <WarningCircleIcon className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
+            <p className="text-[11px] text-danger-ink">{gpsError}</p>
+          </div>
+        )}
 
         <div className="relative">
           <MagnifyingGlassIcon className="w-4 h-4 text-mist absolute left-3 top-3" />

@@ -442,6 +442,14 @@ async function checkScreen(page, scenario, screenId) {
     // repaint still shows the pre-hide color. Force every transition to
     // be instant for this capture only.
     await page.addStyleTag({ content: '* { transition: none !important; }' });
+    // transition:none only stops CSS transitions — a Framer Motion
+    // layoutId spring (e.g. SegmentedControl's selected pill) is driven by
+    // JS/rAF and can still be mid-flight for its full ~350ms+bounce
+    // settle time regardless, occasionally landing the pill a few px off
+    // its rest position at the exact capture instant and sampling a
+    // corner/edge pixel instead of solid fill (measured flake: SegmentedControl
+    // contrast reads correctly on every immediate re-run). Give it margin.
+    await page.waitForTimeout(400);
     const shot = await page.screenshot({ fullPage: true });
     await page.evaluate(() => {
       document.querySelectorAll('[data-contrast-probe]').forEach((el) => {
@@ -505,6 +513,69 @@ async function checkScreen(page, scenario, screenId) {
         );
       }
     }
+  }
+}
+
+/**
+ * Offline support (design-refresh-v3 Faz 4 F1) — prayer times are computed
+ * entirely on-device from lat/lng (adhan), so once the app shell itself is
+ * cached, there is nothing left that requires a network connection for the
+ * core experience. Verifies the service worker actually precaches and
+ * serves that shell: register, reload so the page becomes controlled, go
+ * offline, reload again, and confirm the countdown and all 4 tabs still
+ * render — not just that the network layer didn't throw.
+ */
+async function checkOfflineSupport(browser) {
+  console.log('\n=== Offline support ===');
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 3,
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(15000);
+  try {
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.evaluate(() => navigator.serviceWorker.ready);
+
+    // The very first load of a page is never controlled by a worker it
+    // just registered (per spec) — only the next navigation is.
+    await page.reload({ waitUntil: 'load', timeout: 20000 });
+    const controlled = await page.evaluate(() => !!navigator.serviceWorker.controller);
+    if (!controlled) {
+      violations.push(
+        '[offline] page is not controlled by the service worker after a reload — offline support cannot work'
+      );
+      return;
+    }
+
+    await context.setOffline(true);
+    await page.waitForTimeout(300); // let in-flight background fetches (push/daily-verse) abort before navigating
+    await page.reload({ waitUntil: 'load', timeout: 20000 });
+
+    const countdownText = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="countdown"]');
+      return el ? el.textContent.trim() : null;
+    });
+    if (!countdownText || !/\d/.test(countdownText)) {
+      violations.push(`[offline] countdown did not render while offline (got "${countdownText}")`);
+    }
+
+    for (const tab of TABS) {
+      await page.getByRole('tab', { name: tab.label }).click();
+      await page.waitForTimeout(300);
+      const textLength = await page.evaluate(() => document.body.innerText.trim().length);
+      if (textLength < 50) {
+        violations.push(`[offline] ${tab.id} tab rendered almost no content while offline (${textLength} chars)`);
+      }
+    }
+    console.log('  All 4 tabs render offline, countdown active.');
+  } catch (err) {
+    violations.push(`[offline] check threw: ${err.message}`);
+  } finally {
+    await context.setOffline(false);
+    await context.close();
   }
 }
 
@@ -622,6 +693,8 @@ async function main() {
 
       await context.close();
     }
+
+    await checkOfflineSupport(browser);
 
     await browser.close();
   } finally {

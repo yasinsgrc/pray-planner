@@ -11,6 +11,7 @@ export { IconContext } from '@phosphor-icons/react/dist/lib/context';
 export type { Icon } from '@phosphor-icons/react/dist/lib/types';
 
 export { ArrowCounterClockwiseIcon } from '@phosphor-icons/react/dist/csr/ArrowCounterClockwise';
+export { ArrowsClockwiseIcon } from '@phosphor-icons/react/dist/csr/ArrowsClockwise';
 export { ArrowSquareOutIcon } from '@phosphor-icons/react/dist/csr/ArrowSquareOut';
 export { BellIcon } from '@phosphor-icons/react/dist/csr/Bell';
 export { BookOpenIcon } from '@phosphor-icons/react/dist/csr/BookOpen';
@@ -42,4 +43,5 @@ export { SunIcon } from '@phosphor-icons/react/dist/csr/Sun';
 export { SunDimIcon } from '@phosphor-icons/react/dist/csr/SunDim';
 export { SunHorizonIcon } from '@phosphor-icons/react/dist/csr/SunHorizon';
 export { WarningCircleIcon } from '@phosphor-icons/react/dist/csr/WarningCircle';
+export { WifiSlashIcon } from '@phosphor-icons/react/dist/csr/WifiSlash';
 export { XIcon } from '@phosphor-icons/react/dist/csr/X';

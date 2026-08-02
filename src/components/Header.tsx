@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MapPinIcon, MoonIcon, SunIcon, CompassIcon, HandHeartIcon } from './icons';
 import { LocationItem, HijriDateInfo } from '../types';
 
@@ -6,6 +6,8 @@ interface HeaderProps {
   location: LocationItem;
   hijriDate: HijriDateInfo;
   date: Date;
+  /** Selected location's resolved IANA zone — the date strip must read in this zone, not the device's (design-refresh-v3 Faz 4 F3). */
+  timeZone: string;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   onOpenLocationModal: () => void;
@@ -13,23 +15,38 @@ interface HeaderProps {
   onOpenZikirmatikModal: () => void;
 }
 
-const gregorianFormatter = new Intl.DateTimeFormat('tr-TR', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  weekday: 'long',
-});
-
 export const Header: React.FC<HeaderProps> = ({
   location,
   hijriDate,
   date,
+  timeZone,
   isDarkMode,
   onToggleDarkMode,
   onOpenLocationModal,
   onOpenQiblaModal,
   onOpenZikirmatikModal,
 }) => {
+  const gregorianFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        weekday: 'long',
+        timeZone,
+      }),
+    [timeZone]
+  );
+
+  // Yalnızca seçili konum cihazınkinden farklı bir saat diliminde olduğunda
+  // görünür — kullanıcıyı "neden bu saat farklı" sorusuna karşı bilgilendirir.
+  const isDifferentTimeZone = useMemo(() => {
+    try {
+      return timeZone !== Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return false;
+    }
+  }, [timeZone]);
   return (
     <header className="w-full transition-colors">
       <div className="px-5 py-4 flex items-center justify-between">
@@ -91,7 +108,12 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Tarih Şeridi: hicri + miladi, her ekran boyutunda görünür */}
       <div className="px-5 pb-3 flex items-center justify-between border-b border-hairline text-[11px]">
-        <span className="text-mist capitalize">{gregorianFormatter.format(date)}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-mist capitalize">{gregorianFormatter.format(date)}</span>
+          {isDifferentTimeZone && (
+            <span className="text-micro text-mist opacity-75">({location.cityName} saatiyle)</span>
+          )}
+        </div>
         <span className="text-gold-ink font-medium">{hijriDate.formatted}</span>
       </div>
     </header>

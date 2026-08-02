@@ -123,7 +123,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             <button
               onClick={onEnablePush}
               disabled={pushStatus === 'loading'}
-              className="relative w-full py-2.5 px-4 rounded-full bg-gold hover:bg-[#c4983e] text-[#2D2D2D] font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95 before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:inset-x-0"
+              className="relative w-full py-2.5 px-4 rounded-full bg-gold hover:bg-gold-hover text-on-gold font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95 before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:inset-x-0"
             >
               {pushStatus === 'loading' ? 'Bekleniyor...' : 'Bildirimlere İzin Ver'}
             </button>

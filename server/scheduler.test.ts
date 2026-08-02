@@ -99,6 +99,7 @@ function makeSchedule(prayerTime: Date): DayPrayerSchedule {
   return {
     date: prayerTime,
     location: makeSubscription().location,
+    resolvedTimeZone: 'Europe/Istanbul',
     prayers: [prayer],
     activePrayer: prayer,
     nextPrayer: prayer,

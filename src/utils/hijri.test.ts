@@ -16,3 +16,12 @@ test('converts another known date correctly', () => {
   assert.equal(result.monthName, 'Safer');
   assert.equal(result.year, 1448);
 });
+
+test('uses the given time zone\'s calendar day, not the device\'s', () => {
+  // 2026-08-01 23:30 UTC is already 2026-08-02 in Asia/Riyadh (UTC+3) —
+  // the Hijri day should follow Riyadh's date, one day ahead of plain UTC.
+  const instant = new Date(Date.UTC(2026, 7, 1, 23, 30));
+  const utcResult = getHijriDate(instant, 'UTC');
+  const riyadhResult = getHijriDate(instant, 'Asia/Riyadh');
+  assert.notEqual(utcResult.day, riyadhResult.day);
+});

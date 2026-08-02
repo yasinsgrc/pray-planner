@@ -7,6 +7,7 @@ export const DEFAULT_LOCATION: LocationItem = {
   country: 'Türkiye',
   lat: 41.0264,
   lng: 29.0152,
+  timeZone: 'Europe/Istanbul',
 };
 
 export const POPULAR_LOCATIONS: LocationItem[] = [
@@ -18,6 +19,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 41.0186,
     lng: 28.9392,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'kadikoy-istanbul',
@@ -26,6 +28,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 40.9901,
     lng: 29.0292,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'cankaya-ankara',
@@ -34,6 +37,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 39.9208,
     lng: 32.8541,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'konak-izmir',
@@ -42,6 +46,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 38.4192,
     lng: 27.1287,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'osmangazi-bursa',
@@ -50,6 +55,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 40.1885,
     lng: 29.0610,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'muratpasa-antalya',
@@ -58,6 +64,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 36.8848,
     lng: 30.7056,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'selcuklu-konya',
@@ -66,6 +73,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 37.8746,
     lng: 32.4932,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'ortahisar-trabzon',
@@ -74,6 +82,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 41.0027,
     lng: 39.7168,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'sahinbey-gaziantep',
@@ -82,6 +91,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 37.0662,
     lng: 37.3833,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'sur-diyarbakir',
@@ -90,6 +100,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Türkiye',
     lat: 37.9144,
     lng: 40.2306,
+    timeZone: 'Europe/Istanbul',
   },
   {
     id: 'makkah-saudi',
@@ -98,6 +109,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Suudi Arabistan',
     lat: 21.4225,
     lng: 39.8262,
+    timeZone: 'Asia/Riyadh',
   },
   {
     id: 'madinah-saudi',
@@ -106,6 +118,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Suudi Arabistan',
     lat: 24.4672,
     lng: 39.6108,
+    timeZone: 'Asia/Riyadh',
   },
   {
     id: 'sarajevo-bosnia',
@@ -114,6 +127,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Bosna-Hersek',
     lat: 43.8563,
     lng: 18.4131,
+    timeZone: 'Europe/Sarajevo',
   },
   {
     id: 'berlin-germany',
@@ -122,6 +136,7 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'Almanya',
     lat: 52.5200,
     lng: 13.4050,
+    timeZone: 'Europe/Berlin',
   },
   {
     id: 'london-uk',
@@ -130,5 +145,6 @@ export const POPULAR_LOCATIONS: LocationItem[] = [
     country: 'İngiltere',
     lat: 51.5074,
     lng: -0.1278,
+    timeZone: 'Europe/London',
   },
 ];

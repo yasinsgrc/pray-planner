@@ -88,7 +88,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
         )}
 
         {/* Kerahet şeridi: kadranın altında kalıcı, layout'u kaydırmayan */}
-        <KerahetStrip kerahetTimes={kerahetTimes} />
+        <KerahetStrip kerahetTimes={kerahetTimes} timeZone={schedule.resolvedTimeZone} />
       </div>
 
       {/* Alt Alan: Bento Grid (Sıradaki Vakit + Kısayollar) */}

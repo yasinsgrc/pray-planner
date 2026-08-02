@@ -4,6 +4,7 @@ import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels'
 
 interface KerahetStripProps {
   kerahetTimes: KerahetInfo[];
+  timeZone: string;
 }
 
 /**
@@ -15,7 +16,7 @@ interface KerahetStripProps {
  * browser (its .no-scrollbar class was never even defined in index.css),
  * and a 3-equal-column grid can't overflow the shell width it lives in.
  */
-export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes }) => {
+export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes, timeZone }) => {
   const now = new Date();
   const active = kerahetTimes.find((k) => k.isActiveNow) ?? null;
 
@@ -36,7 +37,7 @@ export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes }) => {
               >
                 {KERAHET_SHORT_LABEL[k.type]}
               </span>
-              <span className="font-numbers text-[10px] text-mist">{formatKerahetRange(k)}</span>
+              <span className="font-numbers text-[10px] text-mist">{formatKerahetRange(k, timeZone)}</span>
             </div>
           );
         })}
