@@ -181,6 +181,8 @@ export const LocationModal: React.FC<LocationModalProps> = ({
         setIsLocating(false);
         if (error.code === error.PERMISSION_DENIED) {
           setGpsError('Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açabilirsiniz.');
+        } else if (error.code === error.TIMEOUT) {
+          setGpsError('Konum alma zaman aşımına uğradı. Tekrar deneyebilir veya listeden şehir seçebilirsiniz.');
         } else {
           setGpsError('Konum alınamadı. Aşağıdaki listeden şehir seçebilirsiniz.');
         }
