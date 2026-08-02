@@ -13,6 +13,7 @@ import {
 import { FadeIn } from './FadeIn';
 import { BottomSheet } from './BottomSheet';
 import { SegmentedControl } from './SegmentedControl';
+import { SupportSection } from './SupportSection';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { playSoundForMode } from '../utils/audio';
@@ -290,7 +291,9 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       <div className="space-y-3">
         <div className="text-label font-bold text-mist px-1">Hakkında</div>
 
-        <FadeIn delay={0.3} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
+        <SupportSection />
+
+        <FadeIn delay={0.36} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
           <div className="flex items-center gap-2">
             <CalendarDotsIcon className="w-4 h-4 text-gold" />
             <div className="text-sm font-bold text-ink">
