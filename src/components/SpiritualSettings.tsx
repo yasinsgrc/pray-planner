@@ -10,11 +10,13 @@ import {
   PlayIcon,
   DeviceMobileIcon,
   SpeakerHighIcon,
+  LockIcon,
 } from './icons';
 import { FadeIn } from './FadeIn';
 import { BottomSheet } from './BottomSheet';
 import { SegmentedControl } from './SegmentedControl';
 import { SupportSection } from './SupportSection';
+import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { playEzanAudio } from '../utils/audio';
@@ -77,6 +79,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   const { notifications, themeMode, calculationMethod, playEzanInForeground, prayerAdjustments } = settings;
   const [openSoundSheet, setOpenSoundSheet] = useState<PrayerName | null>(null);
   const [isMethodSheetOpen, setIsMethodSheetOpen] = useState(false);
+  const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
 
   const adjustPrayer = (prayer: PrayerName, delta: number) => {
     const current = prayerAdjustments[prayer] ?? 0;
@@ -408,7 +411,34 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             Uygulamadaki hicri tarih, Ümmü'l-Kura takvim verisine dayanan astronomik bir hesaplamadır. Diyanet İşleri Başkanlığı'nın resmi açıklamasından bazı aylarda ±1 gün farklı olabilir; kesin tarih için resmi Diyanet duyurularını esas alınız.
           </p>
         </FadeIn>
+
+        <FadeIn delay={0.4} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
+          <div className="flex items-center gap-2">
+            <LockIcon className="w-4 h-4 text-gold-ink" />
+            <div className="text-sm font-bold text-ink">Gizlilik</div>
+          </div>
+          <p className="text-[11px] text-mist leading-relaxed">
+            VAKİT hesap açmanızı istemez, reklam göstermez ve sizi takip etmez. Namaz vakitleri telefonunuzda
+            hesaplanır; bunun için hiçbir sunucuya bağlanılmaz.
+          </p>
+          <p className="text-[11px] text-mist leading-relaxed">
+            Sunucumuza yalnızca vakit bildirimlerini açarsanız veri gönderilir: bildirimi ulaştırabilmek için
+            gereken tarayıcı abonelik adresi ve doğru saati hesaplayabilmek için seçtiğiniz şehir. Adınız,
+            e-postanız veya kimliğiniz hiçbir zaman istenmez.
+          </p>
+          <p className="text-[11px] text-mist leading-relaxed">
+            Bildirimleri kapattığınızda bu kayıt silinir.
+          </p>
+          <button
+            onClick={() => setIsPrivacySheetOpen(true)}
+            className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"
+          >
+            Gizlilik politikasının tamamı →
+          </button>
+        </FadeIn>
       </div>
+
+      <PrivacyPolicyModal isOpen={isPrivacySheetOpen} onClose={() => setIsPrivacySheetOpen(false)} />
 
       {/* Bildirim Sheet */}
       <BottomSheet

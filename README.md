@@ -83,6 +83,7 @@ Bu proje **npm** ile geliştirilir — tek lockfile `package-lock.json`'dur.
 | `VITE_SUPPORT_IBAN`, `VITE_SUPPORT_NAME` | Hayır | Tanımlıysa "Destek Ol" sayfasında Havale/EFT seçeneği görünür. |
 | `VITE_SUPPORT_PAYMENT_URL` | Hayır | Tanımlıysa "Kart ile destek" bağlantısı görünür. |
 | `VITE_SUPPORT_STORE_URL` | Hayır | Tanımlıysa "Mağazada Değerlendir" bağlantısı görünür. |
+| `VITE_PRIVACY_ENTITY_NAME`, `VITE_PRIVACY_ADDRESS`, `VITE_PRIVACY_CONTACT_EMAIL`, `VITE_PRIVACY_HOSTING_PROVIDER`, `VITE_PRIVACY_LOG_RETENTION_DAYS` | **Yayına çıkmadan önce evet** | Gizlilik Politikası ekranındaki (Ayarlar > Hakkında) veri sorumlusu kimliği. Tanımsız bırakılan her alan, politika metninde gözle görülür bir `[TANIMLANMADI]` uyarısı olarak kalır. |
 
 **`VITE_` önekli değişkenler tarayıcıya gönderilen build'e gömülür** —
 buraya yalnızca herkese açık bilgi (IBAN, herkese açık bağlantılar)
