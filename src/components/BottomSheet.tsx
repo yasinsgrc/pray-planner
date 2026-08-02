@@ -24,6 +24,21 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
 
+  // Read via a ref, not a dependency, inside the effect below. `onClose` is
+  // an inline arrow function at nearly every call site (e.g. App.tsx), so
+  // it gets a new identity on every parent render — and App re-renders
+  // every second from its countdown timer. If `onClose` were a dependency,
+  // this effect would tear down and re-run every second the sheet is open,
+  // including its `.focus()` call — silently yanking focus back to the
+  // sheet's first focusable element (e.g. LocationModal's GPS button) away
+  // from whatever the user had actually focused (e.g. its search input),
+  // making it look like the field stopped accepting keystrokes after ~1s
+  // (found via a real Playwright repro, bisected to 4c6a411).
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -34,7 +49,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
 
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -61,7 +76,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeydown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const handleDragEnd = (_e: PointerEvent, info: PanInfo) => {
     if (info.offset.y > 80 || info.velocity.y > 500) {

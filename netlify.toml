@@ -45,6 +45,21 @@
 # public/fonts/ altında sabit adla (hash'siz) servis edildikleri için bu kural
 # yanlışlıkla immutable işaretlenmişti; kaynağı taşımak yerine önbellek
 # süresini kısaltmak sorunu gizlerdi, o yüzden doğru düzeltme buydu.
+#
+# / VE /index.html ikisi de gerekli: Netlify header eşleştirmesi istek
+# YOLUNA göre çalışır, dosya içeriğine göre değil. SPA fallback (yukarıdaki
+# /* -> /index.html kuralı) gerçek kullanıcının /'a yaptığı isteği
+# index.html içeriğiyle YANITLAR ama isteğin path'i hâlâ / olarak kalır —
+# yalnızca /index.html'i hedefleyen bir kural bu isteğe hiç eşleşmez ve
+# gerçek kullanıcılar (neredeyse tamamı / üzerinden girer, /index.html'i
+# elle yazan yoktur) Netlify'ın public,max-age=0,must-revalidate
+# varsayılanını alır (canlıda doğrulandı: design-refresh-v3 Faz 10 sonrası
+# üretim denetimi, F2).
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 [[headers]]
   for = "/index.html"
   [headers.values]

@@ -13,3 +13,6 @@ coverage/
 .agents/
 .claude/
 skills-lock.json
+
+# Local Netlify folder
+.netlify

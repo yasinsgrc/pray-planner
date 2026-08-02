@@ -931,6 +931,289 @@ async function checkSpaFallbackRegression(browser) {
   }
 }
 
+/**
+ * Regression test for the "can't type in the location search box" report —
+ * a BottomSheet's focus-trap effect depended on `onClose`, an inline arrow
+ * function recreated on every App re-render (App re-renders every second
+ * from its countdown timer), so the effect tore down and re-ran every
+ * second, including its `.focus()` call on the sheet's first focusable
+ * element — silently stealing focus away from the search input the user
+ * had just typed into. Bisected to 4c6a411 ("modals become bottom sheets"),
+ * fixed in BottomSheet.tsx via a ref for the latest onClose (design-refresh-v3
+ * Faz 11). Deliberately does NOT use `page.clock.install` — the bug only
+ * manifests with the real setInterval driving App's `now` state, so this
+ * check needs real wall-clock time to elapse, not a frozen/virtual clock.
+ */
+async function checkLocationSearchFocusRegression(browser) {
+  console.log('\n=== Location search input focus regression (real timers) ===');
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR' });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+
+  try {
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+    await page.waitForTimeout(500);
+
+    const placeholder = 'Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)';
+    const input = page.getByPlaceholder(placeholder);
+    await input.click();
+    await input.type('Ank', { delay: 80 });
+
+    const valueAfterType = await input.inputValue();
+    const focusedAfterType = await page.evaluate(
+      (ph) => document.activeElement?.getAttribute('placeholder') === ph,
+      placeholder
+    );
+    const dialogTextAfterType = await page.evaluate(
+      () => document.querySelector('[role="dialog"]')?.innerText ?? ''
+    );
+
+    // The 2s wait is the actual regression signal: does focus silently move
+    // away on its own, with zero further user interaction?
+    await page.waitForTimeout(2000);
+    const focusedAfter2s = await page.evaluate(
+      (ph) => document.activeElement?.getAttribute('placeholder') === ph,
+      placeholder
+    );
+    const valueAfter2s = await input.inputValue();
+
+    if (valueAfterType !== 'Ank') {
+      violations.push(`[location-focus] typing "Ank" produced value ${JSON.stringify(valueAfterType)}`);
+    }
+    if (!focusedAfterType) {
+      violations.push('[location-focus] input lost focus immediately after typing (before any wait)');
+    }
+    if (!dialogTextAfterType.includes('Çankaya')) {
+      violations.push('[location-focus] local search for "Ank" did not surface "Çankaya"');
+    }
+    if (dialogTextAfterType.includes('Üsküdar')) {
+      violations.push('[location-focus] local search for "Ank" incorrectly still shows "Üsküdar"');
+    }
+    if (!focusedAfter2s) {
+      violations.push(
+        '[location-focus] input silently lost focus 2s after typing with no further interaction — the exact reported regression'
+      );
+    }
+    if (valueAfter2s !== 'Ank') {
+      violations.push(`[location-focus] value changed on its own after 2s idle: ${JSON.stringify(valueAfter2s)}`);
+    }
+
+    if (focusedAfterType && focusedAfter2s && valueAfter2s === 'Ank') {
+      console.log('  Arama kutusu odağı ve değeri 2 saniyelik bekleme boyunca korunuyor.');
+    }
+  } catch (err) {
+    violations.push(`[location-focus] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+  }
+}
+
+/**
+ * Broad interaction sweep (design-refresh-v3 Faz 11 item 4) — the location
+ * search box bug was one instance of a class of bug (BottomSheet's shared
+ * focus-trap effect); this exercises every other BottomSheet consumer,
+ * every Ayarlar segmented/picker control (value change AND persistence
+ * across reload), the Zikirmatik counter, Navbar tab switching, and
+ * location selection actually changing the displayed location — so the
+ * same class of bug elsewhere, or a regression in any of these, fails loud
+ * instead of silently. Real timers (no page.clock.install), matching the
+ * focus regression check above.
+ */
+async function checkInteractionSweep(browser) {
+  console.log('\n=== Interaction sweep (modals, settings persistence, zikirmatik, navbar) ===');
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR' });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+  const consoleErrors = [];
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') consoleErrors.push(msg.text());
+  });
+  page.on('pageerror', (err) => consoleErrors.push(err.message));
+
+  try {
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    // --- Navbar: all 4 tabs switch ---
+    for (const tab of TABS) {
+      await page.getByRole('tab', { name: tab.label }).click();
+      await page.waitForTimeout(300);
+      const selected = await page.getByRole('tab', { name: tab.label }).getAttribute('aria-selected');
+      if (selected !== 'true') {
+        violations.push(`[sweep] Navbar "${tab.label}" tıklandı ama aria-selected="true" olmadı`);
+      }
+    }
+
+    // --- Location modal: select a city, verify it propagates + modal closes ---
+    const locationLabelBefore = await page.evaluate(
+      () => document.querySelector('[aria-label="Konumu Değiştir"]')?.textContent ?? ''
+    );
+    await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: /Çankaya/ }).click();
+    await page.waitForTimeout(500);
+    const dialogStillOpenAfterSelect = await page.evaluate(() => !!document.querySelector('[role="dialog"]'));
+    if (dialogStillOpenAfterSelect) {
+      violations.push('[sweep] konum seçildikten sonra sheet kapanmadı');
+    }
+    const locationLabelAfter = await page.evaluate(
+      () => document.querySelector('[aria-label="Konumu Değiştir"]')?.textContent ?? ''
+    );
+    if (!locationLabelAfter.includes('Çankaya') || locationLabelAfter === locationLabelBefore) {
+      violations.push(
+        `[sweep] konum seçimi başlıkta yansımadı: önce="${locationLabelBefore}" sonra="${locationLabelAfter}"`
+      );
+    }
+
+    // Polls instead of a fixed sleep — BottomSheet's exit spring
+    // (damping:32, stiffness:320) keeps the dialog mounted for the
+    // duration of its transition, and how long that takes in wall-clock
+    // time varies with how loaded the machine is (this check runs after
+    // several heavy screenshot/pixel-sampling passes earlier in the
+    // suite). A fixed 300ms sleep here produced a false "didn't close"
+    // under that load even though the close genuinely happened, just a
+    // bit later.
+    const waitForDialogClosed = async (timeoutMs = 2000) => {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        if (!(await page.evaluate(() => !!document.querySelector('[role="dialog"]')))) return true;
+        await page.waitForTimeout(100);
+      }
+      return false;
+    };
+
+    // --- LocationModal: Escape and backdrop close ---
+    await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+    await page.waitForTimeout(400);
+    await page.keyboard.press('Escape');
+    if (!(await waitForDialogClosed())) {
+      violations.push('[sweep] LocationModal Escape ile kapanmadı');
+    }
+    await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+    await page.waitForTimeout(400);
+    await page.mouse.click(10, 10); // backdrop corner, outside the sheet
+    if (!(await waitForDialogClosed())) {
+      violations.push('[sweep] LocationModal backdrop tıklamasıyla kapanmadı');
+    }
+
+    // --- Qibla modal: open, Escape closes, reopen, backdrop closes ---
+    await page.getByRole('button', { name: 'Kıble Pusulası' }).click();
+    await page.waitForTimeout(400);
+    if (!(await page.evaluate(() => !!document.querySelector('[role="dialog"]')))) {
+      violations.push('[sweep] Kıble Pusulası sheet\'i açılmadı');
+    }
+    await page.keyboard.press('Escape');
+    if (!(await waitForDialogClosed())) {
+      violations.push('[sweep] Kıble Pusulası Escape ile kapanmadı');
+    }
+    await page.getByRole('button', { name: 'Kıble Pusulası' }).click();
+    await page.waitForTimeout(400);
+    await page.mouse.click(10, 10);
+    if (!(await waitForDialogClosed())) {
+      violations.push('[sweep] Kıble Pusulası backdrop tıklamasıyla kapanmadı');
+    }
+
+    // --- Zikirmatik: increment, then reset (cancel then confirm) ---
+    await page.getByRole('button', { name: 'Zikirmatik' }).click();
+    await page.waitForTimeout(400);
+    const counterText = () => page.getByRole('button', { name: 'Zikir say' }).locator('span').first().innerText();
+    const countBefore = parseInt(await counterText(), 10);
+    await page.getByRole('button', { name: 'Zikir say' }).click();
+    await page.getByRole('button', { name: 'Zikir say' }).click();
+    await page.waitForTimeout(200);
+    const countAfterTaps = parseInt(await counterText(), 10);
+    if (countAfterTaps !== countBefore + 2) {
+      violations.push(
+        `[sweep] Zikirmatik sayacı 2 dokunuştan sonra beklenmedik: önce=${countBefore} sonra=${countAfterTaps}`
+      );
+    }
+    await page.getByRole('button', { name: 'Sıfırla' }).click();
+    await page.waitForTimeout(200);
+    await page.getByRole('button', { name: 'Vazgeç' }).click();
+    await page.waitForTimeout(200);
+    const countAfterCancel = parseInt(await counterText(), 10);
+    if (countAfterCancel !== countAfterTaps) {
+      violations.push('[sweep] "Vazgeç" sıfırlamayı iptal etmedi, sayaç değişti');
+    }
+    await page.getByRole('button', { name: 'Sıfırla' }).click();
+    await page.waitForTimeout(200);
+    await page.getByRole('button', { name: 'Emin misiniz?' }).click();
+    await page.waitForTimeout(200);
+    const countAfterConfirm = parseInt(await counterText(), 10);
+    if (countAfterConfirm !== 0) {
+      violations.push(`[sweep] Zikirmatik sıfırlama onaylandıktan sonra sayaç 0 değil: ${countAfterConfirm}`);
+    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+
+    // --- Ayarlar: theme-mode segmented control changes value + persists ---
+    await page.getByRole('tab', { name: 'Ayarlar' }).click();
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'Koyu' }).click();
+    await page.waitForTimeout(400);
+    const isDarkAfterClick = await page.evaluate(() => document.documentElement.classList.contains('dark'));
+    if (!isDarkAfterClick) {
+      violations.push('[sweep] "Koyu" segmented control tıklandı ama .dark class eklenmedi');
+    }
+    await page.reload({ waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+    const isDarkAfterReload = await page.evaluate(() => document.documentElement.classList.contains('dark'));
+    if (!isDarkAfterReload) {
+      violations.push('[sweep] Tema tercihi (Koyu) sayfa yenilendikten sonra kalıcı değil');
+    }
+    // Restore to Otomatik so this run doesn't leave dark mode on for anything downstream.
+    await page.getByRole('tab', { name: 'Ayarlar' }).click();
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'Otomatik' }).click();
+    await page.waitForTimeout(300);
+
+    // --- Ayarlar: calculation method picker changes value + persists ---
+    // "Hesaplama Yöntemi" is a plain heading `<div>`, not the button itself
+    // — the actual opener is the value button below it, whose accessible
+    // name is the CURRENT method's own label (e.g. "Türkiye Diyanet İşleri
+    // Başkanlığı"), found by walking from the heading to its sibling button.
+    const methodButtonBefore = await page.evaluate(() => {
+      const heading = [...document.querySelectorAll('div')].find((el) => el.textContent.trim() === 'Hesaplama Yöntemi');
+      return heading?.parentElement?.parentElement?.parentElement?.querySelector('button')?.innerText ?? '';
+    });
+    await page.getByRole('button', { name: methodButtonBefore, exact: false }).click();
+    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: /Müslüman Dünya Ligi/ }).click();
+    await page.waitForTimeout(400);
+    const methodButtonAfter = await page.evaluate(() => {
+      const heading = [...document.querySelectorAll('div')].find((el) => el.textContent.trim() === 'Hesaplama Yöntemi');
+      return heading?.parentElement?.parentElement?.parentElement?.querySelector('button')?.innerText ?? '';
+    });
+    if (!methodButtonAfter.includes('Müslüman Dünya Ligi')) {
+      violations.push(`[sweep] Hesaplama yöntemi seçimi yansımadı: "${methodButtonAfter}"`);
+    }
+    await page.reload({ waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+    await page.getByRole('tab', { name: 'Ayarlar' }).click();
+    await page.waitForTimeout(500);
+    const methodButtonAfterReload = await page.evaluate(() => {
+      const heading = [...document.querySelectorAll('div')].find((el) => el.textContent.trim() === 'Hesaplama Yöntemi');
+      return heading?.parentElement?.parentElement?.parentElement?.querySelector('button')?.innerText ?? '';
+    });
+    if (!methodButtonAfterReload.includes('Müslüman Dünya Ligi')) {
+      violations.push('[sweep] Hesaplama yöntemi tercihi sayfa yenilendikten sonra kalıcı değil');
+    }
+
+    if (consoleErrors.length > 0) {
+      violations.push(`[sweep] konsola ${consoleErrors.length} hata düştü: ${consoleErrors.join(' | ')}`);
+    } else {
+      console.log('  Navbar, konum seçimi, Kıble/Zikirmatik sheet\'leri, tema ve hesaplama yöntemi kalıcılığı doğru; konsol temiz.');
+    }
+  } catch (err) {
+    violations.push(`[sweep] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
@@ -1074,6 +1357,8 @@ async function main() {
       await checkOfflineSupport(browser);
       await checkServerlessScenario(browser);
       await checkSpaFallbackRegression(browser);
+      await checkLocationSearchFocusRegression(browser);
+      await checkInteractionSweep(browser);
     } finally {
       await browser.close();
     }
