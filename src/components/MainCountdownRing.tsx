@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ClockIcon, DeviceMobileIcon, CalendarDotsIcon } from '@phosphor-icons/react';
+import { ClockIcon, DeviceMobileIcon, CalendarDotsIcon } from './icons';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { SunArcDial } from './SunArcDial';
 import { DialLegend } from './DialLegend';
@@ -38,6 +38,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
 
   return (
     <div className="flex-1 flex flex-col items-center px-4 py-6 max-w-[var(--shell-w)] mx-auto w-full text-center">
+      <h1 className="sr-only">Ana Ekran</h1>
       {/* Gün Kavisi Kadranı: ekranın büyük bölümünü kaplar, optik olarak ortalı */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
         <div className="relative flex flex-col items-center justify-center animate-blur-up">
@@ -63,7 +64,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
               <span className="sr-only" aria-live="polite">{srCountdownText}</span>
 
               {/* Alt Bilgi Etiketi */}
-              <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-accent">
+              <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-accent-ink">
                 <motion.span
                   key={activePrayer.name}
                   initial={{ scale: 0 }}
@@ -116,7 +117,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           </div>
 
           <div className="text-right">
-            <div className="font-numbers text-lg font-bold text-gold">
+            <div className="font-numbers text-lg font-bold text-gold-ink">
               {nextPrayer.timeString}
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ClockIcon, CalendarDotsIcon, BookOpenIcon, GearSixIcon, Icon } from '@phosphor-icons/react';
+import { ClockIcon, CalendarDotsIcon, BookOpenIcon, GearSixIcon, Icon } from './icons';
 
 export type TabType = 'focus' | 'flow' | 'spiritual' | 'settings';
 
@@ -30,12 +30,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
           return (
             <button
               key={tab.id}
+              id={`tab-${tab.id}`}
               role="tab"
               aria-selected={isActive}
               aria-controls={`tabpanel-${tab.id}`}
               onClick={() => onChangeTab(tab.id)}
               className={`relative flex flex-col items-center justify-center gap-1 min-w-[48px] min-h-[48px] transition-colors duration-200 cursor-pointer px-3 py-2 rounded-xl ${
-                isActive ? 'text-accent' : 'text-mist hover:text-ink'
+                isActive ? 'text-accent-ink' : 'text-mist hover:text-ink'
               }`}
             >
               {isActive && (

@@ -6,7 +6,7 @@ import {
   SunHorizonIcon,
   SparkleIcon,
   Icon,
-} from '@phosphor-icons/react';
+} from './icons';
 import { PrayerName } from '../types';
 
 /** Shared per-prayer icon component, keyed by prayer name — each consumer applies its own size/className. */

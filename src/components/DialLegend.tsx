@@ -30,8 +30,8 @@ export const DialLegend: React.FC<DialLegendProps> = ({ schedule }) => {
               style={{ color: isNext ? 'var(--accent)' : 'var(--mist)' }}
             />
             <span
-              className="font-numbers text-[10px] leading-tight"
-              style={{ color: isNext ? 'var(--accent)' : 'var(--mist)', fontWeight: isNext ? 700 : 500 }}
+              className="font-numbers text-[11px] leading-tight"
+              style={{ color: isNext ? 'var(--accent-ink)' : 'var(--mist)', fontWeight: isNext ? 700 : 500 }}
             >
               {formatTime(p.dateObj)}
             </span>

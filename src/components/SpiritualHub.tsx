@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { CompassIcon, HandHeartIcon, SparkleIcon } from '@phosphor-icons/react';
+import { CompassIcon, HandHeartIcon, SparkleIcon } from './icons';
 import { DailyInspirationCard } from './DailyInspirationCard';
 import { PrayerTracker } from './PrayerTracker';
 import { LocationItem } from '../types';
@@ -36,6 +36,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
 
   return (
     <div className="flex-1 flex flex-col">
+      <h1 className="sr-only">Maneviyat</h1>
       <DailyInspirationCard />
 
       <motion.div
@@ -59,9 +60,9 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
           className="col-span-2 p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold/40 transition-colors cursor-pointer flex items-center justify-between gap-3"
         >
           <div>
-            <div className="text-label text-gold font-bold">Pusula</div>
+            <div className="text-label text-gold-ink font-bold">Pusula</div>
             <div className="text-base font-bold text-ink mt-1">Kıble Açısı</div>
-            <div className="font-numbers text-2xl font-extrabold text-gold mt-1">{qiblaBearing}°</div>
+            <div className="font-numbers text-2xl font-extrabold text-gold-ink mt-1">{qiblaBearing}°</div>
           </div>
           <div className="relative w-14 h-14 rounded-full border-2 border-gold/30 flex items-center justify-center shrink-0">
             <div
@@ -106,7 +107,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
             <SparkleIcon className="w-3.5 h-3.5 text-gold" />
             <span>Günün Esmâsı</span>
           </div>
-          <div className="text-2xl font-serif-title font-bold mt-2" style={{ color: 'var(--accent)' }}>
+          <div className="text-2xl font-serif-title font-bold mt-2" style={{ color: 'var(--accent-ink)' }}>
             {todayEsma.arabic}
           </div>
           <div className="text-sm font-semibold text-ink mt-1">{todayEsma.transliteration}</div>

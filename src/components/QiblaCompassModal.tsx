@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { CompassIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { CompassIcon, WarningCircleIcon } from './icons';
 import { LocationItem } from '../types';
 import { useCompassHeading } from '../hooks/useCompassHeading';
 import { isAlignedWithBearing } from '../utils/compassHeading';
@@ -87,7 +87,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
 
         <div className="p-3 rounded-xl bg-gold/10 border border-gold/20 text-xs">
           <div className="text-[11px] text-mist">Kâbe-i Muazzama Açısı</div>
-          <div className="font-numbers text-xl font-extrabold text-gold mt-0.5">
+          <div className="font-numbers text-xl font-extrabold text-gold-ink mt-0.5">
             {qiblaFormatted}°
           </div>
           <p className="text-[10px] text-mist mt-1">
@@ -114,7 +114,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
               </p>
               <button
                 onClick={requestPermission}
-                className="text-[11px] font-semibold text-gold hover:underline cursor-pointer mt-1"
+                className="text-[11px] font-semibold text-gold-ink hover:underline cursor-pointer mt-1"
               >
                 Tekrar Dene
               </button>
@@ -131,7 +131,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
               </p>
               <button
                 onClick={requestPermission}
-                className="text-[11px] font-semibold text-gold hover:underline cursor-pointer mt-1"
+                className="text-[11px] font-semibold text-gold-ink hover:underline cursor-pointer mt-1"
               >
                 Tekrar Dene
               </button>

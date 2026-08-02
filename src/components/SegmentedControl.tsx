@@ -29,8 +29,19 @@ export function SegmentedControl<T extends string>({
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`relative py-2 px-2 rounded-lg text-xs font-bold text-center transition-colors cursor-pointer ${
-            value === opt.value ? 'text-white' : 'text-ink hover:text-gold'
+          /* isolate: without it, `relative` alone (no z-index) never forms
+             a stacking context, so the pill's -z-10 escaped past this
+             button entirely and rendered behind the whole page — the
+             selected-option highlight was invisible in every theme
+             (design-refresh-v3 Faz 2 F1, found while re-checking contrast
+             here: text measured against the *real* rendered pixel showed
+             near-zero contrast because there was no gold pixel to sample). */
+          className={`relative isolate py-2 px-2 rounded-lg text-xs font-bold text-center transition-colors cursor-pointer before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:inset-x-0 ${
+            /* bg-gold pill is bright in both themes (dark-mode --gold is
+               brighter still) — a fixed dark ink reads reliably on it,
+               unlike text-white which measured 1.87:1-2.19:1 (design-
+               refresh-v3 Faz 2 F1: any visible text must clear 4.5:1). */
+            value === opt.value ? 'text-[#2D2D2D]' : 'text-ink hover:text-gold-ink'
           }`}
         >
           {value === opt.value && (

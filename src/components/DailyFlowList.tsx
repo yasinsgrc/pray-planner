@@ -4,7 +4,7 @@ import {
   SpeakerHighIcon,
   SpeakerXIcon,
   BellIcon,
-} from '@phosphor-icons/react';
+} from './icons';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { PRAYER_ICON_COMPONENTS } from './prayerIcons';
 import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels';
@@ -25,6 +25,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
 
   return (
     <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 py-6 space-y-4">
+      <h1 className="sr-only">Vakitler</h1>
       {/* Başlık */}
       <div className="flex items-center justify-between border-b border-gold/15 pb-3">
         <div>
@@ -37,7 +38,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
         </div>
         <button
           onClick={onOpenSettings}
-          className="text-xs font-semibold text-gold hover:underline cursor-pointer"
+          className="relative text-xs font-semibold text-gold-ink hover:underline cursor-pointer before:content-[''] before:absolute before:-inset-4"
         >
           Ses Ayarları
         </button>
@@ -124,18 +125,18 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                       <div className="flex items-center gap-2">
                         <span
                           className={`font-bold text-base ${
-                            item.isActive ? 'text-gold' : item.isPast ? 'text-mist' : 'text-ink'
+                            item.isActive ? 'text-gold-ink' : item.isPast ? 'text-mist' : 'text-ink'
                           }`}
                         >
                           {item.label}
                         </span>
                         {item.isActive && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gold/15 text-gold tracking-wide">
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gold/15 text-gold-ink tracking-wide">
                             ŞU ANKİ VAKİT
                           </span>
                         )}
                         {item.isNext && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 tracking-wide">
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 tracking-wide">
                             SIRADAKİ
                           </span>
                         )}
@@ -153,16 +154,16 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                   {/* Sağ: Saat ve Bildirim Butonu */}
                   <div className="flex items-center gap-3 text-right">
                     <div>
-                      <div className={`font-numbers text-lg font-bold ${item.isActive ? 'text-gold' : 'text-ink'}`}>
+                      <div className={`font-numbers text-lg font-bold ${item.isActive ? 'text-gold-ink' : 'text-ink'}`}>
                         {item.timeString}
                       </div>
                       <button
                         onClick={onOpenSettings}
-                        className="text-micro text-mist flex items-center justify-end gap-1 ml-auto cursor-pointer hover:text-gold transition-colors"
+                        className="relative text-micro text-mist flex items-center justify-end gap-1 ml-auto cursor-pointer hover:text-gold transition-colors before:content-[''] before:absolute before:-inset-4"
                         title="Ses ayarını değiştir"
                       >
                         {soundMode === 'ezan' && (
-                          <span className="flex items-center gap-0.5 text-gold">
+                          <span className="flex items-center gap-0.5 text-gold-ink">
                             <BellIcon className="w-2.5 h-2.5" /> Ezan
                           </span>
                         )}
@@ -197,7 +198,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                     />
                   </div>
                   <div className="flex-1 flex items-center">
-                    <span className={`text-micro ${k.isActiveNow ? 'text-accent font-semibold' : 'text-mist'}`}>
+                    <span className={`text-micro ${k.isActiveNow ? 'text-accent-ink font-semibold' : 'text-mist'}`}>
                       {KERAHET_SHORT_LABEL[k.type]} keraheti · {formatKerahetRange(k)}
                     </span>
                   </div>

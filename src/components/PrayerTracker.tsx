@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { CheckIcon } from '@phosphor-icons/react';
+import { CheckIcon } from './icons';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { PrayerName } from '../types';
 import {

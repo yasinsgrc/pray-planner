@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpenIcon, CopyIcon, CheckIcon, QuotesIcon, ShareNetworkIcon } from '@phosphor-icons/react';
+import { BookOpenIcon, CopyIcon, CheckIcon, QuotesIcon, ShareNetworkIcon } from './icons';
 import { DAILY_INSPIRATIONS } from '../data/dailyContent';
 
 export const DailyInspirationCard: React.FC = () => {
@@ -82,9 +82,9 @@ export const DailyInspirationCard: React.FC = () => {
           <div className="flex items-center gap-1 bg-paper p-1 rounded-xl">
             <button
               onClick={() => setTab('verse')}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
+              className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'verse'
-                  ? 'bg-gold text-white'
+                  ? 'bg-gold text-[#2D2D2D]'
                   : 'text-mist hover:text-ink'
               }`}
             >
@@ -92,9 +92,9 @@ export const DailyInspirationCard: React.FC = () => {
             </button>
             <button
               onClick={() => setTab('hadith')}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
+              className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'hadith'
-                  ? 'bg-gold text-white'
+                  ? 'bg-gold text-[#2D2D2D]'
                   : 'text-mist hover:text-ink'
               }`}
             >
@@ -102,9 +102,9 @@ export const DailyInspirationCard: React.FC = () => {
             </button>
             <button
               onClick={() => setTab('dua')}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
+              className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'dua'
-                  ? 'bg-gold text-white'
+                  ? 'bg-gold text-[#2D2D2D]'
                   : 'text-mist hover:text-ink'
               }`}
             >
@@ -131,7 +131,7 @@ export const DailyInspirationCard: React.FC = () => {
                 {tab === 'dua' && content.dua}
               </p>
 
-              <div className="text-right text-xs font-semibold text-gold mt-3">
+              <div className="text-right text-xs font-semibold text-gold-ink mt-3">
                 {tab === 'verse' && verseRefText}
                 {tab === 'hadith' && content.hadithRef}
                 {tab === 'dua' && content.duaRef}
@@ -144,14 +144,14 @@ export const DailyInspirationCard: React.FC = () => {
         <div className="flex items-center justify-end gap-4 border-t border-gray-100 dark:border-gray-800/40 pt-2.5">
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-xs text-mist hover:text-gold transition-colors cursor-pointer"
+            className="relative flex items-center gap-1.5 text-xs text-mist hover:text-gold transition-colors cursor-pointer before:content-[''] before:absolute before:-top-4 before:-bottom-4 before:-left-1.5 before:-right-1.5"
           >
             <ShareNetworkIcon className="w-3.5 h-3.5" />
             <span>Paylaş</span>
           </button>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 text-xs text-mist hover:text-gold transition-colors cursor-pointer"
+            className="relative flex items-center gap-1.5 text-xs text-mist hover:text-gold transition-colors cursor-pointer before:content-[''] before:absolute before:-top-4 before:-bottom-4 before:-left-1.5 before:-right-1.5"
           >
             {copied ? (
               <>

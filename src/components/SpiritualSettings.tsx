@@ -9,7 +9,7 @@ import {
   GearIcon,
   PlayIcon,
   DeviceMobileIcon,
-} from '@phosphor-icons/react';
+} from './icons';
 import { FadeIn } from './FadeIn';
 import { BottomSheet } from './BottomSheet';
 import { SegmentedControl } from './SegmentedControl';
@@ -86,6 +86,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
   return (
     <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 py-6 space-y-6">
+      <h1 className="sr-only">Ayarlar</h1>
       {/* Başlık */}
       <div>
         <h2 className="font-serif-title text-display-l font-bold text-ink">
@@ -121,7 +122,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             <button
               onClick={onEnablePush}
               disabled={pushStatus === 'loading'}
-              className="w-full py-2.5 px-4 rounded-full bg-gold hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95"
+              className="relative w-full py-2.5 px-4 rounded-full bg-gold hover:bg-[#c4983e] text-[#2D2D2D] font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95 before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:inset-x-0"
             >
               {pushStatus === 'loading' ? 'Bekleniyor...' : 'Bildirimlere İzin Ver'}
             </button>
@@ -165,7 +166,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                 <button
                   key={prayer}
                   onClick={() => setOpenSoundSheet(prayer)}
-                  className="w-full flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/40 last:border-0 cursor-pointer"
+                  className="w-full flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-800/40 last:border-0 cursor-pointer"
                 >
                   <span className="text-sm font-medium text-ink">{PRAYER_LABELS[prayer]}</span>
                   <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-paper text-ink">
@@ -183,7 +184,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               href="https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-gold"
+              className="relative underline hover:text-gold before:content-[''] before:absolute before:-inset-4"
             >
               Wikimedia Commons, Atcovi
             </a>{' '}
@@ -250,7 +251,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
           {themeMode === 'auto' && (
             <p className="text-[11px] text-mist">
-              Bugün <span className="font-semibold text-gold">{aksamTime}</span>'te koyu temaya geçecek.
+              Bugün <span className="font-semibold text-gold-ink">{aksamTime}</span>'te koyu temaya geçecek.
             </p>
           )}
         </FadeIn>
@@ -275,7 +276,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
           <button
             onClick={() => setIsMethodSheetOpen(true)}
-            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-paper text-left cursor-pointer"
+            className="relative w-full flex items-center justify-between p-2.5 rounded-xl bg-paper text-left cursor-pointer before:content-[''] before:absolute before:-top-1.5 before:-bottom-1.5 before:inset-x-0"
           >
             <span className="text-xs font-semibold text-ink">
               {CALC_METHOD_OPTIONS.find((o) => o.value === calculationMethod)?.label}
@@ -327,7 +328,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   className="flex-1 flex items-center gap-2 text-left cursor-pointer"
                 >
                   {isSelected && <CheckIcon className="w-4 h-4 text-gold shrink-0" />}
-                  <span className={`text-sm font-medium ${isSelected ? 'text-gold' : 'text-ink'}`}>
+                  <span className={`text-sm font-medium ${isSelected ? 'text-gold-ink' : 'text-ink'}`}>
                     {opt.label}
                   </span>
                 </button>
@@ -370,7 +371,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   <span className="w-4 h-4 shrink-0" />
                 )}
                 <div>
-                  <div className={`text-sm font-semibold ${isSelected ? 'text-gold' : 'text-ink'}`}>
+                  <div className={`text-sm font-semibold ${isSelected ? 'text-gold-ink' : 'text-ink'}`}>
                     {opt.label}
                   </div>
                   <div className="text-[11px] text-mist mt-0.5">{opt.description}</div>

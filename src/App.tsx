@@ -41,6 +41,15 @@ const PRAYER_ACCENT_VAR: Record<PrayerName, string> = {
   yatsi: '--v-yatsi',
 };
 
+const PRAYER_ACCENT_INK_VAR: Record<PrayerName, string> = {
+  imsak: '--v-imsak-ink',
+  gunes: '--v-gunes-ink',
+  ogle: '--v-ogle-ink',
+  ikindi: '--v-ikindi-ink',
+  aksam: '--v-aksam-ink',
+  yatsi: '--v-yatsi-ink',
+};
+
 export default function App() {
   // Load settings from localStorage or fallback to defaults
   const [settings, setSettings] = useState<AppSettings>(() => {
@@ -184,6 +193,10 @@ export default function App() {
       '--accent',
       `var(${PRAYER_ACCENT_VAR[schedule.activePrayer.name]})`
     );
+    document.documentElement.style.setProperty(
+      '--accent-ink',
+      `var(${PRAYER_ACCENT_INK_VAR[schedule.activePrayer.name]})`
+    );
   }, [schedule.activePrayer.name]);
 
   // Apply .dark class to root html / body
@@ -250,6 +263,7 @@ export default function App() {
             key={activeTab}
             id={`tabpanel-${activeTab}`}
             role="tabpanel"
+            aria-labelledby={`tab-${activeTab}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}

@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/*
+ * The app toggles dark mode by adding/removing a `.dark` class on <html>
+ * (see App.tsx), not by following the OS color-scheme preference. Without
+ * this, Tailwind v4's default `dark:` variant compiles to
+ * `@media (prefers-color-scheme: dark)` — completely disconnected from the
+ * app's own theme setting, so every `dark:` utility in the codebase would
+ * silently key off the OS instead of the in-app Otomatik/Açık/Koyu choice
+ * (design-refresh-v3 Faz 2, found via real-browser contrast measurement:
+ * a `dark:` badge color measured identical before and after being changed,
+ * which is only possible if the variant was never actually matching here).
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Self-hosted variable fonts (latin + latin-ext, covers Turkish ı İ ş ğ ç ö ü). */
 @font-face {
   font-family: 'Newsreader';
@@ -56,6 +69,9 @@
   --color-v-ikindi: var(--v-ikindi);
   --color-v-aksam: var(--v-aksam);
   --color-v-yatsi: var(--v-yatsi);
+
+  --color-accent-ink: var(--accent-ink);
+  --color-gold-ink: var(--gold-ink);
 }
 
 @layer base {
@@ -83,6 +99,24 @@
     --v-yatsi: #2E3560;
     /* Runtime accent, updated by App.tsx to the active prayer's --v-* value */
     --accent: var(--v-ogle);
+
+    /* Text/icon-safe counterparts of --v-* and --gold (design-refresh-v3
+       Faz 2 F1): the arc palette above was tuned for 2-5px strokes, not
+       body text — measured in a real browser, --v-ogle on --paper was
+       1.57:1 and --gold was 2.05:1, both far under the 4.5:1 WCAG floor.
+       These darker variants are for text/icon color only, never for
+       stroke, fill, or background-tint (those keep using the plain
+       --v-* / --gold values). Each ink value verified >=4.5:1 against
+       both --paper and --card-bg. */
+    --v-imsak-ink: #4A5C93;
+    --v-gunes-ink: #9A5F14;
+    --v-ogle-ink: #7F6608;
+    --v-ikindi-ink: #8E4E19;
+    --v-aksam-ink: #8E3E3E;
+    --v-yatsi-ink: #2E3560;
+    --gold-ink: #82631A;
+    /* Runtime, updated by App.tsx to the active prayer's --v-*-ink value */
+    --accent-ink: var(--v-ogle-ink);
     /* Reserved height of the fixed bottom Navbar, used to keep scrollable
        content clear of it (see .app-shell-padding below). */
     --nav-h: 76px;
@@ -115,6 +149,25 @@
     --v-ikindi: #DB9556;
     --v-aksam: #C46A66;
     --v-yatsi: #5A63A0;
+
+    /* Dark-mode text/icon-safe ink variants — only --v-yatsi-ink and
+       --v-aksam-ink needed real changes from their arc counterparts here
+       (measured: --v-yatsi at 3.06:1 on #1A1B1E was the one dark-mode
+       failure; --v-aksam's arc value also fell short on --card-bg once
+       checked). The rest of the bright dark-mode arc values already clear
+       4.5:1 as text, so they're reused as-is. */
+    --v-imsak-ink: #8496CC;
+    --v-gunes-ink: #F5B968;
+    --v-ogle-ink: #F0D264;
+    --v-ikindi-ink: #DB9556;
+    --v-aksam-ink: #D47C6E;
+    --v-yatsi-ink: #8A93C8;
+    /* Measured 4.06:1 against the real composited glass-panel surface
+       (color-mix over --paper), below the token-vs-token estimate of
+       8.5:1 — pixel-sampled from an actual screenshot per design-refresh-v3
+       Faz 2, not derived from the tokens in isolation. Brightened with
+       margin. */
+    --gold-ink: #F5CE7A;
   }
 
   body {
@@ -235,16 +288,5 @@
   background: var(--mist);
   border-radius: 999px;
   opacity: 0.5;
-}
-
-/* Hides the native scrollbar on a deliberately horizontally-scrollable row
-   (e.g. ZikirmatikModal's dhikr picker) while keeping scroll functional —
-   was referenced but never defined (design-refresh-v3 Faz 1). */
-.no-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
 }
 

@@ -32,7 +32,7 @@ export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes }) => {
               style={isPast ? { opacity: 0.4 } : undefined}
             >
               <span
-                className={`text-[10px] font-semibold ${k.isActiveNow ? 'text-accent' : 'text-ink'}`}
+                className={`text-[10px] font-semibold ${k.isActiveNow ? 'text-accent-ink' : 'text-ink'}`}
               >
                 {KERAHET_SHORT_LABEL[k.type]}
               </span>

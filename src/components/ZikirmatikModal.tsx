@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowCounterClockwiseIcon } from '@phosphor-icons/react';
+import { ArrowCounterClockwiseIcon } from './icons';
 import { playSoftChime } from '../utils/audio';
 import { PRESET_DHIKRS, ZikirmatikState } from '../utils/zikirmatikStorage';
 import { BottomSheet } from './BottomSheet';
@@ -52,8 +52,11 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Sakin Zikirmatik">
       <div className="text-center space-y-4 pb-2">
-        {/* Zikir Seçimi */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        {/* Zikir Seçimi: yatay kaydırma yerine flex-wrap — 5 öğe 390px'te
+            iki satıra sarar, hiçbiri gizli/erişilemez kalmaz (design-refresh-v3
+            Faz 2 F3: ölçülen 431px içerik 358px kutu içinde taşıyordu, son 2
+            zikir hiç görünmüyordu). */}
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
           {PRESET_DHIKRS.map((d, idx) => (
             <button
               key={d.title}
@@ -71,7 +74,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
 
         {/* Zikir Bilgisi */}
         <div className="py-1">
-          <div className="text-xl font-bold font-serif-title text-gold">
+          <div className="text-xl font-bold font-serif-title text-gold-ink">
             {currentDhikr.arabic}
           </div>
           <div className="text-xs text-mist font-medium mt-1">

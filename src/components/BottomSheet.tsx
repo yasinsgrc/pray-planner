@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, PanInfo, useDragControls } from 'motion/react';
-import { XIcon } from '@phosphor-icons/react';
+import { XIcon } from './icons';
 
 interface BottomSheetProps {
   isOpen: boolean;

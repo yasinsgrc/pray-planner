@@ -1,5 +1,5 @@
 import React from 'react';
-import { DeviceMobileIcon, LockIcon, CheckIcon } from '@phosphor-icons/react';
+import { DeviceMobileIcon, LockIcon, CheckIcon } from './icons';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels';
 import { formatTime } from '../utils/formatTime';

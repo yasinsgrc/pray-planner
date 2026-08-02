@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MagnifyingGlassIcon, NavigationArrowIcon, CheckIcon } from '@phosphor-icons/react';
+import { MagnifyingGlassIcon, NavigationArrowIcon, CheckIcon } from './icons';
 import { LocationItem } from '../types';
 import { POPULAR_LOCATIONS } from '../data/locations';
 import { BottomSheet } from './BottomSheet';
@@ -208,7 +208,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
                 }}
                 className={`w-full p-3 rounded-xl flex items-center justify-between text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? 'bg-gold/15 text-gold'
+                    ? 'bg-gold/15 text-gold-ink'
                     : 'hover:bg-paper text-ink'
                 }`}
               >
