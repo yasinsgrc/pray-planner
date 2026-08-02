@@ -5,7 +5,7 @@
 // Faz 0 — runtime breakage is invisible to the type checker and bundler.
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 import sharp from 'sharp';
@@ -17,6 +17,13 @@ const COUNTDOWN_MAX_WIDTH = 210;
 const MIN_TOUCH_TARGET = 44;
 const CONTRAST_MIN_NORMAL = 4.5;
 const CONTRAST_MIN_LARGE = 3.0;
+// Raw Tailwind palette utilities bypass the theme system entirely (no
+// --v-*/--gold/--success/--danger token, so no dark-mode or contrast
+// coverage) — design-refresh-v3 Faz 3 F2, where a badge using one of
+// these measured 1.11:1 and had never been checked. Word-boundary so it
+// doesn't also flag e.g. "grayscale" or unrelated identifiers.
+const FORBIDDEN_COLOR_PATTERN =
+  /\b(?:text|bg|border|divide|ring|from|via|to|fill|stroke|outline|accent|caret|decoration|shadow)-(?:emerald|red|gray|slate|zinc|neutral|blue|amber)-\d{2,3}\b/;
 
 // WCAG relative luminance / contrast ratio (design-refresh-v3 Faz 2 F1).
 function relLuminance([r, g, b]) {
@@ -76,6 +83,144 @@ function waitForServer(url, timeoutMs = 15000) {
 
 function describeElement(className) {
   return className && typeof className === 'string' ? className.split(' ').slice(0, 4).join('.') : String(className);
+}
+
+/**
+ * Static scan (no browser needed): every .ts/.tsx file under src/ must
+ * have zero raw Tailwind palette utilities (design-refresh-v3 Faz 3 F2).
+ * Colors belong in src/index.css as a themed CSS custom property (one of
+ * --v-*, --gold, --success, --danger); anything else silently skips
+ * dark-mode and contrast coverage.
+ */
+async function scanForbiddenColors(dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await scanForbiddenColors(full);
+      continue;
+    }
+    if (!/\.(ts|tsx)$/.test(entry.name)) continue;
+    const text = await readFile(full, 'utf8');
+    const lines = text.split('\n');
+    lines.forEach((line, i) => {
+      const match = line.match(FORBIDDEN_COLOR_PATTERN);
+      if (match) {
+        violations.push(
+          `[static] raw Tailwind color class in ${path.relative(process.cwd(), full)}:${i + 1} — "${match[0]}" (use a --v-*/--gold/--success/--danger token instead)`
+        );
+      }
+    });
+  }
+}
+
+/**
+ * Touch target size AND real hit-testing — every visible, enabled
+ * clickable control must measure >=44x44 (its own box, or a ::before
+ * expansion, read per-side since some expansions are asymmetric — e.g.
+ * DailyInspirationCard's tabs expand top/bottom by more than left/right —
+ * design-refresh-v3 Faz 3 F1/F4) AND every point in that claimed box must
+ * actually elementFromPoint back to the control itself. Computed CSS
+ * geometry alone isn't proof of a real tap target: two controls' invisible
+ * ::before zones can overlap (design-refresh-v3 Faz 3 F4), and in the
+ * overlap band a tap silently routes to whichever element is later in
+ * paint order — this only shows up by actually hit-testing, the same way
+ * elementFromPoint-based auditing found it in the first place. Called both
+ * at the normal 390px width and again at 320px, since an overlap that
+ * doesn't exist at 390 can appear once controls sit closer together.
+ */
+async function checkTouchTargets(page, scenario, screenId) {
+  const touchIssues = await page.evaluate((MIN) => {
+    const issues = [];
+    const clickable = Array.from(
+      document.querySelectorAll('button:not([disabled]), a[href], [role="button"]:not([aria-disabled="true"])')
+    ).filter((el) => !el.closest('[inert]'));
+
+    clickable.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return;
+      const style = getComputedStyle(el, '::before');
+      let box = { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+      if (style.content !== 'none' && style.position === 'absolute') {
+        const t = parseFloat(style.top) || 0;
+        const b = parseFloat(style.bottom) || 0;
+        const l = parseFloat(style.left) || 0;
+        const r = parseFloat(style.right) || 0;
+        box = {
+          left: rect.left + Math.min(l, 0),
+          right: rect.right - Math.min(r, 0),
+          top: rect.top + Math.min(t, 0),
+          bottom: rect.bottom - Math.min(b, 0),
+        };
+      }
+      const effectiveW = box.right - box.left;
+      const effectiveH = box.bottom - box.top;
+      if (effectiveW < MIN || effectiveH < MIN) {
+        issues.push({
+          kind: 'size',
+          tag: el.tagName,
+          cls: el.className,
+          label: el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 30),
+          w: effectiveW,
+          h: effectiveH,
+        });
+        return; // too small to begin with — skip the overlap probe below
+      }
+
+      // Real hit-test: sample corners (inset 1px so we're inside the box,
+      // not exactly on its boundary line) and edge midpoints.
+      const insetX = Math.min(1, effectiveW / 2 - 0.5);
+      const insetY = Math.min(1, effectiveH / 2 - 0.5);
+      const points = [
+        [box.left + insetX, box.top + insetY],
+        [box.right - insetX, box.top + insetY],
+        [box.left + insetX, box.bottom - insetY],
+        [box.right - insetX, box.bottom - insetY],
+        [(box.left + box.right) / 2, box.top + insetY],
+        [(box.left + box.right) / 2, box.bottom - insetY],
+        [box.left + insetX, (box.top + box.bottom) / 2],
+        [box.right - insetX, (box.top + box.bottom) / 2],
+      ];
+      for (const [px, py] of points) {
+        const hit = document.elementFromPoint(px, py);
+        if (!hit) continue;
+        if (hit === el || el.contains(hit)) continue;
+        // The fixed bottom Navbar is a deliberate glass-panel overlay that
+        // sits atop whatever content happens to be scrolled to that screen
+        // position — same as any fixed bottom-tab-bar app (iOS/Android):
+        // content geometrically under it at a given scroll offset is
+        // normal, not a collision between two controls, and scrolling a
+        // little brings it fully clear. Only flag overlaps between two
+        // controls that are both part of the actual page content.
+        if (hit.closest('[role="tablist"]')) continue;
+        const hitControl = hit.closest('button, a[href], [role="button"]');
+        if (hitControl && hitControl !== el) {
+          issues.push({
+            kind: 'overlap',
+            tag: el.tagName,
+            cls: el.className,
+            label: el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 30),
+            stolenBy: hitControl.getAttribute('aria-label') || hitControl.textContent?.trim().slice(0, 30),
+          });
+          break;
+        }
+      }
+    });
+    return issues;
+  }, MIN_TOUCH_TARGET);
+  for (const issue of touchIssues) {
+    if (issue.kind === 'size') {
+      violations.push(
+        `[${scenario.name}/${screenId}] touch target too small: <${issue.tag} class="${describeElement(issue.cls)}"` +
+          ` label="${issue.label}"> ${issue.w.toFixed(0)}x${issue.h.toFixed(0)}px < ${MIN_TOUCH_TARGET}x${MIN_TOUCH_TARGET}px`
+      );
+    } else {
+      violations.push(
+        `[${scenario.name}/${screenId}] overlapping tap zone: <${issue.tag} class="${describeElement(issue.cls)}"` +
+          ` label="${issue.label}"> a point inside its own hit box resolves to "${issue.stolenBy}" instead`
+      );
+    }
+  }
 }
 
 /**
@@ -163,44 +308,8 @@ async function checkScreen(page, scenario, screenId) {
     }
   }
 
-  // 4: touch target size — every visible, enabled clickable control must
-  // be >=44x44 (its own box, or an invisible ::before expansion per
-  // design-refresh-v3 Faz 2 F2).
-  const touchIssues = await page.evaluate((MIN) => {
-    const issues = [];
-    const clickable = document.querySelectorAll(
-      'button:not([disabled]), a[href], [role="button"]:not([aria-disabled="true"])'
-    );
-    clickable.forEach((el) => {
-      if (el.closest('[inert]')) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0) return;
-      const style = getComputedStyle(el, '::before');
-      let effectiveW = rect.width;
-      let effectiveH = rect.height;
-      if (style.content !== 'none' && style.position === 'absolute') {
-        const inset = parseFloat(style.top) || 0;
-        effectiveW = rect.width + Math.abs(inset) * 2;
-        effectiveH = rect.height + Math.abs(inset) * 2;
-      }
-      if (effectiveW < MIN || effectiveH < MIN) {
-        issues.push({
-          tag: el.tagName,
-          cls: el.className,
-          label: el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 30),
-          w: effectiveW,
-          h: effectiveH,
-        });
-      }
-    });
-    return issues;
-  }, MIN_TOUCH_TARGET);
-  for (const issue of touchIssues) {
-    violations.push(
-      `[${scenario.name}/${screenId}] touch target too small: <${issue.tag} class="${describeElement(issue.cls)}"` +
-        ` label="${issue.label}"> ${issue.w.toFixed(0)}x${issue.h.toFixed(0)}px < ${MIN_TOUCH_TARGET}x${MIN_TOUCH_TARGET}px`
-    );
-  }
+  // 4: touch target size and real hit-testing.
+  await checkTouchTargets(page, scenario, screenId);
 
   // 5: text contrast — every visible text-bearing element must clear WCAG
   // AA (4.5:1 normal text, 3.0:1 for >=24px or >=18.66px bold). Background
@@ -255,6 +364,7 @@ async function checkScreen(page, scenario, screenId) {
       el.setAttribute('data-contrast-probe', tag);
       results.push({
         probe: tag,
+        kind: 'text',
         tag: el.tagName,
         cls: el.className,
         rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
@@ -264,6 +374,51 @@ async function checkScreen(page, scenario, screenId) {
         fontWeight: parseFloat(cs.fontWeight) || 400,
       });
     });
+
+    // Icons (WCAG 1.4.11, 3:1 threshold — a fixed floor regardless of
+    // size, unlike text's size-dependent 4.5/3.0 split). Phosphor icons
+    // are <svg><path fill="currentColor"/></svg>, so the icon's real
+    // color is the svg element's own inherited `color`, same mechanism as
+    // text — hiding/sampling it works identically to the text pass above.
+    document.querySelectorAll('svg').forEach((el, index) => {
+      if (el.closest('[disabled], [aria-disabled="true"]')) return;
+      if (el.closest('[inert]')) return;
+      if (el.closest('[role="tablist"]')) return;
+      // Only Phosphor-generated icons (which always set fill="currentColor"
+      // on the <svg> root) are checked this way. Hand-authored SVGs like
+      // ZikirmatikModal's progress ring set stroke directly on their
+      // <circle> children with a fixed color unrelated to the svg's own
+      // inherited `color` — hiding/sampling via color:transparent does
+      // nothing for those, so treat them as out of scope here rather than
+      // measure something that was never actually the rendered pixel.
+      if (el.getAttribute('fill') !== 'currentColor') return;
+      const rect = el.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      if (rect.bottom < 0 || rect.top > window.innerHeight * 50) return;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none') return;
+      const color = resolveColor(cs.color);
+      const opacity = parseFloat(cs.opacity) || 1;
+      // A deliberately faded/watermark icon (e.g. a large background
+      // Quotes glyph at 15% opacity) isn't the "graphical object required
+      // to understand content" 1.4.11 is about — skip anything already
+      // faded past being a meaningful foreground indicator.
+      if (color.a * opacity < 0.6) return;
+      const tag = `__contrast_icon_${index}`;
+      el.setAttribute('data-contrast-probe', tag);
+      results.push({
+        probe: tag,
+        kind: 'icon',
+        tag: 'svg',
+        cls: el.getAttribute('class') || '',
+        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        color,
+        opacity,
+        fontSize: 0,
+        fontWeight: 0,
+      });
+    });
+
     // Hide after collecting so every probe uses the same unmodified layout.
     results.forEach(({ probe }) => {
       const el = document.querySelector(`[data-contrast-probe="${probe}"]`);
@@ -338,12 +493,15 @@ async function checkScreen(page, scenario, screenId) {
       ];
 
       const ratio = contrastRatio(effective, bg);
+      // Icons: WCAG 1.4.11 non-text contrast is a flat 3:1, no size split.
       const isLarge = t.fontSize >= 24 || (t.fontSize >= 18.66 && t.fontWeight >= 700);
-      const minRatio = isLarge ? CONTRAST_MIN_LARGE : CONTRAST_MIN_NORMAL;
+      const minRatio = t.kind === 'icon' ? CONTRAST_MIN_LARGE : isLarge ? CONTRAST_MIN_LARGE : CONTRAST_MIN_NORMAL;
       if (ratio < minRatio) {
+        const detail =
+          t.kind === 'icon' ? '(icon, 1.4.11)' : `(fontSize=${t.fontSize.toFixed(0)}px weight=${t.fontWeight})`;
         violations.push(
           `[${scenario.name}/${screenId}] low contrast: <${t.tag} class="${describeElement(t.cls)}"> ` +
-            `${ratio.toFixed(2)}:1 < ${minRatio}:1 (fontSize=${t.fontSize.toFixed(0)}px weight=${t.fontWeight})`
+            `${ratio.toFixed(2)}:1 < ${minRatio}:1 ${detail}`
         );
       }
     }
@@ -352,6 +510,9 @@ async function checkScreen(page, scenario, screenId) {
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
+
+  console.log('Scanning src/ for raw Tailwind palette colors...');
+  await scanForbiddenColors(path.resolve('src'));
 
   console.log('Building...');
   await run('npm', ['run', 'build']);
@@ -429,6 +590,33 @@ async function main() {
       await page.getByRole('button', { name: 'Destek Ol' }).click();
       await page.waitForTimeout(500);
       await checkScreen(page, scenario, 'destek');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+
+      // 320px pass: touch-target/overlap only (design-refresh-v3 Faz 3 F4)
+      // — controls that clear 44px with room to spare at 390px can end up
+      // with overlapping invisible ::before zones once the viewport (and
+      // therefore the gaps between them) shrinks. Screenshots/contrast
+      // aren't re-run here; only hit-area geometry changes with width.
+      await page.setViewportSize({ width: 320, height: 844 });
+      await page.waitForTimeout(300);
+      for (const tab of TABS) {
+        await page.getByRole('tab', { name: tab.label }).click();
+        await page.waitForTimeout(400);
+        await checkTouchTargets(page, scenario, `${tab.id}-320px`);
+      }
+      await page.getByRole('button', { name: 'Zikirmatik' }).click();
+      await page.waitForTimeout(400);
+      await checkTouchTargets(page, scenario, 'zikirmatik-320px');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      await page.getByRole('tab', { name: 'Ayarlar' }).click();
+      await page.waitForTimeout(400);
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await page.waitForTimeout(800);
+      await page.getByRole('button', { name: 'Destek Ol' }).click();
+      await page.waitForTimeout(400);
+      await checkTouchTargets(page, scenario, 'destek-320px');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(300);
 

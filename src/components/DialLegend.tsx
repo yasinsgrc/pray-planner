@@ -27,7 +27,7 @@ export const DialLegend: React.FC<DialLegendProps> = ({ schedule }) => {
             <Icon
               weight={isNext ? 'fill' : 'regular'}
               className="w-3.5 h-3.5"
-              style={{ color: isNext ? 'var(--accent)' : 'var(--mist)' }}
+              style={{ color: isNext ? 'var(--accent-ink)' : 'var(--mist)' }}
             />
             <span
               className="font-numbers text-[11px] leading-tight"

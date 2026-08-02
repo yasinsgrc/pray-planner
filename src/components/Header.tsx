@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="relative flex items-center gap-2 group text-left cursor-pointer transition-all hover:opacity-80 before:content-[''] before:absolute before:-top-2.5 before:-bottom-2.5 before:inset-x-0"
           aria-label="Konumu Değiştir"
         >
-          <div className="w-7 h-7 rounded-full bg-gold/10 flex items-center justify-center text-gold group-hover:bg-gold/20 transition-colors">
+          <div className="w-7 h-7 rounded-full bg-gold/10 flex items-center justify-center text-gold-ink group-hover:bg-gold/20 transition-colors">
             <MapPinIcon className="w-4 h-4" />
           </div>
           <div>
@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label="Kıble Pusulası"
           >
-            <CompassIcon className="w-4 h-4 text-gold" />
+            <CompassIcon className="w-4 h-4 text-gold-ink" />
           </button>
 
           {/* Zikirmatik Butonu */}
@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label="Zikirmatik"
           >
-            <HandHeartIcon className="w-4 h-4 text-gold" />
+            <HandHeartIcon className="w-4 h-4 text-gold-ink" />
           </button>
 
           {/* Gece/Gündüz Modu Butonu */}
@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
             {isDarkMode ? (
               <SunIcon className="w-4 h-4 text-sand" />
             ) : (
-              <MoonIcon className="w-4 h-4 text-gold" />
+              <MoonIcon className="w-4 h-4 text-gold-ink" />
             )}
           </button>
         </div>

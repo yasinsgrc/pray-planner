@@ -103,7 +103,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           className="col-span-2 p-3.5 rounded-2xl glass-panel border border-hairline shadow-sm flex items-center justify-between px-5 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gold/10 text-gold flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center">
               <ClockIcon className="w-4 h-4" />
             </div>
             <div className="text-left">
@@ -134,7 +134,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           className="p-3.5 rounded-2xl bg-card/70 border border-hairline/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-gold/40"
           title="Kilit Ekranı / Canlı Etkinlik Widget'ını Gör"
         >
-          <div className="w-8 h-8 rounded-full bg-gold/10 text-gold flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center">
             <DeviceMobileIcon className="w-4 h-4" />
           </div>
           <span className="text-xs font-semibold text-ink leading-tight">
@@ -152,7 +152,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           whileTap={{ scale: 0.97 }}
           className="p-3.5 rounded-2xl bg-card/70 border border-hairline/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-gold/40"
         >
-          <div className="w-8 h-8 rounded-full bg-gold/10 text-gold flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center">
             <CalendarDotsIcon className="w-4 h-4" />
           </div>
           <span className="text-xs font-semibold text-ink leading-tight">

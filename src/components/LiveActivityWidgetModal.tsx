@@ -47,8 +47,8 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
         <p className="text-[11px] text-mist -mt-2">iOS Live Activity & Android Widget Önizlemesi</p>
 
         {/* Telefon Kilit Ekranı Simülasyonu — bilerek temadan bağımsız koyu (gerçek kilit ekranı) */}
-        <div className="p-4 rounded-2xl bg-gradient-to-b from-gray-900 to-black border border-gray-800 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between text-[11px] text-gray-400 border-b border-gray-800/80 pb-2">
+        <div className="p-4 rounded-2xl bg-gradient-to-b from-[#111827] to-black border border-[#1f2937] space-y-4 shadow-xl">
+          <div className="flex items-center justify-between text-[11px] text-[#9ca3af] border-b border-[#1f2937]/80 pb-2">
             <div className="flex items-center gap-1">
               <LockIcon className="w-3 h-3 text-gold" />
               <span>Kilit Ekranı</span>
@@ -88,7 +88,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
 
             {/* Orta: Vakit Bilgisi */}
             <div className="flex-1 text-left">
-              <div className="text-[10px] text-gray-300 font-medium">
+              <div className="text-[10px] text-[#d1d5db] font-medium">
                 {nextPrayer.label} Vaktine Kalan
               </div>
               <div className="font-numbers text-xl font-extrabold text-white tracking-tight">
@@ -104,7 +104,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
               <div className="text-xs font-bold text-gold font-numbers">
                 {nextPrayer.timeString}
               </div>
-              <div className="text-[9px] text-gray-400">Sıradaki</div>
+              <div className="text-[9px] text-[#9ca3af]">Sıradaki</div>
             </div>
           </div>
 
@@ -112,7 +112,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
           {upcomingOrActiveKerahet && (
             <div
               className={`flex items-center gap-1.5 px-1 py-1.5 text-[10px] border-t border-dotted ${
-                upcomingOrActiveKerahet.isActiveNow ? 'text-gold font-semibold border-gold' : 'text-gray-400 border-gray-700'
+                upcomingOrActiveKerahet.isActiveNow ? 'text-gold font-semibold border-gold' : 'text-[#9ca3af] border-[#374151]'
               }`}
             >
               <span>
@@ -125,7 +125,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
         </div>
 
         <div className="flex items-center gap-2 text-xs text-mist">
-          <CheckIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+          <CheckIcon className="w-4 h-4 text-success-ink shrink-0" />
           <span>Arka planda ve kilit ekranında altın halka canlı olarak güncellenir.</span>
         </div>
       </div>

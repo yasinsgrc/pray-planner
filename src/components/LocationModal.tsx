@@ -125,7 +125,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
         <button
           onClick={handleUseGPS}
           disabled={isLocating}
-          className="w-full py-2.5 px-4 rounded-xl bg-gold hover:bg-[#c4983e] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+          className="w-full min-h-[48px] px-4 rounded-xl bg-gold hover:bg-[#c4983e] text-[#2D2D2D] font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
         >
           <NavigationArrowIcon className="w-4 h-4 animate-spin-slow" />
           <span>
@@ -140,7 +140,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
             placeholder="Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-paper border border-gold/20 rounded-xl text-xs font-medium text-ink focus:outline-none focus:border-gold"
+            className="w-full min-h-[44px] pl-9 pr-4 py-2.5 bg-paper border border-gold/20 rounded-xl text-xs font-medium text-ink focus:outline-none focus:border-gold"
           />
         </div>
 
@@ -155,7 +155,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
             )}
 
             {searchStatus === 'error' && (
-              <div className="text-center py-4 text-xs text-red-500">
+              <div className="text-center py-4 text-xs text-danger-ink">
                 Arama başarısız, tekrar deneyin.
               </div>
             )}
@@ -195,7 +195,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
           </div>
         )}
 
-        <div className="space-y-1 divide-y divide-gray-100 dark:divide-gray-800/40">
+        <div className="space-y-1 divide-y divide-hairline">
           {filteredLocations.map((loc) => {
             const isSelected = loc.id === currentLocation.id;
 
@@ -222,7 +222,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
                   <div className="text-[10px] text-mist">{loc.country}</div>
                 </div>
 
-                {isSelected && <CheckIcon className="w-4 h-4 text-gold" />}
+                {isSelected && <CheckIcon className="w-4 h-4 text-gold-ink" />}
               </button>
             );
           })}

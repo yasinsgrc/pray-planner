@@ -73,7 +73,7 @@ export const DailyInspirationCard: React.FC = () => {
         {/* Üst Sekme Başlıkları */}
         <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">
           <div className="flex items-center gap-2">
-            <BookOpenIcon className="w-4 h-4 text-gold" />
+            <BookOpenIcon className="w-4 h-4 text-gold-ink" />
             <span className="text-sm font-bold text-ink">
               Günün Manevi Notu
             </span>
@@ -141,7 +141,7 @@ export const DailyInspirationCard: React.FC = () => {
         </div>
 
         {/* Kopyala / Paylaş */}
-        <div className="flex items-center justify-end gap-4 border-t border-gray-100 dark:border-gray-800/40 pt-2.5">
+        <div className="flex items-center justify-end gap-4 border-t border-hairline pt-2.5">
           <button
             onClick={handleShare}
             className="relative flex items-center gap-1.5 text-xs text-mist hover:text-gold transition-colors cursor-pointer before:content-[''] before:absolute before:-top-4 before:-bottom-4 before:-left-1.5 before:-right-1.5"
@@ -155,8 +155,8 @@ export const DailyInspirationCard: React.FC = () => {
           >
             {copied ? (
               <>
-                <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-emerald-500 font-medium">Kopyalandı</span>
+                <CheckIcon className="w-3.5 h-3.5 text-success-ink" />
+                <span className="text-success-ink font-medium">Kopyalandı</span>
               </>
             ) : (
               <>

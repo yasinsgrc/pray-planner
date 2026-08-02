@@ -85,7 +85,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
           whileTap={{ scale: 0.97 }}
           className="col-span-1 p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold/40 transition-colors cursor-pointer flex flex-col justify-between"
         >
-          <HandHeartIcon className="w-5 h-5 text-gold" />
+          <HandHeartIcon className="w-5 h-5 text-gold-ink" />
           <div className="mt-2">
             <div className="text-[11px] text-mist leading-tight">{lastDhikr.title}</div>
             <div className="font-numbers text-sm font-bold text-ink">
@@ -104,7 +104,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
       >
         <div className="p-5 rounded-2xl bg-card border border-hairline text-center">
           <div className="flex items-center justify-center gap-1.5 text-label text-mist font-bold">
-            <SparkleIcon className="w-3.5 h-3.5 text-gold" />
+            <SparkleIcon className="w-3.5 h-3.5 text-gold-ink" />
             <span>Günün Esmâsı</span>
           </div>
           <div className="text-2xl font-serif-title font-bold mt-2" style={{ color: 'var(--accent-ink)' }}>

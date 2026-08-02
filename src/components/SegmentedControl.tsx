@@ -36,7 +36,7 @@ export function SegmentedControl<T extends string>({
              (design-refresh-v3 Faz 2 F1, found while re-checking contrast
              here: text measured against the *real* rendered pixel showed
              near-zero contrast because there was no gold pixel to sample). */
-          className={`relative isolate py-2 px-2 rounded-lg text-xs font-bold text-center transition-colors cursor-pointer before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:inset-x-0 ${
+          className={`relative isolate py-2 px-2 rounded-lg text-xs font-bold text-center transition-colors cursor-pointer before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:-left-0.5 before:-right-0.5 ${
             /* bg-gold pill is bright in both themes (dark-mode --gold is
                brighter still) — a fixed dark ink reads reliably on it,
                unlike text-white which measured 1.87:1-2.19:1 (design-

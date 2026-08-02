@@ -72,6 +72,11 @@
 
   --color-accent-ink: var(--accent-ink);
   --color-gold-ink: var(--gold-ink);
+
+  --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
 }
 
 @layer base {
@@ -97,6 +102,20 @@
     --v-ikindi: #C97B3C;
     --v-aksam: #A34A4A;
     --v-yatsi: #2E3560;
+    /* Readable icon/text color to place ON a prayer's solid --v-* fill
+       (e.g. the active-row icon circle in DailyFlowList) — design-refresh-v3
+       Faz 3 F3. Neither white nor a single dark ink works for all six: at
+       3:1 (WCAG 1.4.11, the correct threshold for icons/UI graphics, not
+       4.5:1) white passes imsak/aksam/yatsi here but fails gunes/ogle/ikindi,
+       and the reverse is true for the dark ink — measured per color, not
+       assumed from hue "warm vs cool" (that heuristic breaks on dark-mode
+       aksam and imsak, which flip which one reads better). */
+    --v-imsak-on: #FFFFFF;
+    --v-gunes-on: #2D2D2D;
+    --v-ogle-on: #2D2D2D;
+    --v-ikindi-on: #2D2D2D;
+    --v-aksam-on: #FFFFFF;
+    --v-yatsi-on: #FFFFFF;
     /* Runtime accent, updated by App.tsx to the active prayer's --v-* value */
     --accent: var(--v-ogle);
 
@@ -117,6 +136,20 @@
     --gold-ink: #82631A;
     /* Runtime, updated by App.tsx to the active prayer's --v-*-ink value */
     --accent-ink: var(--v-ogle-ink);
+
+    /* Success/danger tokens (design-refresh-v3 Faz 3 F2) — replace raw
+       Tailwind palette utilities (green/red shades used directly by name)
+       that bypassed the theme system entirely and were never dark-mode-checked.
+       --success/--danger are for fill/border/tint only; --success-ink/
+       --danger-ink are for text and verified >=4.5:1 against --paper,
+       --card-bg, AND their own ~15% tinted badge background (e.g.
+       bg-success/15) — a plain paper/card check alone missed that one of
+       the worst measured bugs here, the "SIRADAKİ" badge, was text on its
+       own tinted fill, not on --paper. */
+    --success: #10B981;
+    --success-ink: #0C6A47;
+    --danger: #EF4444;
+    --danger-ink: #B3261E;
     /* Reserved height of the fixed bottom Navbar, used to keep scrollable
        content clear of it (see .app-shell-padding below). */
     --nav-h: 76px;
@@ -150,6 +183,17 @@
     --v-aksam: #C46A66;
     --v-yatsi: #5A63A0;
 
+    /* Same per-color on-fill readability table as :root, re-measured
+       against the brighter dark-mode --v-* values — imsak and aksam flip
+       to the dark ink here (their light-mode counterparts read better
+       with white; measured, not assumed). */
+    --v-imsak-on: #2D2D2D;
+    --v-gunes-on: #2D2D2D;
+    --v-ogle-on: #2D2D2D;
+    --v-ikindi-on: #2D2D2D;
+    --v-aksam-on: #FFFFFF;
+    --v-yatsi-on: #FFFFFF;
+
     /* Dark-mode text/icon-safe ink variants — only --v-yatsi-ink and
        --v-aksam-ink needed real changes from their arc counterparts here
        (measured: --v-yatsi at 3.06:1 on #1A1B1E was the one dark-mode
@@ -168,6 +212,11 @@
        Faz 2, not derived from the tokens in isolation. Brightened with
        margin. */
     --gold-ink: #F5CE7A;
+
+    --success: #34D399;
+    --success-ink: #4ADE9C;
+    --danger: #F87171;
+    --danger-ink: #F2857D;
   }
 
   body {

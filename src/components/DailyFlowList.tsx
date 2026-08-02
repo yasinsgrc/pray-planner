@@ -114,9 +114,13 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                   <div className="flex items-center gap-3.5">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                        item.isActive ? 'text-white shadow-sm' : 'bg-gold/10 text-gold'
+                        item.isActive ? 'shadow-sm' : 'bg-gold/10 text-gold-ink'
                       }`}
-                      style={item.isActive ? { backgroundColor: `var(--v-${item.name})` } : undefined}
+                      style={
+                        item.isActive
+                          ? { backgroundColor: `var(--v-${item.name})`, color: `var(--v-${item.name}-on)` }
+                          : undefined
+                      }
                     >
                       {React.createElement(PRAYER_ICON_COMPONENTS[item.name], { className: 'w-5 h-5' })}
                     </div>
@@ -136,7 +140,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                           </span>
                         )}
                         {item.isNext && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 tracking-wide">
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-success/15 text-success-ink tracking-wide">
                             SIRADAKİ
                           </span>
                         )}

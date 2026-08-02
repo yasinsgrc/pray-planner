@@ -57,7 +57,7 @@ export const SupportSection: React.FC = () => {
     <>
       <FadeIn delay={0.3} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-full bg-gold/10 text-gold flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center shrink-0">
             <HandHeartIcon className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
@@ -91,13 +91,13 @@ export const SupportSection: React.FC = () => {
                   {SUPPORT_IBAN}
                 </span>
                 {copied ? (
-                  <CheckIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <CheckIcon className="w-4 h-4 text-success-ink shrink-0" />
                 ) : (
                   <CopyIcon className="w-4 h-4 text-mist shrink-0" />
                 )}
               </button>
               {copied && (
-                <div className="text-[11px] text-emerald-500 font-medium mt-1.5">Kopyalandı</div>
+                <div className="text-[11px] text-success-ink font-medium mt-1.5">Kopyalandı</div>
               )}
             </div>
           )}

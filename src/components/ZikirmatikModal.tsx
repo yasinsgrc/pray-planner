@@ -137,7 +137,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
         <div className="flex items-center justify-between pt-2">
           <button
             onClick={handleReset}
-            className="relative flex items-center gap-1 text-xs text-mist hover:text-red-500 transition-colors cursor-pointer before:content-[''] before:absolute before:-inset-4"
+            className="relative flex items-center gap-1 text-xs text-mist hover:text-danger-ink transition-colors cursor-pointer before:content-[''] before:absolute before:-inset-4"
           >
             <ArrowCounterClockwiseIcon className="w-3.5 h-3.5" /> Sıfırla
           </button>

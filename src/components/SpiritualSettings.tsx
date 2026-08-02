@@ -104,7 +104,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
         <FadeIn delay={0} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
           <div className="flex items-center gap-2">
-            <BellIcon className="w-4 h-4 text-gold" />
+            <BellIcon className="w-4 h-4 text-gold-ink" />
             <div>
               <div className="text-sm font-bold text-ink">
                 Bildirimleri Etkinleştir
@@ -116,7 +116,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           </div>
 
           {pushStatus === 'granted' ? (
-            <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <div className="flex items-center gap-2 text-xs text-success-ink font-semibold">
               <CheckIcon className="w-4 h-4" /> Bildirimler etkin
             </div>
           ) : (
@@ -130,17 +130,17 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           )}
 
           {pushStatus === 'denied' && (
-            <p className="text-[11px] text-red-500">
+            <p className="text-[11px] text-danger-ink">
               Bildirim izni reddedildi. Tarayıcı ayarlarından bu site için bildirimlere izin verip tekrar deneyin.
             </p>
           )}
           {pushStatus === 'error' && pushError && (
-            <p className="text-[11px] text-red-500">{pushError}</p>
+            <p className="text-[11px] text-danger-ink">{pushError}</p>
           )}
 
           {showIOSNotice && (
             <div className="flex items-start gap-2 p-2.5 rounded-xl bg-gold/10 text-[11px] text-mist">
-              <DeviceMobileIcon className="w-4 h-4 text-gold shrink-0 mt-0.5" />
+              <DeviceMobileIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
               <span>
                 iPhone'da bildirim alabilmek için Safari'de Paylaş → Ana Ekrana Ekle ile uygulamayı yükleyin.
               </span>
@@ -151,7 +151,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
         <FadeIn delay={0.06} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
           <div className="flex items-center justify-between border-b border-gold/15 pb-2.5">
             <div className="flex items-center gap-2">
-              <BellIcon className="w-4 h-4 text-gold" />
+              <BellIcon className="w-4 h-4 text-gold-ink" />
               <span className="text-sm font-bold text-ink">
                 Vakit Bazlı Bildirim Sesleri
               </span>
@@ -167,7 +167,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                 <button
                   key={prayer}
                   onClick={() => setOpenSoundSheet(prayer)}
-                  className="w-full flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-800/40 last:border-0 cursor-pointer"
+                  className="w-full flex items-center justify-between py-3 border-b border-hairline last:border-0 cursor-pointer"
                 >
                   <span className="text-sm font-medium text-ink">{PRAYER_LABELS[prayer]}</span>
                   <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-paper text-ink">
@@ -180,22 +180,17 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           </div>
 
           <p className="text-[10px] text-mist pt-1">
-            Ezan sesi:{' '}
-            <a
-              href="https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative underline hover:text-gold before:content-[''] before:absolute before:-inset-4"
-            >
-              Wikimedia Commons, Atcovi
-            </a>{' '}
-            (CC BY-SA 4.0)
+            {/* Düz metin atıf — bir bağlantı olarak 44px dokunma hedefine
+                büyütmek (134x12 bir kutu için) görsel olarak orantısız
+                olurdu; kaynağın kendisi kritik bir eylem değil (design-
+                refresh-v3 Faz 3 F5). */}
+            Ezan sesi: Wikimedia Commons, Atcovi (CC BY-SA 4.0)
           </p>
         </FadeIn>
 
         <FadeIn delay={0.12} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
           <div className="flex items-center gap-2">
-            <ClockIcon className="w-4 h-4 text-gold" />
+            <ClockIcon className="w-4 h-4 text-gold-ink" />
             <div>
               <div className="text-sm font-bold text-ink">
                 Abdest & Hazırlık Hatırlatıcı
@@ -228,7 +223,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
         <FadeIn delay={0.18} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
           <div className="flex items-center gap-2">
-            <MoonIcon className="w-4 h-4 text-gold" />
+            <MoonIcon className="w-4 h-4 text-gold-ink" />
             <div>
               <div className="text-sm font-bold text-ink">
                 Gece Teması & Otomatik Dönüşüm
@@ -264,7 +259,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
         <FadeIn delay={0.24} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
           <div className="flex items-center gap-2">
-            <GearIcon className="w-4 h-4 text-gold" />
+            <GearIcon className="w-4 h-4 text-gold-ink" />
             <div>
               <div className="text-sm font-bold text-ink">
                 Hesaplama Yöntemi
@@ -295,7 +290,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
         <FadeIn delay={0.36} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
           <div className="flex items-center gap-2">
-            <CalendarDotsIcon className="w-4 h-4 text-gold" />
+            <CalendarDotsIcon className="w-4 h-4 text-gold-ink" />
             <div className="text-sm font-bold text-ink">
               Hicri Tarih Hakkında
             </div>
@@ -318,7 +313,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             return (
               <div
                 key={opt.value}
-                className={`flex items-center justify-between p-3 rounded-xl ${
+                className={`flex items-stretch justify-between p-3.5 rounded-xl ${
                   isSelected ? 'bg-gold/10' : ''
                 }`}
               >
@@ -330,7 +325,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   }}
                   className="flex-1 flex items-center gap-2 text-left cursor-pointer"
                 >
-                  {isSelected && <CheckIcon className="w-4 h-4 text-gold shrink-0" />}
+                  {isSelected && <CheckIcon className="w-4 h-4 text-gold-ink shrink-0" />}
                   <span className={`text-sm font-medium ${isSelected ? 'text-gold-ink' : 'text-ink'}`}>
                     {opt.label}
                   </span>
@@ -338,7 +333,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                 <button
                   onClick={() => playSoundForMode(opt.value)}
                   aria-label={`${opt.label} sesini önizle`}
-                  className="p-3.5 rounded-full hover:bg-gold/10 text-gold cursor-pointer shrink-0"
+                  className="p-3.5 rounded-full hover:bg-gold/10 text-gold-ink cursor-pointer shrink-0"
                 >
                   <PlayIcon className="w-4 h-4" />
                 </button>
@@ -369,7 +364,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                 }`}
               >
                 {isSelected ? (
-                  <CheckIcon className="w-4 h-4 text-gold shrink-0 mt-0.5" />
+                  <CheckIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
                 ) : (
                   <span className="w-4 h-4 shrink-0" />
                 )}
