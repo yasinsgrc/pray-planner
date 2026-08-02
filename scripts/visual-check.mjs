@@ -1149,9 +1149,72 @@ async function checkInteractionSweep(browser) {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
 
-    // --- Ayarlar: theme-mode segmented control changes value + persists ---
+    // --- Ayarlar: every toggle switch's thumb sits in the correct HALF of
+    // its track, not just "somewhere inside its bounds". A geometric
+    // in-bounds-only check previously passed a real bug: the thumb's
+    // untranslated base position resolved to the track's right edge (an
+    // absolute+blockified <span> with no explicit `left`, not a deliberate
+    // justify-end/ml-auto), so translate-x was added on top of an
+    // already-right-leaning base — closed state happened to land in-bounds
+    // by coincidence (flush against the right edge instead of the left),
+    // open state translated straight past the track's right edge entirely.
+    // Fixed by anchoring the thumb's base position with an explicit
+    // `left-0` (design-refresh-v3 Faz 12) so translate is the only thing
+    // moving it — this check exists so a future regression that removes
+    // that anchor fails loud instead of merely "still technically inside".
     await page.getByRole('tab', { name: 'Ayarlar' }).click();
     await page.waitForTimeout(500);
+    const switchHandles = await page.locator('[role="switch"]').all();
+    for (const [i, handle] of switchHandles.entries()) {
+      const label = (await handle.getAttribute('aria-label')) ?? `switch #${i}`;
+      const readGeometry = async () => {
+        return handle.evaluate((btn) => {
+          const track = btn.querySelector('span');
+          const thumb = track.querySelector('span');
+          const t = track.getBoundingClientRect();
+          const h = thumb.getBoundingClientRect();
+          return {
+            checked: btn.getAttribute('aria-checked') === 'true',
+            trackLeft: t.left,
+            trackMid: t.left + t.width / 2,
+            trackRight: t.right,
+            thumbLeft: h.left,
+            thumbRight: h.right,
+          };
+        });
+      };
+      const before = await readGeometry();
+      const assertHalf = (g, when) => {
+        if (g.thumbLeft < g.trackLeft || g.thumbRight > g.trackRight) {
+          violations.push(
+            `[sweep] "${label}" topuzu ${when} ray dışına taşıyor: thumb=[${g.thumbLeft.toFixed(1)},${g.thumbRight.toFixed(1)}] track=[${g.trackLeft.toFixed(1)},${g.trackRight.toFixed(1)}]`
+          );
+          return;
+        }
+        if (g.checked) {
+          if (g.thumbLeft < g.trackMid) {
+            violations.push(`[sweep] "${label}" AÇIK ama topuz rayın sol yarısında (thumbLeft=${g.thumbLeft.toFixed(1)} < mid=${g.trackMid.toFixed(1)})`);
+          }
+        } else if (g.thumbRight > g.trackMid) {
+          violations.push(`[sweep] "${label}" KAPALI ama topuz rayın sağ yarısında (thumbRight=${g.thumbRight.toFixed(1)} > mid=${g.trackMid.toFixed(1)})`);
+        }
+      };
+      assertHalf(before, 'başlangıçta');
+      await handle.click();
+      await page.waitForTimeout(300);
+      const afterToggle = await readGeometry();
+      if (afterToggle.checked === before.checked) {
+        violations.push(`[sweep] "${label}" tıklandı ama aria-checked değişmedi`);
+      }
+      assertHalf(afterToggle, 'değiştirildikten sonra');
+      // Restore original state so this doesn't leave settings mutated.
+      await handle.click();
+      await page.waitForTimeout(300);
+      const restored = await readGeometry();
+      assertHalf(restored, 'geri alındıktan sonra');
+    }
+
+    // --- Ayarlar: theme-mode segmented control changes value + persists ---
     await page.getByRole('button', { name: 'Koyu' }).click();
     await page.waitForTimeout(400);
     const isDarkAfterClick = await page.evaluate(() => document.documentElement.classList.contains('dark'));

@@ -253,8 +253,16 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   playEzanInForeground ? 'bg-gold' : 'bg-hairline'
                 }`}
               >
+                {/* left-0 sabitlenmedikçe absolute+auto left, span'in
+                    blockify edilmiş statik konumunu (bu düzende sağa yakın
+                    çıkıyor) taban alıyordu — translate bunun ÜSTÜNE
+                    biniyor, kapalıyken rastlantısal olarak sınırda duruyor
+                    ama açıkken tamamen taşıyordu (design-refresh-v3 Faz 12,
+                    gerçek layout ölçümüyle bulundu: taban konum sol kenar
+                    değil, sağdan 2px'ti). Konum artık yalnızca translate-x
+                    ile yönetiliyor, taban her zaman sol kenar (0). */}
                 <span
-                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${
+                  className={`absolute left-0 top-0.5 w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${
                     playEzanInForeground ? 'translate-x-[22px]' : 'translate-x-0.5'
                   }`}
                 />
