@@ -3,7 +3,12 @@
 // involved) remain reachable with no connection (design-refresh-v3 Faz 4
 // F1). Deliberately does NOT cache /api/* — geocoding and the daily-verse
 // endpoint must stay fresh, and the app already falls back to its static
-// content pool silently when they fail.
+// content pool silently when they fail. Also excludes /health: it isn't a
+// navigation request, so it fell into cacheFirst and got cached permanently
+// on first hit — useApiAvailable's server-availability probe would then
+// forever reflect whatever was true at first load instead of the current
+// deploy, silently surviving a later switch to/from a serverless host
+// (design-refresh-v3 Faz 9 F2).
 
 const CACHE_PREFIX = 'vakit-shell-';
 
@@ -125,6 +130,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // don't intercept cross-origin requests
   if (url.pathname.startsWith('/api/')) return; // always fresh — never cached
+  if (url.pathname === '/health') return; // always fresh — never cached
 
   const isNavigation =
     request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html');

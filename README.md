@@ -126,6 +126,14 @@ npm install
 npm run build   # netlify.toml zaten bunu çalıştırır — elle gerekmez
 ```
 
+**`VITE_PRIVACY_*` değişkenlerini ilk dağıtımdan önce Netlify'ın Site
+configuration > Environment variables ekranında tanımla.** Bunlar `.env`
+dosyasından değil, Netlify'ın kendi build ortamından okunur — build
+makinende bir `.env` dosyan olsa bile Netlify'ın build'i bunu görmez. Eksik
+bırakılırsa `npm run build` bir uyarı basar (build başarısız olmaz) ve canlı
+sitedeki Gizlilik Politikası sayfasında görünür kırmızı `[TANIMLANMADI]` yer
+tutucuları yayına çıkar.
+
 ### Tam Yığın (tek origin Node host)
 
 Uygulama frontend'i `/api/*`'a **göreli** istek atar, yani sunucu

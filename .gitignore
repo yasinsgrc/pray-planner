@@ -8,3 +8,8 @@ coverage/
 !.env.example
 /data/
 .visual/
+
+# Ajan araç artıkları — projenin parçası değil (design-refresh-v3 Faz 9 F3).
+.agents/
+.claude/
+skills-lock.json

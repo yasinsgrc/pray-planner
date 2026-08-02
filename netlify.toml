@@ -37,9 +37,14 @@
 # index.html ve sw.js asla önbelleğe alınmaz — aksi halde bir kullanıcı yeni
 # bir sürüm hiç göremez (design-refresh-v3 Faz 5 F1: service worker kendi
 # sürümünü index.html/sw.js'in gerçekten yeniden çekilmesine dayanarak
-# tespit eder). /assets/* ve /fonts/* içerik hash'li olduğundan (Vite,
-# içerik değişince dosya adını değiştirir) sonsuza kadar önbelleğe alınabilir
-# — aynı URL asla farklı bayt döndürmez.
+# tespit eder). /assets/* içerik hash'li olduğundan (Vite, içerik değişince
+# dosya adını değiştirir) sonsuza kadar önbelleğe alınabilir — aynı URL asla
+# farklı bayt döndürmez. Fontlar da src/assets/fonts/ altından @font-face
+# içinde göreli yolla içe aktarılıp bu hash'leme hattından geçer
+# (design-refresh-v3 Faz 9 F1) — ayrı bir /fonts/* kuralına gerek yok. Eskiden
+# public/fonts/ altında sabit adla (hash'siz) servis edildikleri için bu kural
+# yanlışlıkla immutable işaretlenmişti; kaynağı taşımak yerine önbellek
+# süresini kısaltmak sorunu gizlerdi, o yüzden doğru düzeltme buydu.
 [[headers]]
   for = "/index.html"
   [headers.values]
@@ -52,11 +57,6 @@
 
 [[headers]]
   for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/fonts/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 

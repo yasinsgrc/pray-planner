@@ -413,7 +413,7 @@ async function checkScreen(page, scenario, screenId) {
   // blur are already fully resolved by the browser's own compositor by
   // the time we sample.
   await page.evaluate(() => window.scrollTo(0, 0));
-  const textEls = await page.evaluate(() => {
+  const { elements: textEls, skippedClippedCount } = await page.evaluate(() => {
     const results = [];
     // Canvas fillStyle resolves ANY valid CSS color syntax (oklch(),
     // rgb(), hex, color-mix()...) to concrete 8-bit sRGB — regexing
@@ -432,6 +432,36 @@ async function checkScreen(page, scenario, screenId) {
       const [r, g, b, a] = pctx.getImageData(0, 0, 1, 1).data;
       return { r, g, b, a: a / 255 };
     };
+    // An element scrolled out of view inside an `overflow-y-auto` ancestor
+    // (e.g. a long BottomSheet body — the privacy policy is the first
+    // content in this app tall enough to trigger it) still has a real,
+    // unclipped getBoundingClientRect() — its layout position doesn't
+    // change just because a clipping ancestor paints nothing there. Pixel
+    // sampling that position on the fullPage screenshot reads whatever
+    // happens to be at that pixel for a *different* reason (page edge
+    // clamp, unrelated content behind the sheet) — not the text's real
+    // background, which no user ever sees since the text itself isn't
+    // painted there. Skip anything geometrically outside a clipping
+    // ancestor's own visible box (design-refresh-v3 Faz 10 — found via a
+    // real computed-style probe: 12.57:1 actual contrast for text pixel-
+    // sampled at 2.69:1).
+    let skippedClippedCount = 0;
+    const isClippedByScrollableAncestor = (el) => {
+      const rect = el.getBoundingClientRect();
+      let node = el.parentElement;
+      while (node && node !== document.body) {
+        const cs = getComputedStyle(node);
+        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll' || cs.overflowX === 'auto' || cs.overflowX === 'scroll') {
+          const cRect = node.getBoundingClientRect();
+          if (rect.bottom <= cRect.top || rect.top >= cRect.bottom || rect.right <= cRect.left || rect.left >= cRect.right) {
+            skippedClippedCount += 1;
+            return true;
+          }
+        }
+        node = node.parentElement;
+      }
+      return false;
+    };
     document.querySelectorAll('body *').forEach((el, index) => {
       if (el.classList.contains('sr-only')) return;
       if (el.closest('[disabled], [aria-disabled="true"]')) return;
@@ -443,6 +473,7 @@ async function checkScreen(page, scenario, screenId) {
       // sampled "through" its glass-panel blur here would be sampling a
       // background that doesn't correspond to reality.
       if (el.closest('[role="tablist"]')) return;
+      if (isClippedByScrollableAncestor(el)) return;
       const hasDirectText = Array.from(el.childNodes).some(
         (n) => n.nodeType === 3 && n.textContent.trim().length > 0
       );
@@ -476,6 +507,7 @@ async function checkScreen(page, scenario, screenId) {
       if (el.closest('[disabled], [aria-disabled="true"]')) return;
       if (el.closest('[inert]')) return;
       if (el.closest('[role="tablist"]')) return;
+      if (isClippedByScrollableAncestor(el)) return;
       // Only Phosphor-generated icons (which always set fill="currentColor"
       // on the <svg> root) are checked this way. Hand-authored SVGs like
       // ZikirmatikModal's progress ring set stroke directly on their
@@ -516,8 +548,16 @@ async function checkScreen(page, scenario, screenId) {
       const el = document.querySelector(`[data-contrast-probe="${probe}"]`);
       el.style.setProperty('color', 'transparent', 'important');
     });
-    return results;
+    return { elements: results, skippedClippedCount };
   });
+
+  // Logged unconditionally (not just when >0) so a future regression that
+  // starts clipping-skipping *everything* (e.g. a CSS change that makes
+  // overflow: auto ambient on some outer wrapper) is visible in the run
+  // output instead of silently passing with an empty, all-skipped element
+  // set (design-refresh-v3 Faz 10 — this exact check exists because a
+  // clipped element was wrongly contrast-sampled in the first place).
+  console.log(`  ${skippedClippedCount} element(s) skipped as clipped-out-of-view by a scrollable ancestor.`);
 
   if (textEls.length > 0) {
     const dpr = await page.evaluate(() => window.devicePixelRatio);
@@ -660,10 +700,13 @@ async function checkOfflineSupport(browser) {
     const failedRequests = [];
     page.on('requestfailed', (req) => {
       const url = req.url();
-      // /api/* is deliberately never cached (see public/sw.js) — the app
-      // already falls back to its static content pool silently when it's
-      // unreachable, so a failure here is expected, not a cache regression.
-      if (!url.includes('/api/')) failedRequests.push(url);
+      // /api/* and /health are deliberately never cached (see public/sw.js,
+      // design-refresh-v3 Faz 9 F2) — the app already falls back to its
+      // static content pool silently when /api/* is unreachable, and
+      // useApiAvailable already treats a failed /health fetch as "no
+      // server" (checkApiAvailable's catch block), so a failure on either
+      // here is expected, not a cache regression.
+      if (!url.includes('/api/') && !url.endsWith('/health')) failedRequests.push(url);
     });
     await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
 
