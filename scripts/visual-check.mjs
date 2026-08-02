@@ -24,6 +24,18 @@ const CONTRAST_MIN_LARGE = 3.0;
 // doesn't also flag e.g. "grayscale" or unrelated identifiers.
 const FORBIDDEN_COLOR_PATTERN =
   /\b(?:text|bg|border|divide|ring|from|via|to|fill|stroke|outline|accent|caret|decoration|shadow)-(?:emerald|red|gray|slate|zinc|neutral|blue|amber)-\d{2,3}\b/;
+// A dative-case suffix ('de/'da/'te/'ta/'ye/'ya) hardcoded directly after an
+// interpolated/JSX expression is wrong for most values: Turkish vowel
+// harmony + consonant assimilation pick the correct suffix letter based on
+// the last sound of the actual word, which a fixed literal can't know in
+// advance (design-refresh-v3 Faz 1 F-akşam and Faz 5 F2 — both were exactly
+// this: a formatted clock time or variable followed by a fixed suffix,
+// wrong for all but a few coincidental values). The fix is always to
+// rephrase around the suffix, never to hardcode one after a dynamic value.
+// Anchored on a closing `}` (optionally followed by a JSX closing tag) so
+// fixed, already-correct dative forms on literal words (e.g. "Pazartesi'ye",
+// prayerCalculator.ts's PRAYER_LABEL_DATIVE table) don't false-positive.
+const DATIVE_SUFFIX_PATTERN = /\}(?:<\/[a-zA-Z][\w.]*>)?'(?:de|da|te|ta|ye|ya)\b/;
 
 // WCAG relative luminance / contrast ratio (design-refresh-v3 Faz 2 F1).
 function relLuminance([r, g, b]) {
@@ -108,6 +120,12 @@ async function scanForbiddenColors(dir) {
       if (match) {
         violations.push(
           `[static] raw Tailwind color class in ${path.relative(process.cwd(), full)}:${i + 1} — "${match[0]}" (use a --v-*/--gold/--success/--danger token instead)`
+        );
+      }
+      const dativeMatch = line.match(DATIVE_SUFFIX_PATTERN);
+      if (dativeMatch) {
+        violations.push(
+          `[static] hardcoded dative suffix after a dynamic value in ${path.relative(process.cwd(), full)}:${i + 1} — "${dativeMatch[0]}" (rephrase to avoid a suffix on a variable/formatted value instead)`
         );
       }
     });
@@ -533,26 +551,47 @@ async function checkOfflineSupport(browser) {
     locale: 'tr-TR',
     timezoneId: 'Europe/Istanbul',
   });
-  const page = await context.newPage();
-  page.setDefaultTimeout(15000);
+  let page;
   try {
-    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
-    await page.evaluate(() => navigator.serviceWorker.ready);
+    const onlinePage = await context.newPage();
+    onlinePage.setDefaultTimeout(15000);
+    await onlinePage.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await onlinePage.evaluate(() => navigator.serviceWorker.ready);
 
     // The very first load of a page is never controlled by a worker it
     // just registered (per spec) — only the next navigation is.
-    await page.reload({ waitUntil: 'load', timeout: 20000 });
-    const controlled = await page.evaluate(() => !!navigator.serviceWorker.controller);
+    await onlinePage.reload({ waitUntil: 'load', timeout: 20000 });
+    const controlled = await onlinePage.evaluate(() => !!navigator.serviceWorker.controller);
     if (!controlled) {
       violations.push(
         '[offline] page is not controlled by the service worker after a reload — offline support cannot work'
       );
       return;
     }
+    await onlinePage.close();
 
     await context.setOffline(true);
-    await page.waitForTimeout(300); // let in-flight background fetches (push/daily-verse) abort before navigating
-    await page.reload({ waitUntil: 'load', timeout: 20000 });
+
+    // A reload of the SAME page can pass even with a broken cache: Chromium's
+    // own HTTP cache (separate from the Service Worker's Cache Storage) can
+    // still be warm for that exact document and its sub-resources, hiding a
+    // real fetch-handler bug (design-refresh-v3 Faz 5 F1 — the SW couldn't
+    // find its own cache after a genuinely cold start, but a reload-based
+    // check here still passed). A brand new page in the same context (SW
+    // registration + Cache Storage persist; a never-before-loaded page has
+    // no warm HTTP cache to fall back on) forces every request through the
+    // SW's actual fetch handler.
+    page = await context.newPage();
+    page.setDefaultTimeout(15000);
+    const failedRequests = [];
+    page.on('requestfailed', (req) => {
+      const url = req.url();
+      // /api/* is deliberately never cached (see public/sw.js) — the app
+      // already falls back to its static content pool silently when it's
+      // unreachable, so a failure here is expected, not a cache regression.
+      if (!url.includes('/api/')) failedRequests.push(url);
+    });
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
 
     const countdownText = await page.evaluate(() => {
       const el = document.querySelector('[data-testid="countdown"]');
@@ -570,7 +609,30 @@ async function checkOfflineSupport(browser) {
         violations.push(`[offline] ${tab.id} tab rendered almost no content while offline (${textLength} chars)`);
       }
     }
-    console.log('  All 4 tabs render offline, countdown active.');
+
+    // Every font actually used by the app (Newsreader via .font-serif-title,
+    // Plus Jakarta Sans everywhere else) must reach 'loaded' — not
+    // 'unloaded' (never actually rendered) or 'error' (fetch failed) — this
+    // is the real signal that cache-first assets serve correctly while
+    // fully offline (design-refresh-v3 Faz 5 F1). Visiting all 4 tabs above
+    // is what actually triggers Newsreader's first render, since
+    // font-display: swap fonts only fetch lazily on first use.
+    await page.evaluate(() => document.fonts.ready);
+    const fontStatuses = await page.evaluate(() =>
+      [...document.fonts].map((f) => ({ family: f.family, status: f.status }))
+    );
+    const badFonts = fontStatuses.filter((f) => f.status !== 'loaded');
+    if (badFonts.length > 0) {
+      violations.push(`[offline] font(s) not loaded while offline: ${JSON.stringify(badFonts)}`);
+    }
+
+    if (failedRequests.length > 0) {
+      violations.push(
+        `[offline] ${failedRequests.length} non-API request(s) failed while offline: ${failedRequests.join(', ')}`
+      );
+    }
+
+    console.log('  All 4 tabs render offline, countdown active, all fonts loaded, zero non-API request failures.');
   } catch (err) {
     violations.push(`[offline] check threw: ${err.message}`);
   } finally {

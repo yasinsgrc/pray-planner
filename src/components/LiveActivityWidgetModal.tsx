@@ -131,7 +131,7 @@ export const LiveActivityWidgetModal: React.FC<LiveActivityWidgetModalProps> = (
               <span>
                 {upcomingOrActiveKerahet.isActiveNow
                   ? `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti — şu an (${formatKerahetRange(upcomingOrActiveKerahet, resolvedTimeZone)})`
-                  : `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti ${formatTime(upcomingOrActiveKerahet.startTime, resolvedTimeZone)}'de başlıyor`}
+                  : `${KERAHET_SHORT_LABEL[upcomingOrActiveKerahet.type]} keraheti · başlangıç ${formatTime(upcomingOrActiveKerahet.startTime, resolvedTimeZone)}`}
               </span>
             </div>
           )}

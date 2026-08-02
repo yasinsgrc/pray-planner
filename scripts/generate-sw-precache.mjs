@@ -1,23 +1,30 @@
-// Generates dist/precache-manifest.json after `vite build` — sw.js fetches
-// this at install time to know exactly what to precache (design-refresh-v3
-// Faz 4 F1). The list can't be hand-written: JS/CSS asset filenames are
-// content-hashed by Vite and change on every build.
+// Embeds the precache version + URL list directly into dist/sw.js after
+// `vite build` (design-refresh-v3 Faz 5 F1). An earlier version of this
+// script wrote a separate dist/precache-manifest.json that sw.js fetched
+// at startup to learn its own cache name — that fetch fails while
+// offline, so a cold-started SW with no connection could never find its
+// own cache even though the files were genuinely sitting in Cache
+// Storage. Knowing the cache name must cost zero network requests, so the
+// version and URL list are baked into the script itself instead.
 //
-// The version string is a hash of every precached file's *content* (not
-// just filenames) — Vite already renames hashed assets on content change,
-// but files copied verbatim from public/ (fonts, icons, manifest, the
-// ezan recording) keep the same filename forever, so a filename-only hash
-// would never notice one of those changing and the SW would serve a stale
-// copy indefinitely for cache-first assets.
+// The version is a hash of every precached file's *content* (not just
+// filenames) — Vite already renames hashed assets on content change, but
+// files copied verbatim from public/ (fonts, icons, manifest, the ezan
+// recording) keep the same filename forever, so a filename-only hash
+// would never notice one of those changing and the SW would serve a
+// stale copy indefinitely for cache-first assets.
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
 const DIST = path.resolve('dist');
-// Never precached: sw.js is fetched by the browser's own SW update
-// mechanism, not through this list; precache-manifest.json is what we're
-// about to write.
-const EXCLUDED = new Set(['sw.js', 'precache-manifest.json']);
+const SW_PATH = path.join(DIST, 'sw.js');
+// sw.js itself is fetched by the browser's own SW update mechanism, not
+// through this list.
+const EXCLUDED = new Set(['sw.js']);
+
+const VERSION_MARKER = "const PRECACHE_VERSION = 'dev';";
+const URLS_MARKER = 'const PRECACHE_URLS = [];';
 
 async function walk(dir, base = '') {
   const entries = await readdir(dir, { withFileTypes: true });
@@ -50,11 +57,20 @@ async function main() {
   // literally — precache it under the URL a real navigation request uses.
   if (!urls.includes('/')) urls.push('/');
 
-  await writeFile(
-    path.join(DIST, 'precache-manifest.json'),
-    JSON.stringify({ version, urls })
-  );
-  console.log(`Generated precache-manifest.json — ${urls.length} files, version ${version}`);
+  let swSource = await readFile(SW_PATH, 'utf8');
+
+  if (!swSource.includes(VERSION_MARKER) || !swSource.includes(URLS_MARKER)) {
+    throw new Error(
+      `sw.js no longer contains the expected placeholder lines — did the source change?\n` +
+        `Expected to find:\n  ${VERSION_MARKER}\n  ${URLS_MARKER}`
+    );
+  }
+
+  swSource = swSource.replace(VERSION_MARKER, `const PRECACHE_VERSION = '${version}';`);
+  swSource = swSource.replace(URLS_MARKER, `const PRECACHE_URLS = ${JSON.stringify(urls)};`);
+
+  await writeFile(SW_PATH, swSource);
+  console.log(`Embedded precache into dist/sw.js — ${urls.length} files, version ${version}`);
 }
 
 main().catch((err) => {

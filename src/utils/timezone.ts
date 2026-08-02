@@ -54,3 +54,27 @@ export function guessTimeZone(lat: number, lng: number): string {
 export function resolveTimeZone(location: { lat: number; lng: number; timeZone?: string }): string {
   return location.timeZone ?? guessTimeZone(location.lat, location.lng);
 }
+
+/**
+ * The Gregorian calendar day at `date`, as read in `timeZone` — `Date`'s own
+ * getFullYear/getMonth/getDate always read the *device's* local zone, which
+ * is wrong whenever the selected location is in a different zone (e.g. a
+ * device in İstanbul past local midnight while the selected location is
+ * still on the previous calendar day). Used both for the Hijri date
+ * (hijri.ts) and for the calendar day handed to adhan's PrayerTimes
+ * (prayerCalculator.ts, design-refresh-v3 Faz 5 F3) — adhan reads a Date's
+ * Y/M/D the same device-local way, so it needs the same correction.
+ */
+export function getCalendarDateInZone(date: Date, timeZone?: string): { year: number; month: number; day: number } {
+  if (!timeZone) {
+    return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
+  }
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: get('year'), month: get('month'), day: get('day') };
+}

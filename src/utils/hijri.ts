@@ -1,5 +1,6 @@
 import { toHijri } from 'hijri-converter';
 import { HijriDateInfo } from '../types';
+import { getCalendarDateInZone } from './timezone';
 
 const HIJRI_MONTHS = [
   'Muharrem',
@@ -15,28 +16,6 @@ const HIJRI_MONTHS = [
   'Zilkade',
   'Zilhicce',
 ];
-
-/**
- * The Gregorian calendar day at `date`, as read in `timeZone` — `Date`'s
- * own getFullYear/getMonth/getDate always read the *device's* local zone,
- * which is wrong whenever the selected prayer location is in a different
- * zone (design-refresh-v3 Faz 4 F3): a user in İstanbul with Mekke
- * selected past midnight there but not yet midnight locally would get
- * yesterday's Hijri date.
- */
-function getCalendarDateInZone(date: Date, timeZone?: string): { year: number; month: number; day: number } {
-  if (!timeZone) {
-    return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
-  }
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  return { year: get('year'), month: get('month'), day: get('day') };
-}
 
 /**
  * Ümmü'l-Kura resmi takvim verisine (hijri-converter) dayanır. Diyanet'in

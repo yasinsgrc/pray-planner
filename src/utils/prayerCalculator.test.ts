@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateDaySchedule, deriveLiveSchedule } from './prayerCalculator';
+import { getCalendarDateInZone } from './timezone';
 import { DEFAULT_LOCATION } from '../data/locations';
+import { LocationItem } from '../types';
 
 const FIXED_DAY = new Date('2026-08-01T00:00:00');
 
@@ -81,4 +83,40 @@ test('tomorrowImsakTime/tomorrowAksamTime match tomorrow fajr/maghrib formatted 
 
   assert.equal(schedule.tomorrowImsakTime, expectedImsak);
   assert.equal(schedule.tomorrowAksamTime, expectedAksam);
+});
+
+test('adhan receives the location calendar day, not the device calendar day, across a day-boundary mismatch', () => {
+  // Europe/Istanbul and Asia/Riyadh (the user's original scenario) are both
+  // fixed at UTC+3 with no DST, so those two zones can never actually be on
+  // different calendar days at the same instant — a real day-boundary
+  // mismatch needs zones that differ enough in offset. Asia/Tokyo (UTC+9,
+  // also fixed, no DST) as the device zone against Asia/Riyadh (UTC+3,
+  // Mecca's zone) as the location reproduces the same bug: a 6-hour gap is
+  // enough to put the two zones on different calendar days right around
+  // midnight in the zone that's further ahead.
+  const originalTZ = process.env.TZ;
+  process.env.TZ = 'Asia/Tokyo';
+  try {
+    // Tokyo local time is 2026-08-03 00:30 at this instant, but Riyadh is
+    // still 2026-08-02 18:30 (UTC+9 vs UTC+3). Reading the device's own
+    // Y/M/D (the pre-fix bug) would hand adhan Aug 3 instead of the
+    // location's real Aug 2.
+    const instant = new Date('2026-08-03T00:30:00+09:00');
+    const meccaLocation: LocationItem = {
+      id: 'mecca-test',
+      cityName: 'Mekke',
+      districtName: 'Mekke',
+      country: 'Suudi Arabistan',
+      lat: 21.3891,
+      lng: 39.8579,
+      timeZone: 'Asia/Riyadh',
+    };
+
+    const day = calculateDaySchedule(meccaLocation, instant, 'Diyanet');
+
+    const fajrCalendarDay = getCalendarDateInZone(day.fajr, 'Asia/Riyadh');
+    assert.deepEqual(fajrCalendarDay, { year: 2026, month: 8, day: 2 });
+  } finally {
+    process.env.TZ = originalTZ;
+  }
 });

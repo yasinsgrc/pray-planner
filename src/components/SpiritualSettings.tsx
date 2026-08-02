@@ -247,7 +247,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
           {themeMode === 'auto' && (
             <p className="text-[11px] text-mist">
-              Bugün <span className="font-semibold text-gold-ink">{aksamTime}</span>'te koyu temaya geçecek.
+              Bugün akşam vaktinde (<span className="font-semibold text-gold-ink">{aksamTime}</span>) koyu temaya geçecek.
             </p>
           )}
         </FadeIn>

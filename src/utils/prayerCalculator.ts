@@ -1,7 +1,7 @@
 import { Coordinates, CalculationMethod, PrayerTimes, CalculationParameters } from 'adhan';
 import { LocationItem, PrayerTimeDetails, KerahetInfo, PrayerName } from '../types';
 import { formatTime } from './formatTime';
-import { resolveTimeZone } from './timezone';
+import { resolveTimeZone, getCalendarDateInZone } from './timezone';
 
 export function getCalculationParameters(methodName: string): CalculationParameters {
   switch (methodName) {
@@ -85,15 +85,30 @@ function buildDaySchedule(
   const coords = new Coordinates(location.lat, location.lng);
   const params = getCalculationParameters(methodName);
 
-  const ptToday = new PrayerTimes(coords, date, params);
+  // adhan's PrayerTimes reads a Date's Y/M/D via getFullYear/getMonth/
+  // getDate, which are always the *device's* local zone — wrong whenever
+  // the selected location is in a different zone and the two are on
+  // different calendar days at this instant (design-refresh-v3 Faz 5 F3:
+  // e.g. İstanbul 01:00 while the selected Mekke location is still on the
+  // previous calendar day would otherwise compute a full day off). Resolve
+  // the calendar day in the location's own zone first, then build a Date
+  // whose device-local Y/M/D equal that day — adhan only ever reads those
+  // three components back out, so this is a pure day-selection fix, not a
+  // change to the astronomical calculation itself. `date` (the original
+  // instant) is kept as-is for RawDaySchedule.date/dateKey and every other
+  // consumer — only the Date object handed to PrayerTimes changes.
+  const { year, month, day: dayOfMonth } = getCalendarDateInZone(date, resolveTimeZone(location));
+  const locationDate = new Date(year, month - 1, dayOfMonth);
+
+  const ptToday = new PrayerTimes(coords, locationDate, params);
 
   // Tomorrow's Fajr for Isha->Fajr next day calculation
-  const tomorrow = new Date(date);
+  const tomorrow = new Date(locationDate);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const ptTomorrow = new PrayerTimes(coords, tomorrow, params);
 
   // Yesterday's Isha for Fajr previous day calculation
-  const yesterday = new Date(date);
+  const yesterday = new Date(locationDate);
   yesterday.setDate(yesterday.getDate() - 1);
   const ptYesterday = new PrayerTimes(coords, yesterday, params);
 
