@@ -136,6 +136,28 @@ gereği:
 - Sonuçların altında `© OpenStreetMap katkıcıları` atfı görünür şekilde
   gösterilir.
 
+## Bildirim Sesi — Gerçek Davranış (design-refresh-v3 Faz 7 F1)
+
+**Hiçbir tarayıcı, bir web push bildiriminin sesini özelleştirmeye izin
+vermez.** `public/sw.js`'teki `self.registration.showNotification()` çağrısı
+yalnızca `silent: true/false` (sessiz açık/kapalı) seçeneğini destekler;
+`sound` diye bir alan hiçbir zaman hiçbir tarayıcı motoru tarafından
+uygulanmadı (Chromium/Blink, Firefox/Gecko, Safari/WebKit) — bir dönem
+spesifikasyona önerilmiş, sonra tamamen kaldırılmıştır. Bu, masaüstü ve
+mobilde (Android Chrome, iOS 16.4+ Safari standalone push dahil) aynı
+şekilde geçerlidir: bildirim geldiğinde çalan ses, işletim sisteminin/
+tarayıcının o an için ayarlı olan **varsayılan bildirim sesidir**, kullanıcı
+bunu yalnızca cihazının kendi bildirim ayarlarından değiştirebilir — VAKİT'in
+(veya başka bir web uygulamasının) buna hiçbir etkisi yoktur.
+
+Bu yüzden vakit başına seçilebilir bildirim sesi menüsü ("Ezan"/"İlahi 1-3")
+kaldırıldı — tutulamayacak bir söz veriyordu. Kalan tek seçenek her vakit
+için **Bildirim/Sessiz**'dir. Gerçekten çalışan tek ses özelliği,
+uygulama bir sekmede açıkken vakit girdiğinde ezan sesini gerçekten çalan
+ayrı ve dürüst bir ayardır: **"Uygulama Açıkken Ezan Sesi Çal"**
+(Ayarlar > Bildirimler) — bu tarayıcı sekmesi kapalıyken çalışmaz, çünkü o
+an çalışan bir JavaScript yoktur.
+
 ## Bilinen Sınırlamalar
 
 - **Kerahet vakitleri** (İşrâk, İstivâ, Gurûb) ve **hicri tarih**, kullanılan

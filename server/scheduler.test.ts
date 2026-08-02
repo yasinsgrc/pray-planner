@@ -7,14 +7,14 @@ import type { DayPrayerSchedule } from '../src/utils/prayerCalculator';
 
 function makeNotifications(overrides: Partial<NotificationSettings> = {}): NotificationSettings {
   return {
-    imsak: 'ezan',
+    imsak: 'bildirim',
     gunes: 'sessiz',
-    ogle: 'ezan',
-    ikindi: 'ezan',
-    aksam: 'ezan',
-    yatsi: 'ezan',
+    ogle: 'bildirim',
+    ikindi: 'bildirim',
+    aksam: 'bildirim',
+    yatsi: 'bildirim',
     earlyWarningMinutes: 15,
-    earlyWarningSound: 'tini',
+    earlyWarningSound: 'bildirim',
     ...overrides,
   };
 }
@@ -24,7 +24,7 @@ test('shouldNotifyNow returns a prayer event when now matches the prayer time', 
   const now = new Date('2026-08-01T12:00:10.000Z');
   const event = shouldNotifyNow({ name: 'ogle', label: 'Öğle', dateObj: prayerTime }, now, makeNotifications());
 
-  assert.deepEqual(event, { type: 'prayer', prayerName: 'ogle', label: 'Öğle', soundMode: 'ezan' });
+  assert.deepEqual(event, { type: 'prayer', prayerName: 'ogle', label: 'Öğle', soundMode: 'bildirim' });
 });
 
 test('shouldNotifyNow returns null outside the tolerance window', () => {
@@ -52,7 +52,7 @@ test('shouldNotifyNow returns an early-warning event before the prayer time', ()
     type: 'early-warning',
     prayerName: 'ogle',
     label: 'Öğle',
-    soundMode: 'tini',
+    soundMode: 'bildirim',
     minutesBefore: 15,
   });
 });

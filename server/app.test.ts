@@ -59,14 +59,14 @@ const validBody = {
   },
   calculationMethod: 'Diyanet',
   notifications: {
-    imsak: 'ezan',
+    imsak: 'bildirim',
     gunes: 'sessiz',
-    ogle: 'ezan',
-    ikindi: 'ezan',
-    aksam: 'ezan',
-    yatsi: 'ezan',
+    ogle: 'bildirim',
+    ikindi: 'bildirim',
+    aksam: 'bildirim',
+    yatsi: 'bildirim',
     earlyWarningMinutes: 15,
-    earlyWarningSound: 'tini',
+    earlyWarningSound: 'bildirim',
   } satisfies NotificationSettings,
 };
 

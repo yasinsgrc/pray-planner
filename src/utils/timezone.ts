@@ -78,3 +78,15 @@ export function getCalendarDateInZone(date: Date, timeZone?: string): { year: nu
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   return { year: get('year'), month: get('month'), day: get('day') };
 }
+
+/**
+ * "YYYY-MM-DD" for `date` as read in `timeZone` — used as the key for any
+ * per-calendar-day log (e.g. the zikirmatik daily count, design-refresh-v3
+ * Faz 7 F3) so a day boundary lines up with the *selected location's*
+ * midnight, not the device's. Built on getCalendarDateInZone so both stay
+ * consistent with each other.
+ */
+export function dateKeyInZone(date: Date, timeZone?: string): string {
+  const { year, month, day } = getCalendarDateInZone(date, timeZone);
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}

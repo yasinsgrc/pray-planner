@@ -30,7 +30,7 @@ const testEvent = {
   type: 'prayer' as const,
   prayerName: 'ogle' as const,
   label: 'Test Bildirimi',
-  soundMode: 'ezan' as const,
+  soundMode: 'bildirim' as const,
 };
 
 await Promise.all(subs.map((sub) => sendPush(sub, testEvent)));

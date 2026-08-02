@@ -5,6 +5,7 @@ import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels'
 interface KerahetStripProps {
   kerahetTimes: KerahetInfo[];
   timeZone: string;
+  onOpenInfo: () => void;
 }
 
 /**
@@ -15,21 +16,30 @@ interface KerahetStripProps {
  * row: the scroll version measured wider than the viewport in a real
  * browser (its .no-scrollbar class was never even defined in index.css),
  * and a 3-equal-column grid can't overflow the shell width it lives in.
+ * Every label opens the shared "Kerahet Vakitleri Nedir?" sheet
+ * (design-refresh-v3 Faz 7 F2) so a curious user finds the answer right
+ * where the question comes up.
  */
-export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes, timeZone }) => {
+export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes, timeZone, onOpenInfo }) => {
   const now = new Date();
   const active = kerahetTimes.find((k) => k.isActiveNow) ?? null;
 
   return (
     <div className="w-full mt-3">
-      <div className="text-label text-mist font-semibold mb-1">Kerahet</div>
+      <button
+        onClick={onOpenInfo}
+        className="min-h-[44px] flex items-center text-label text-mist font-semibold cursor-pointer hover:text-gold-ink transition-colors"
+      >
+        Kerahet
+      </button>
       <div className="grid grid-cols-3 gap-2">
         {kerahetTimes.map((k) => {
           const isPast = !k.isActiveNow && now > k.endTime;
           return (
-            <div
+            <button
               key={k.type}
-              className={`flex flex-col items-center gap-0.5 py-1 rounded-lg ${k.isActiveNow ? 'bg-accent/10' : ''}`}
+              onClick={onOpenInfo}
+              className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer ${k.isActiveNow ? 'bg-accent/10' : 'hover:bg-paper'}`}
               style={isPast ? { opacity: 0.4 } : undefined}
             >
               <span
@@ -38,7 +48,7 @@ export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes, timeZo
                 {KERAHET_SHORT_LABEL[k.type]}
               </span>
               <span className="font-numbers text-[10px] text-mist">{formatKerahetRange(k, timeZone)}</span>
-            </div>
+            </button>
           );
         })}
       </div>

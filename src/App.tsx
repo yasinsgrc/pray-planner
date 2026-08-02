@@ -16,6 +16,8 @@ import { LocationModal } from './components/LocationModal';
 import { QiblaCompassModal } from './components/QiblaCompassModal';
 import { ZikirmatikModal } from './components/ZikirmatikModal';
 import { LiveActivityWidgetModal } from './components/LiveActivityWidgetModal';
+import { KnowledgeSheet } from './components/KnowledgeSheet';
+import { KERAHET_KNOWLEDGE } from './data/knowledge';
 import {
   registerServiceWorker,
   applyServiceWorkerUpdate,
@@ -29,9 +31,20 @@ import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
 import { DEFAULT_LOCATION } from './data/locations';
 import { getHijriDate } from './utils/hijri';
 import { calculateDaySchedule, deriveLiveSchedule } from './utils/prayerCalculator';
-import { playSoundForMode } from './utils/audio';
+import { playEzanAudio } from './utils/audio';
 import { findNearestLocation, haversineDistanceKm } from './utils/geo';
-import { ZikirmatikState, loadZikirmatikState, saveZikirmatikState } from './utils/zikirmatikStorage';
+import {
+  ZikirmatikState,
+  loadZikirmatikState,
+  saveZikirmatikState,
+  ZikirLog,
+  loadZikirLog,
+  saveZikirLog,
+  addZikirCount,
+  pruneOldZikirLogEntries,
+  getDayTotal,
+} from './utils/zikirmatikStorage';
+import { dateKeyInZone } from './utils/timezone';
 
 const LOCAL_STORAGE_KEY = 'vakit_app_settings_v1';
 
@@ -56,29 +69,56 @@ const PRAYER_ACCENT_INK_VAR: Record<PrayerName, string> = {
 export default function App() {
   // Load settings from localStorage or fallback to defaults
   const [settings, setSettings] = useState<AppSettings>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error('LocalStorage error:', e);
-    }
-    return {
+    const defaults: AppSettings = {
       themeMode: 'auto',
       calculationMethod: 'Diyanet',
       location: DEFAULT_LOCATION,
       notifications: {
-        imsak: 'ezan',
+        imsak: 'bildirim',
         gunes: 'sessiz',
-        ogle: 'ezan',
-        ikindi: 'ezan',
-        aksam: 'ezan',
-        yatsi: 'ezan',
+        ogle: 'bildirim',
+        ikindi: 'bildirim',
+        aksam: 'bildirim',
+        yatsi: 'bildirim',
         earlyWarningMinutes: 15,
-        earlyWarningSound: 'tini',
+        earlyWarningSound: 'bildirim',
       },
+      playEzanInForeground: true,
+      prayerAdjustments: { imsak: 0, gunes: 0, ogle: 0, ikindi: 0, aksam: 0, yatsi: 0 },
     };
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Faz 7 F1: SoundMode dropped 'ezan'/'tini'/'ilahi1-3' down to just
+        // 'bildirim'/'sessiz' (a web push notification's sound was never
+        // actually controllable by this app — see types.ts). Migrate any
+        // older stored value instead of letting an unrecognized string
+        // silently reach the sound-select UI.
+        const migrateSoundMode = (value: unknown): SoundMode => (value === 'sessiz' ? 'sessiz' : 'bildirim');
+        return {
+          ...defaults,
+          ...parsed,
+          notifications: {
+            imsak: migrateSoundMode(parsed?.notifications?.imsak),
+            gunes: migrateSoundMode(parsed?.notifications?.gunes),
+            ogle: migrateSoundMode(parsed?.notifications?.ogle),
+            ikindi: migrateSoundMode(parsed?.notifications?.ikindi),
+            aksam: migrateSoundMode(parsed?.notifications?.aksam),
+            yatsi: migrateSoundMode(parsed?.notifications?.yatsi),
+            earlyWarningMinutes:
+              parsed?.notifications?.earlyWarningMinutes ?? defaults.notifications.earlyWarningMinutes,
+            earlyWarningSound: migrateSoundMode(parsed?.notifications?.earlyWarningSound),
+          },
+          playEzanInForeground:
+            typeof parsed?.playEzanInForeground === 'boolean' ? parsed.playEzanInForeground : true,
+          prayerAdjustments: { ...defaults.prayerAdjustments, ...(parsed?.prayerAdjustments ?? {}) },
+        };
+      }
+    } catch (e) {
+      console.error('LocalStorage error:', e);
+    }
+    return defaults;
   });
 
   const [activeTab, setActiveTab] = useState<TabType>('focus');
@@ -89,6 +129,7 @@ export default function App() {
   const [isQiblaModalOpen, setIsQiblaModalOpen] = useState(false);
   const [isZikirmatikModalOpen, setIsZikirmatikModalOpen] = useState(false);
   const [isLiveActivityModalOpen, setIsLiveActivityModalOpen] = useState(false);
+  const [isKerahetSheetOpen, setIsKerahetSheetOpen] = useState(false);
 
   // Zikirmatik: single source of truth so the modal and the Maneviyat
   // preview card always agree (previously the card read localStorage only
@@ -97,6 +138,23 @@ export default function App() {
   useEffect(() => {
     saveZikirmatikState(zikirState);
   }, [zikirState]);
+
+  // Daily zikir log (design-refresh-v3 Faz 7 F3) — same single-source-of-
+  // truth reasoning as zikirState above, keyed by the selected location's
+  // own calendar day (not the device's), so a user in a different zone
+  // than their selected city sees the log roll over at the *location's*
+  // midnight.
+  const [zikirLog, setZikirLog] = useState<ZikirLog>(loadZikirLog);
+  useEffect(() => {
+    saveZikirLog(zikirLog);
+  }, [zikirLog]);
+
+  const handleDhikrTap = (dhikrTitle: string) => {
+    setZikirLog((prev) => {
+      const key = dateKeyInZone(new Date(), schedule.resolvedTimeZone);
+      return addZikirCount(pruneOldZikirLogEntries(prev, key), key, dhikrTitle, 1);
+    });
+  };
 
   const [pushStatus, setPushStatus] = useState<PushStatus>('idle');
   const [pushError, setPushError] = useState<string | null>(null);
@@ -262,21 +320,21 @@ export default function App() {
   // progress, kerahet activity) from the memoized day schedule.
   const schedule = useMemo(() => deriveLiveSchedule(daySchedule, now), [daySchedule, now]);
 
-  // Uygulama açıkken vakit değişince seçili sesi bir kez otomatik çal
+  // Uygulama açıkken vakit değişince ezan sesi çal — bu app'in gerçekten
+  // tutabildiği tek ses vaadi (design-refresh-v3 Faz 7 F1): push bildirimi
+  // sesi tarayıcı/OS tarafından belirlenir, bu ayardan bağımsızdır.
   const previousActivePrayerRef = useRef<PrayerName | null>(null);
   useEffect(() => {
     const activeName = schedule.activePrayer.name;
     if (
       previousActivePrayerRef.current !== null &&
-      previousActivePrayerRef.current !== activeName
+      previousActivePrayerRef.current !== activeName &&
+      settings.playEzanInForeground
     ) {
-      const mode = settings.notifications[activeName];
-      if (mode !== 'sessiz') {
-        playSoundForMode(mode);
-      }
+      playEzanAudio();
     }
     previousActivePrayerRef.current = activeName;
-  }, [schedule.activePrayer.name, settings.notifications]);
+  }, [schedule.activePrayer.name, settings.playEzanInForeground]);
 
   // Compute Hijri Date
   const hijriDate = useMemo(() => {
@@ -438,8 +496,10 @@ export default function App() {
             {activeTab === 'focus' && (
               <MainCountdownRing
                 schedule={schedule}
+                prayerAdjustments={settings.prayerAdjustments}
                 onScrollToFlow={() => setActiveTab('flow')}
                 onOpenLiveActivity={() => setIsLiveActivityModalOpen(true)}
+                onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
               />
             )}
 
@@ -447,17 +507,20 @@ export default function App() {
               <DailyFlowList
                 schedule={schedule}
                 notifications={settings.notifications}
+                prayerAdjustments={settings.prayerAdjustments}
                 onOpenSettings={() => setActiveTab('settings')}
+                onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
               />
             )}
 
             {activeTab === 'spiritual' && (
               <SpiritualHub
                 location={settings.location}
-                schedule={schedule}
                 zikirState={zikirState}
+                todayZikirTotal={getDayTotal(zikirLog, dateKeyInZone(now, schedule.resolvedTimeZone))}
                 onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
                 onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
+                onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
               />
             )}
 
@@ -500,12 +563,19 @@ export default function App() {
         onClose={() => setIsZikirmatikModalOpen(false)}
         state={zikirState}
         onChange={setZikirState}
+        onDhikrTap={handleDhikrTap}
       />
 
       <LiveActivityWidgetModal
         schedule={schedule}
         isOpen={isLiveActivityModalOpen}
         onClose={() => setIsLiveActivityModalOpen(false)}
+      />
+
+      <KnowledgeSheet
+        entry={KERAHET_KNOWLEDGE}
+        isOpen={isKerahetSheetOpen}
+        onClose={() => setIsKerahetSheetOpen(false)}
       />
     </div>
   );

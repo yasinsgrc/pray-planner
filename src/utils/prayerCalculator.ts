@@ -2,6 +2,7 @@ import { Coordinates, CalculationMethod, PrayerTimes, CalculationParameters } fr
 import { LocationItem, PrayerTimeDetails, KerahetInfo, PrayerName } from '../types';
 import { formatTime } from './formatTime';
 import { resolveTimeZone, getCalendarDateInZone } from './timezone';
+import { PRAYER_LABELS, PRAYER_LABEL_DATIVE, KERAHET_WINDOW_TITLE, KERAHET_WINDOW_DESCRIPTION } from '../data/strings';
 
 export function getCalculationParameters(methodName: string): CalculationParameters {
   switch (methodName) {
@@ -21,18 +22,6 @@ export function getCalculationParameters(methodName: string): CalculationParamet
       return CalculationMethod.Turkey();
   }
 }
-
-// Turkish vowel harmony means a single fixed suffix ('-ye/-ya) is wrong for
-// some prayer names (e.g. "Akşam'ye" should be "Akşam'a") — a fixed lookup
-// is safer than a runtime vowel-harmony algorithm for six known words.
-const PRAYER_LABEL_DATIVE: Record<PrayerName, string> = {
-  imsak: "İmsak'a",
-  gunes: "Güneş'e",
-  ogle: "Öğle'ye",
-  ikindi: "İkindi'ye",
-  aksam: "Akşam'a",
-  yatsi: "Yatsı'ya",
-};
 
 export interface DayPrayerSchedule {
   date: Date;
@@ -113,12 +102,12 @@ function buildDaySchedule(
   const ptYesterday = new PrayerTimes(coords, yesterday, params);
 
   const rawPrayers: { name: PrayerName; label: string; dateObj: Date }[] = [
-    { name: 'imsak', label: 'İmsak', dateObj: ptToday.fajr },
-    { name: 'gunes', label: 'Güneş', dateObj: ptToday.sunrise },
-    { name: 'ogle', label: 'Öğle', dateObj: ptToday.dhuhr },
-    { name: 'ikindi', label: 'İkindi', dateObj: ptToday.asr },
-    { name: 'aksam', label: 'Akşam', dateObj: ptToday.maghrib },
-    { name: 'yatsi', label: 'Yatsı', dateObj: ptToday.isha },
+    { name: 'imsak', label: PRAYER_LABELS.imsak, dateObj: ptToday.fajr },
+    { name: 'gunes', label: PRAYER_LABELS.gunes, dateObj: ptToday.sunrise },
+    { name: 'ogle', label: PRAYER_LABELS.ogle, dateObj: ptToday.dhuhr },
+    { name: 'ikindi', label: PRAYER_LABELS.ikindi, dateObj: ptToday.asr },
+    { name: 'aksam', label: PRAYER_LABELS.aksam, dateObj: ptToday.maghrib },
+    { name: 'yatsi', label: PRAYER_LABELS.yatsi, dateObj: ptToday.isha },
   ];
 
   // ptYesterday is already fully built above (for yesterdayIsha) — reading
@@ -126,12 +115,12 @@ function buildDaySchedule(
   // dayCyclePrayers below) gets a real previous-day tick set at no extra
   // adhan cost.
   const previousRawPrayers: { name: PrayerName; label: string; dateObj: Date }[] = [
-    { name: 'imsak', label: 'İmsak', dateObj: ptYesterday.fajr },
-    { name: 'gunes', label: 'Güneş', dateObj: ptYesterday.sunrise },
-    { name: 'ogle', label: 'Öğle', dateObj: ptYesterday.dhuhr },
-    { name: 'ikindi', label: 'İkindi', dateObj: ptYesterday.asr },
-    { name: 'aksam', label: 'Akşam', dateObj: ptYesterday.maghrib },
-    { name: 'yatsi', label: 'Yatsı', dateObj: ptYesterday.isha },
+    { name: 'imsak', label: PRAYER_LABELS.imsak, dateObj: ptYesterday.fajr },
+    { name: 'gunes', label: PRAYER_LABELS.gunes, dateObj: ptYesterday.sunrise },
+    { name: 'ogle', label: PRAYER_LABELS.ogle, dateObj: ptYesterday.dhuhr },
+    { name: 'ikindi', label: PRAYER_LABELS.ikindi, dateObj: ptYesterday.asr },
+    { name: 'aksam', label: PRAYER_LABELS.aksam, dateObj: ptYesterday.maghrib },
+    { name: 'yatsi', label: PRAYER_LABELS.yatsi, dateObj: ptYesterday.isha },
   ];
 
   const kerahatGunesStart = new Date(ptToday.sunrise);
@@ -146,22 +135,22 @@ function buildDaySchedule(
   const kerahetWindows: Omit<KerahetInfo, 'isActiveNow'>[] = [
     {
       type: 'gunes_sonrasi',
-      title: 'İşrâk Vakti',
-      description: 'Güneş doğduktan sonra yaklaşık 45 dakika süren bu aralıkta nafile namaz kılınmaz.',
+      title: KERAHET_WINDOW_TITLE.gunes_sonrasi,
+      description: KERAHET_WINDOW_DESCRIPTION.gunes_sonrasi,
       startTime: kerahatGunesStart,
       endTime: kerahatGunesEnd,
     },
     {
       type: 'ogle_oncesi',
-      title: 'İstivâ Vakti',
-      description: 'Güneşin tam tepede olduğu ana kadar süren ~45 dakikalık aralıkta nafile namaz kılınmaz.',
+      title: KERAHET_WINDOW_TITLE.ogle_oncesi,
+      description: KERAHET_WINDOW_DESCRIPTION.ogle_oncesi,
       startTime: kerahatOgleStart,
       endTime: kerahatOgleEnd,
     },
     {
       type: 'aksam_oncesi',
-      title: 'Gurûb Vakti',
-      description: 'Güneş batmadan önceki ~45 dakikada nafile namaz kılınmaz; günün ikindi namazı bu vakitte kılınabilir.',
+      title: KERAHET_WINDOW_TITLE.aksam_oncesi,
+      description: KERAHET_WINDOW_DESCRIPTION.aksam_oncesi,
       startTime: kerahatAksamStart,
       endTime: kerahatAksamEnd,
     },

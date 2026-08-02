@@ -46,7 +46,17 @@ export interface HijriDateInfo {
   formatted: string; // e.g. "24 Muharrem 1448"
 }
 
-export type SoundMode = 'ezan' | 'tini' | 'ilahi1' | 'ilahi2' | 'ilahi3' | 'sessiz';
+/**
+ * Only 'bildirim'/'sessiz' (design-refresh-v3 Faz 7 F1) — a web push
+ * notification's sound is controlled by the OS/browser, never by the app
+ * (no browser implements the Notification API's `sound` option; only a
+ * silent on/off toggle exists). Offering "Ezan"/"İlahi 1-3" as selectable
+ * *notification* sounds promised something the platform can't deliver. The
+ * one real, working sound feature — playing the ezan recording out loud —
+ * only works while the app is open in a tab, and is a separate global
+ * setting (AppSettings.playEzanInForeground), not a per-prayer choice.
+ */
+export type SoundMode = 'bildirim' | 'sessiz';
 
 export interface NotificationSettings {
   imsak: SoundMode;
@@ -59,11 +69,17 @@ export interface NotificationSettings {
   earlyWarningSound: SoundMode;
 }
 
+/** Per-prayer minute offset applied only to the already-computed display time, never to the adhan calculation itself (design-refresh-v3 Faz 7 F5). Range -10..+10, default 0, global (not per-location). */
+export type PrayerAdjustments = Record<PrayerName, number>;
+
 export interface AppSettings {
   themeMode: 'auto' | 'light' | 'dark';
   calculationMethod: 'Diyanet' | 'MWL' | 'ISNA' | 'Egypt' | 'Karachi' | 'Makkah';
   location: LocationItem;
   notifications: NotificationSettings;
+  /** Plays the real ezan recording out loud when the active prayer changes while the app is open in a tab — the one sound behavior this app can actually promise (design-refresh-v3 Faz 7 F1). */
+  playEzanInForeground: boolean;
+  prayerAdjustments: PrayerAdjustments;
 }
 
 export interface DailyInspiration {

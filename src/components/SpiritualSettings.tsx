@@ -9,6 +9,7 @@ import {
   GearIcon,
   PlayIcon,
   DeviceMobileIcon,
+  SpeakerHighIcon,
 } from './icons';
 import { FadeIn } from './FadeIn';
 import { BottomSheet } from './BottomSheet';
@@ -16,7 +17,8 @@ import { SegmentedControl } from './SegmentedControl';
 import { SupportSection } from './SupportSection';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
-import { playSoundForMode } from '../utils/audio';
+import { playEzanAudio } from '../utils/audio';
+import { PRAYER_LABELS } from '../data/strings';
 import type { PushStatus } from '../utils/pushClient';
 
 interface SpiritualSettingsProps {
@@ -29,23 +31,17 @@ interface SpiritualSettingsProps {
   onEnablePush: () => void;
 }
 
-const PRAYER_LABELS: Record<PrayerName, string> = {
-  imsak: 'İmsak',
-  gunes: 'Güneş',
-  ogle: 'Öğle',
-  ikindi: 'İkindi',
-  aksam: 'Akşam',
-  yatsi: 'Yatsı',
-};
-
+// Yalnızca Bildirim/Sessiz (design-refresh-v3 Faz 7 F1) — hiçbir tarayıcı
+// web push bildiriminin sesini uygulamanın seçmesine izin vermiyor, yalnızca
+// sessiz açık/kapalı anahtarı var. "Ezan"/"İlahi 1-3" gibi seçilebilir
+// bildirim sesleri sunmak platformun veremeyeceği bir şeyi vaat ediyordu.
 const SOUND_OPTIONS: { value: SoundMode; label: string }[] = [
-  { value: 'ezan', label: 'Ezan' },
-  { value: 'ilahi1', label: 'İlahi 1' },
-  { value: 'ilahi2', label: 'İlahi 2' },
-  { value: 'ilahi3', label: 'İlahi 3' },
-  { value: 'tini', label: 'Tını' },
+  { value: 'bildirim', label: 'Bildirim' },
   { value: 'sessiz', label: 'Sessiz' },
 ];
+
+const ADJUSTMENT_MIN = -10;
+const ADJUSTMENT_MAX = 10;
 
 const CALC_METHOD_OPTIONS: {
   value: AppSettings['calculationMethod'];
@@ -78,9 +74,15 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   pushError,
   onEnablePush,
 }) => {
-  const { notifications, themeMode, calculationMethod } = settings;
+  const { notifications, themeMode, calculationMethod, playEzanInForeground, prayerAdjustments } = settings;
   const [openSoundSheet, setOpenSoundSheet] = useState<PrayerName | null>(null);
   const [isMethodSheetOpen, setIsMethodSheetOpen] = useState(false);
+
+  const adjustPrayer = (prayer: PrayerName, delta: number) => {
+    const current = prayerAdjustments[prayer] ?? 0;
+    const next = Math.max(ADJUSTMENT_MIN, Math.min(ADJUSTMENT_MAX, current + delta));
+    onUpdateSettings({ prayerAdjustments: { ...prayerAdjustments, [prayer]: next } });
+  };
 
   const aksamTime = schedule.prayers.find((p) => p.name === 'aksam')?.timeString ?? '--:--';
   const showIOSNotice = isIOSStandaloneNoticeNeeded();
@@ -153,7 +155,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             <div className="flex items-center gap-2">
               <BellIcon className="w-4 h-4 text-gold-ink" />
               <span className="text-sm font-bold text-ink">
-                Vakit Bazlı Bildirim Sesleri
+                Vakit Bazlı Bildirimler
               </span>
             </div>
           </div>
@@ -178,6 +180,53 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               );
             })}
           </div>
+        </FadeIn>
+
+        {/* Tek gerçekten çalışan ses vaadi: uygulama sekmesi açıkken ezan
+            sesini çalmak (design-refresh-v3 Faz 7 F1) — bildirim sesi
+            seçilebilir DEĞİL, çünkü hiçbir tarayıcı buna izin vermiyor. */}
+        <FadeIn delay={0.09} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <SpeakerHighIcon className="w-4 h-4 text-gold-ink" />
+              <div>
+                <div className="text-sm font-bold text-ink">Uygulama Açıkken Ezan Sesi Çal</div>
+                <div className="text-[11px] text-mist">
+                  Uygulama bir sekmede açıkken vakit girdiğinde ezan sesi çalar
+                </div>
+              </div>
+            </div>
+            {/* Görsel anahtar w-11 h-6 boyutunda kalır (standart switch
+                ölçüsü); gerçek dokunma kutusu 44x44'e çıkarmak için asıl
+                <button> daha büyük, anahtar onun içinde ortalanmış bir
+                <span> olarak render ediliyor. */}
+            <button
+              onClick={() => onUpdateSettings({ playEzanInForeground: !playEzanInForeground })}
+              role="switch"
+              aria-checked={playEzanInForeground}
+              aria-label="Uygulama açıkken ezan sesi çal"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0 cursor-pointer"
+            >
+              <span
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  playEzanInForeground ? 'bg-gold' : 'bg-hairline'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${
+                    playEzanInForeground ? 'translate-x-[22px]' : 'translate-x-0.5'
+                  }`}
+                />
+              </span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => playEzanAudio()}
+            className="min-h-[44px] flex items-center gap-1.5 text-xs font-semibold text-gold-ink cursor-pointer"
+          >
+            <PlayIcon className="w-3.5 h-3.5" /> Önizle
+          </button>
 
           <p className="text-[10px] text-mist pt-1">
             {/* Düz metin atıf — bir bağlantı olarak 44px dokunma hedefine
@@ -215,6 +264,10 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             }))}
           />
         </FadeIn>
+
+        <p className="text-micro text-mist text-center px-1">
+          Bildirim sesi cihazınızın bildirim ayarlarına göre çalar.
+        </p>
       </div>
 
       {/* GÖRÜNÜM */}
@@ -280,6 +333,62 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             <CaretDownIcon className="w-3.5 h-3.5 text-mist shrink-0" />
           </button>
         </FadeIn>
+
+        {/* Vakit başına ince ayar — yalnızca hesaplanmış sonuca uygulanır,
+            adhan çağrısını veya prayerCalculator'ın çıktı sözleşmesini
+            değiştirmez (design-refresh-v3 Faz 7 F5). Kullanıcılar Diyanet'in
+            yayınladığı vakitlerle 1-2 dakika fark görüp bunu "yanlış" olarak
+            okuyabiliyor; bu, o farkı elle kapatabilecekleri bir kaçış yolu. */}
+        <FadeIn delay={0.3} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <ClockIcon className="w-4 h-4 text-gold-ink" />
+            <div>
+              <div className="text-sm font-bold text-ink">Vakit Düzeltmesi</div>
+              <div className="text-[11px] text-mist">
+                Her vakit için ±{ADJUSTMENT_MAX} dakikaya kadar ince ayar yapın
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            {(Object.keys(PRAYER_LABELS) as PrayerName[]).map((prayer) => {
+              const value = prayerAdjustments[prayer] ?? 0;
+              return (
+                <div
+                  key={prayer}
+                  className="flex items-center justify-between py-2 border-b border-hairline last:border-0"
+                >
+                  <span className="text-sm font-medium text-ink">{PRAYER_LABELS[prayer]}</span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => adjustPrayer(prayer, -1)}
+                      disabled={value <= ADJUSTMENT_MIN}
+                      aria-label={`${PRAYER_LABELS[prayer]} düzeltmesini bir dakika azalt`}
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-base font-bold text-gold-ink hover:bg-gold/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      −
+                    </button>
+                    <span className="font-numbers text-sm font-bold text-ink w-12 text-center tabular-nums">
+                      {value > 0 ? `+${value}` : value} dk
+                    </span>
+                    <button
+                      onClick={() => adjustPrayer(prayer, 1)}
+                      disabled={value >= ADJUSTMENT_MAX}
+                      aria-label={`${PRAYER_LABELS[prayer]} düzeltmesini bir dakika artır`}
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-base font-bold text-gold-ink hover:bg-gold/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-[11px] text-mist pt-1">
+            Vakitler Diyanet yöntemiyle hesaplanır; resmî vakitler için Diyanet İşleri Başkanlığı'na bakınız.
+          </p>
+        </FadeIn>
       </div>
 
       {/* HAKKINDA */}
@@ -301,43 +410,32 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
         </FadeIn>
       </div>
 
-      {/* Ses Seçici Sheet */}
+      {/* Bildirim Sheet */}
       <BottomSheet
         isOpen={openSoundSheet !== null}
         onClose={() => setOpenSoundSheet(null)}
-        title={openSoundSheet ? `${PRAYER_LABELS[openSoundSheet]} Bildirim Sesi` : ''}
+        title={openSoundSheet ? `${PRAYER_LABELS[openSoundSheet]} Bildirimi` : ''}
       >
         <div className="space-y-1 pb-2">
           {SOUND_OPTIONS.map((opt) => {
             const isSelected = openSoundSheet !== null && notifications[openSoundSheet] === opt.value;
             return (
-              <div
+              <button
                 key={opt.value}
-                className={`flex items-stretch justify-between p-3.5 rounded-xl ${
+                onClick={() => {
+                  if (openSoundSheet === null) return;
+                  onUpdateNotification(openSoundSheet, opt.value);
+                  setOpenSoundSheet(null);
+                }}
+                className={`w-full flex items-center gap-2 p-3.5 rounded-xl text-left cursor-pointer ${
                   isSelected ? 'bg-gold/10' : ''
                 }`}
               >
-                <button
-                  onClick={() => {
-                    if (openSoundSheet === null) return;
-                    onUpdateNotification(openSoundSheet, opt.value);
-                    playSoundForMode(opt.value);
-                  }}
-                  className="flex-1 flex items-center gap-2 text-left cursor-pointer"
-                >
-                  {isSelected && <CheckIcon className="w-4 h-4 text-gold-ink shrink-0" />}
-                  <span className={`text-sm font-medium ${isSelected ? 'text-gold-ink' : 'text-ink'}`}>
-                    {opt.label}
-                  </span>
-                </button>
-                <button
-                  onClick={() => playSoundForMode(opt.value)}
-                  aria-label={`${opt.label} sesini önizle`}
-                  className="p-3.5 rounded-full hover:bg-gold/10 text-gold-ink cursor-pointer shrink-0"
-                >
-                  <PlayIcon className="w-4 h-4" />
-                </button>
-              </div>
+                {isSelected && <CheckIcon className="w-4 h-4 text-gold-ink shrink-0" />}
+                <span className={`text-sm font-medium ${isSelected ? 'text-gold-ink' : 'text-ink'}`}>
+                  {opt.label}
+                </span>
+              </button>
             );
           })}
         </div>

@@ -6,17 +6,23 @@ import { SunArcDial } from './SunArcDial';
 import { DialLegend } from './DialLegend';
 import { KerahetStrip } from './KerahetStrip';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
+import { formatAdjustedTime } from '../utils/prayerAdjustments';
+import { PrayerAdjustments } from '../types';
 
 interface MainCountdownRingProps {
   schedule: DayPrayerSchedule;
+  prayerAdjustments: PrayerAdjustments;
   onScrollToFlow: () => void;
   onOpenLiveActivity: () => void;
+  onOpenKerahetInfo: () => void;
 }
 
 export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
   schedule,
+  prayerAdjustments,
   onScrollToFlow,
   onOpenLiveActivity,
+  onOpenKerahetInfo,
 }) => {
   const {
     activePrayer,
@@ -88,7 +94,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
         )}
 
         {/* Kerahet şeridi: kadranın altında kalıcı, layout'u kaydırmayan */}
-        <KerahetStrip kerahetTimes={kerahetTimes} timeZone={schedule.resolvedTimeZone} />
+        <KerahetStrip kerahetTimes={kerahetTimes} timeZone={schedule.resolvedTimeZone} onOpenInfo={onOpenKerahetInfo} />
       </div>
 
       {/* Alt Alan: Bento Grid (Sıradaki Vakit + Kısayollar) */}
@@ -118,7 +124,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
 
           <div className="text-right">
             <div className="font-numbers text-lg font-bold text-gold-ink">
-              {nextPrayer.timeString}
+              {formatAdjustedTime(nextPrayer.dateObj, nextPrayer.name, prayerAdjustments, schedule.resolvedTimeZone)}
             </div>
           </div>
         </motion.div>

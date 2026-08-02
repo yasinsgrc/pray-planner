@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowCounterClockwiseIcon } from './icons';
+import { ArrowCounterClockwiseIcon, CheckIcon } from './icons';
 import { playSoftChime } from '../utils/audio';
-import { PRESET_DHIKRS, ZikirmatikState } from '../utils/zikirmatikStorage';
+import { PRESET_DHIKRS, ZikirmatikState, getCounterFor } from '../utils/zikirmatikStorage';
 import { BottomSheet } from './BottomSheet';
 
 interface ZikirmatikModalProps {
@@ -10,6 +10,8 @@ interface ZikirmatikModalProps {
   onClose: () => void;
   state: ZikirmatikState;
   onChange: (state: ZikirmatikState) => void;
+  /** Called once per tap (not just on lap completion) so the caller can add it to the daily total (design-refresh-v3 Faz 7 F3). */
+  onDhikrTap: (dhikrTitle: string) => void;
 }
 
 const RING_SIZE = 176;
@@ -22,31 +24,54 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   onClose,
   state,
   onChange,
+  onDhikrTap,
 }) => {
-  const { selectedDhikrIndex, counter, lap } = state;
+  const { selectedDhikrIndex } = state;
+  const { counter, lap } = getCounterFor(state, selectedDhikrIndex);
   const [justCompleted, setJustCompleted] = useState(false);
+  // Sıfırla iki adımlı onay ister (design-refresh-v3 Faz 7 F3) — bir tur
+  // ilerlemeyi tek dokunuşla kaybetmek, sayacın "sakin" karakteriyle
+  // çelişir. Zikir değiştirince veya sheet kapanınca otomatik iptal olur.
+  const [confirmingReset, setConfirmingReset] = useState(false);
 
   const currentDhikr = PRESET_DHIKRS[selectedDhikrIndex];
   const ringProgress = counter / currentDhikr.target;
   const ringDashoffset = RING_CIRCUMFERENCE * (1 - ringProgress);
 
+  const selectDhikr = (idx: number) => {
+    setConfirmingReset(false);
+    onChange({ ...state, selectedDhikrIndex: idx });
+  };
+
   const handleIncrement = () => {
     if (navigator.vibrate) {
       navigator.vibrate(25);
     }
+    onDhikrTap(currentDhikr.title);
     const newCount = counter + 1;
     if (newCount >= currentDhikr.target) {
       playSoftChime();
-      onChange({ selectedDhikrIndex, counter: 0, lap: lap + 1 });
+      onChange({
+        ...state,
+        counters: { ...state.counters, [selectedDhikrIndex]: { counter: 0, lap: lap + 1 } },
+      });
       setJustCompleted(true);
       setTimeout(() => setJustCompleted(false), 700);
     } else {
-      onChange({ selectedDhikrIndex, counter: newCount, lap });
+      onChange({
+        ...state,
+        counters: { ...state.counters, [selectedDhikrIndex]: { counter: newCount, lap } },
+      });
     }
   };
 
-  const handleReset = () => {
-    onChange({ selectedDhikrIndex, counter: 0, lap: 0 });
+  const handleResetClick = () => {
+    if (!confirmingReset) {
+      setConfirmingReset(true);
+      return;
+    }
+    onChange({ ...state, counters: { ...state.counters, [selectedDhikrIndex]: { counter: 0, lap: 0 } } });
+    setConfirmingReset(false);
   };
 
   return (
@@ -60,7 +85,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
           {PRESET_DHIKRS.map((d, idx) => (
             <button
               key={d.title}
-              onClick={() => onChange({ selectedDhikrIndex: idx, counter: 0, lap: 0 })}
+              onClick={() => selectDhikr(idx)}
               className={`px-3 py-3.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                 selectedDhikrIndex === idx
                   ? 'bg-gold text-on-gold shadow-xs'
@@ -135,12 +160,29 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
 
         {/* Alt Butonlar */}
         <div className="flex items-center justify-between pt-2">
-          <button
-            onClick={handleReset}
-            className="relative flex items-center gap-1 text-xs text-mist hover:text-danger-ink transition-colors cursor-pointer before:content-[''] before:absolute before:-inset-4"
-          >
-            <ArrowCounterClockwiseIcon className="w-3.5 h-3.5" /> Sıfırla
-          </button>
+          {confirmingReset ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleResetClick}
+                className="relative flex items-center gap-1 text-xs font-semibold text-danger-ink cursor-pointer before:content-[''] before:absolute before:-inset-3"
+              >
+                <CheckIcon className="w-3.5 h-3.5" /> Emin misiniz?
+              </button>
+              <button
+                onClick={() => setConfirmingReset(false)}
+                className="relative text-xs text-mist cursor-pointer before:content-[''] before:absolute before:-inset-3"
+              >
+                Vazgeç
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleResetClick}
+              className="relative flex items-center gap-1 text-xs text-mist hover:text-danger-ink transition-colors cursor-pointer before:content-[''] before:absolute before:-inset-4"
+            >
+              <ArrowCounterClockwiseIcon className="w-3.5 h-3.5" /> Sıfırla
+            </button>
+          )}
 
           <span className="text-[11px] text-mist">
             {currentDhikr.target - counter} kaldı

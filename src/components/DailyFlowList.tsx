@@ -1,25 +1,29 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import {
-  SpeakerHighIcon,
   SpeakerXIcon,
   BellIcon,
 } from './icons';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { PRAYER_ICON_COMPONENTS } from './prayerIcons';
 import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels';
-import { PrayerName, SoundMode } from '../types';
+import { formatAdjustedTime } from '../utils/prayerAdjustments';
+import { PrayerName, SoundMode, PrayerAdjustments } from '../types';
 
 interface DailyFlowListProps {
   schedule: DayPrayerSchedule;
   notifications: Record<PrayerName, SoundMode>;
+  prayerAdjustments: PrayerAdjustments;
   onOpenSettings: () => void;
+  onOpenKerahetInfo: () => void;
 }
 
 export const DailyFlowList: React.FC<DailyFlowListProps> = ({
   schedule,
   notifications,
+  prayerAdjustments,
   onOpenSettings,
+  onOpenKerahetInfo,
 }) => {
   const { prayers, kerahetTimes, tomorrowImsakTime, tomorrowAksamTime, resolvedTimeZone } = schedule;
 
@@ -159,26 +163,16 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                   <div className="flex items-center gap-3 text-right">
                     <div>
                       <div className={`font-numbers text-lg font-bold ${item.isActive ? 'text-gold-ink' : 'text-ink'}`}>
-                        {item.timeString}
+                        {formatAdjustedTime(item.dateObj, item.name, prayerAdjustments, resolvedTimeZone)}
                       </div>
                       <button
                         onClick={onOpenSettings}
                         className="relative text-micro text-mist flex items-center justify-end gap-1 ml-auto cursor-pointer hover:text-gold transition-colors before:content-[''] before:absolute before:-inset-4"
-                        title="Ses ayarını değiştir"
+                        title="Bildirim ayarını değiştir"
                       >
-                        {soundMode === 'ezan' && (
+                        {soundMode === 'bildirim' && (
                           <span className="flex items-center gap-0.5 text-gold-ink">
-                            <BellIcon className="w-2.5 h-2.5" /> Ezan
-                          </span>
-                        )}
-                        {soundMode === 'tini' && (
-                          <span className="flex items-center gap-0.5 text-sand">
-                            <SpeakerHighIcon className="w-2.5 h-2.5" /> Tını
-                          </span>
-                        )}
-                        {(soundMode === 'ilahi1' || soundMode === 'ilahi2' || soundMode === 'ilahi3') && (
-                          <span className="flex items-center gap-0.5 text-sand">
-                            <SpeakerHighIcon className="w-2.5 h-2.5" /> İlahi {soundMode.slice(-1)}
+                            <BellIcon className="w-2.5 h-2.5" /> Bildirim
                           </span>
                         )}
                         {soundMode === 'sessiz' && (
@@ -202,9 +196,14 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                     />
                   </div>
                   <div className="flex-1 flex items-center">
-                    <span className={`text-micro ${k.isActiveNow ? 'text-accent-ink font-semibold' : 'text-mist'}`}>
+                    <button
+                      onClick={onOpenKerahetInfo}
+                      className={`min-h-[44px] flex items-center text-micro cursor-pointer hover:underline ${
+                        k.isActiveNow ? 'text-accent-ink font-semibold' : 'text-mist'
+                      }`}
+                    >
                       {KERAHET_SHORT_LABEL[k.type]} keraheti · {formatKerahetRange(k, resolvedTimeZone)}
-                    </span>
+                    </button>
                   </div>
                 </div>
               ))}
