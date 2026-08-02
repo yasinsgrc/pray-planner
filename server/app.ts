@@ -2,6 +2,7 @@ import express, { Express } from 'express';
 import type { SubscriptionStore } from './subscriptionStore';
 import type { PushSubscriptionRecord } from './types';
 import type { GeocodingClient } from './geocoding';
+import { GeocodingRateLimitedError } from './geocoding';
 import type { DailyVerseService } from './dailyVerse';
 
 export interface CreateAppDeps {
@@ -15,11 +16,20 @@ export function createApp(deps: CreateAppDeps): Express {
   const app = express();
   app.use(express.json());
 
+  // Two purposes (design-refresh-v3 Faz 6 B4/B1): a target for the host
+  // platform's own health check, and a fast, single one-time probe the
+  // frontend uses to decide whether /api/* exists at all — the identical
+  // built bundle is deployed both standalone-static (no server) and
+  // full-stack, so this can't be a build-time decision.
+  app.get('/health', (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+
   app.get('/api/vapid-public-key', (_req, res) => {
     res.json({ publicKey: deps.vapidPublicKey });
   });
 
-  app.post('/api/subscribe', (req, res) => {
+  app.post('/api/subscribe', async (req, res) => {
     const { endpoint, keys, location, calculationMethod, notifications } = req.body ?? {};
 
     if (!endpoint || !keys?.p256dh || !keys?.auth || !location || !calculationMethod || !notifications) {
@@ -36,11 +46,11 @@ export function createApp(deps: CreateAppDeps): Express {
       updatedAt: new Date().toISOString(),
     };
 
-    deps.store.upsertSubscription(record);
+    await deps.store.upsertSubscription(record);
     res.status(200).json({ ok: true });
   });
 
-  app.post('/api/unsubscribe', (req, res) => {
+  app.post('/api/unsubscribe', async (req, res) => {
     const { endpoint } = req.body ?? {};
 
     if (!endpoint) {
@@ -48,22 +58,26 @@ export function createApp(deps: CreateAppDeps): Express {
       return;
     }
 
-    deps.store.removeSubscription(endpoint);
+    await deps.store.removeSubscription(endpoint);
     res.status(200).json({ ok: true });
   });
 
   app.get('/api/geocode', async (req, res) => {
     const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
 
-    if (query.length < 2) {
-      res.status(400).json({ error: 'q en az 2 karakter olmalı.' });
+    if (query.length < 3) {
+      res.status(400).json({ error: 'q en az 3 karakter olmalı.' });
       return;
     }
 
     try {
       const results = await deps.geocodingClient.searchLocations(query);
       res.status(200).json({ results });
-    } catch {
+    } catch (err) {
+      if (err instanceof GeocodingRateLimitedError) {
+        res.status(503).json({ error: 'Arama servisi şu an yoğun, listeden seçebilirsiniz.' });
+        return;
+      }
       res.status(502).json({ error: 'Arama sırasında bir hata oluştu.' });
     }
   });

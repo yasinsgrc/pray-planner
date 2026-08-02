@@ -14,7 +14,7 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
 configureWebPush(VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT);
 
 const store = createSubscriptionStore(DEFAULT_DATA_FILE);
-const subs = store.loadSubscriptions();
+const subs = await store.loadSubscriptions();
 
 if (subs.length === 0) {
   console.error('Kayıtlı abonelik yok. Önce uygulamada "Bildirimlere İzin Ver" butonuna basın.');

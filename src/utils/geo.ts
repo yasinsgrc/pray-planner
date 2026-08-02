@@ -1,5 +1,5 @@
 import { LocationItem } from '../types';
-import { POPULAR_LOCATIONS } from '../data/locations';
+import { ALL_LOCATIONS } from '../data/locations';
 
 function toRad(deg: number): number {
   return (deg * Math.PI) / 180;
@@ -22,12 +22,15 @@ export function haversineDistanceKm(lat1: number, lng1: number, lat2: number, ln
  * Used both when reverse-geocoding fails (server unreachable or the app is
  * deployed statically, with no Express backend at all) and for the silent
  * "you seem to have moved" check — GPS gives precise coordinates but no
- * human-readable name, and this app doesn't ship its own geocoding data.
+ * human-readable name. Searches the full ~430-entry ALL_LOCATIONS (every
+ * province + populous district, design-refresh-v3 Faz 6 B1) rather than the
+ * small POPULAR_LOCATIONS quick-pick list, since a real nearest-city match
+ * needs the full dataset to be meaningfully accurate.
  */
 export function findNearestLocation(lat: number, lng: number): LocationItem {
-  let nearest = POPULAR_LOCATIONS[0];
+  let nearest = ALL_LOCATIONS[0];
   let minDistance = Infinity;
-  for (const loc of POPULAR_LOCATIONS) {
+  for (const loc of ALL_LOCATIONS) {
     const distance = haversineDistanceKm(lat, lng, loc.lat, loc.lng);
     if (distance < minDistance) {
       minDistance = distance;

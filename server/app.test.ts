@@ -8,6 +8,7 @@ import type { NotificationSettings } from '../src/types';
 import { createApp } from './app';
 import { createSubscriptionStore } from './subscriptionStore';
 import type { GeocodingClient } from './geocoding';
+import { GeocodingRateLimitedError } from './geocoding';
 import type { DailyVerseService } from './dailyVerse';
 
 function createFakeGeocodingClient(overrides: Partial<GeocodingClient> = {}): GeocodingClient {
@@ -69,6 +70,15 @@ const validBody = {
   } satisfies NotificationSettings,
 };
 
+test('GET /health returns 200 ok', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/health`);
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.ok, true);
+  });
+});
+
 test('GET /api/vapid-public-key returns the configured key', async () => {
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/api/vapid-public-key`);
@@ -87,7 +97,7 @@ test('POST /api/subscribe stores a valid subscription', async () => {
     });
 
     assert.equal(res.status, 200);
-    const subs = store.loadSubscriptions();
+    const subs = await store.loadSubscriptions();
     assert.equal(subs.length, 1);
     assert.equal(subs[0].endpoint, validBody.endpoint);
   });
@@ -103,13 +113,13 @@ test('POST /api/subscribe rejects a request missing required fields', async () =
     });
 
     assert.equal(res.status, 400);
-    assert.equal(store.loadSubscriptions().length, 0);
+    assert.equal((await store.loadSubscriptions()).length, 0);
   });
 });
 
 test('POST /api/unsubscribe removes a stored subscription', async () => {
   await withServer(async (baseUrl, store) => {
-    store.upsertSubscription({ ...validBody, updatedAt: new Date().toISOString() });
+    await store.upsertSubscription({ ...validBody, updatedAt: new Date().toISOString() });
 
     const res = await fetch(`${baseUrl}/api/unsubscribe`, {
       method: 'POST',
@@ -118,7 +128,7 @@ test('POST /api/unsubscribe removes a stored subscription', async () => {
     });
 
     assert.equal(res.status, 200);
-    assert.equal(store.loadSubscriptions().length, 0);
+    assert.equal((await store.loadSubscriptions()).length, 0);
   });
 });
 
@@ -148,9 +158,9 @@ test('GET /api/geocode returns mapped results from the geocoding client', async 
   }, fakeClient);
 });
 
-test('GET /api/geocode rejects a query shorter than 2 characters', async () => {
+test('GET /api/geocode rejects a query shorter than 3 characters', async () => {
   await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/geocode?q=a`);
+    const res = await fetch(`${baseUrl}/api/geocode?q=an`);
     assert.equal(res.status, 400);
   });
 });
@@ -165,6 +175,21 @@ test('GET /api/geocode returns 502 when the geocoding client throws', async () =
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
     assert.equal(res.status, 502);
+  }, fakeClient);
+});
+
+test('GET /api/geocode returns 503 with a friendly message when Nominatim is rate-limited', async () => {
+  const fakeClient = createFakeGeocodingClient({
+    searchLocations: async () => {
+      throw new GeocodingRateLimitedError('rate limited');
+    },
+  });
+
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
+    const body = await res.json();
+    assert.equal(res.status, 503);
+    assert.equal(body.error, 'Arama servisi şu an yoğun, listeden seçebilirsiniz.');
   }, fakeClient);
 });
 

@@ -31,6 +31,13 @@ export const SupportSection: React.FC = () => {
   const [copyUnavailable, setCopyUnavailable] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
+  // "Destek Ol" implies a way to give money — with neither IBAN nor a
+  // payment link configured (design-refresh-v3 Faz 6 B2), opening the
+  // sheet just shows an empty promise. hasStoreReview alone doesn't count:
+  // it's a free rating action, not a payment method, so it doesn't change
+  // this card's framing.
+  const hasAnyPaymentMethod = hasBankTransfer || hasCardPayment;
+
   // navigator.clipboard only exists in a secure context (HTTPS/localhost) —
   // if this app is ever served over plain HTTP, it's undefined and calling
   // it directly throws a TypeError, silently breaking the button (design-
@@ -88,17 +95,19 @@ export const SupportSection: React.FC = () => {
             <HandHeartIcon className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-ink">Destek Ol</div>
+            <div className="text-sm font-bold text-ink">
+              {hasAnyPaymentMethod ? 'Destek Ol' : 'Uygulamayı Paylaş'}
+            </div>
             <p className="text-[11px] text-mist leading-relaxed mt-0.5">
-              VAKİT reklamsız ve ücretsiz. Geliştirme ve sunucu masraflarına
-              katkıda bulunmak isterseniz destek olabilirsiniz — tamamen
-              isteğe bağlıdır.
+              {hasAnyPaymentMethod
+                ? 'VAKİT reklamsız ve ücretsiz. Geliştirme ve sunucu masraflarına katkıda bulunmak isterseniz destek olabilirsiniz — tamamen isteğe bağlıdır.'
+                : 'VAKİT reklamsız ve ücretsiz. Beğendiyseniz paylaşarak destek olabilirsiniz.'}
             </p>
             <button
-              onClick={() => setIsOpen(true)}
+              onClick={hasAnyPaymentMethod ? () => setIsOpen(true) : handleShareApp}
               className="min-h-[44px] mt-3 px-4 rounded-xl bg-paper border border-hairline text-xs font-semibold text-gold-ink cursor-pointer hover:bg-gold/10 transition-colors"
             >
-              Destek Ol
+              {hasAnyPaymentMethod ? 'Destek Ol' : shareCopied ? 'Bağlantı kopyalandı' : 'Uygulamayı Paylaş'}
             </button>
           </div>
         </div>

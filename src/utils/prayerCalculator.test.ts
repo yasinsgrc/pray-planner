@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateDaySchedule, deriveLiveSchedule } from './prayerCalculator';
 import { getCalendarDateInZone } from './timezone';
+import { formatTime } from './formatTime';
 import { DEFAULT_LOCATION } from '../data/locations';
 import { LocationItem } from '../types';
 
@@ -72,14 +73,14 @@ test('tomorrowImsakTime/tomorrowAksamTime match tomorrow fajr/maghrib formatted 
   const day = calculateDaySchedule(DEFAULT_LOCATION, FIXED_DAY, 'Diyanet');
   const schedule = deriveLiveSchedule(day, day.dhuhr);
 
-  const expectedImsak = `${day.tomorrowFajr.getHours().toString().padStart(2, '0')}:${day.tomorrowFajr
-    .getMinutes()
-    .toString()
-    .padStart(2, '0')}`;
-  const expectedAksam = `${day.tomorrowMaghrib.getHours().toString().padStart(2, '0')}:${day.tomorrowMaghrib
-    .getMinutes()
-    .toString()
-    .padStart(2, '0')}`;
+  // Must go through the same resolvedTimeZone as the code under test, not
+  // Date's device-local getHours/getMinutes — the previous version of this
+  // test read the expected value in the device's zone while the app (since
+  // design-refresh-v3 Faz 4) formats it in the *location's* zone, so this
+  // passed only on a machine whose TZ happened to match DEFAULT_LOCATION
+  // (Europe/Istanbul) and failed under TZ=UTC (e.g. most CI).
+  const expectedImsak = formatTime(day.tomorrowFajr, schedule.resolvedTimeZone);
+  const expectedAksam = formatTime(day.tomorrowMaghrib, schedule.resolvedTimeZone);
 
   assert.equal(schedule.tomorrowImsakTime, expectedImsak);
   assert.equal(schedule.tomorrowAksamTime, expectedAksam);

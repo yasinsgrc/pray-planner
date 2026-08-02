@@ -4,17 +4,22 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "dev:server": "tsx watch server/index.ts",
     "dev:all": "concurrently -n vite,server -c blue,green \"npm:dev\" \"npm:dev:server\"",
     "build": "vite build && node scripts/generate-sw-precache.mjs",
+    "start": "node --import tsx server/index.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test:server": "node --import tsx --test \"server/**/*.test.ts\"",
     "test:frontend": "node --import tsx --test \"src/**/*.test.ts\"",
     "test": "npm run test:server && npm run test:frontend",
+    "test:tz-utc": "cross-env TZ=UTC npm test",
     "test:push": "tsx server/send-test-push.ts",
     "generate:icons": "node scripts/generate-icons.mjs",
     "visual": "node scripts/visual-check.mjs"
@@ -28,6 +33,7 @@
     "express": "^4.21.2",
     "hijri-converter": "^1.1.1",
     "motion": "^12.23.24",
+    "pg": "^8.22.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "web-push": "^3.6.7"
@@ -35,11 +41,14 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@types/pg": "^8.20.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/web-push": "^3.6.4",
     "concurrently": "^10.0.4",
+    "cross-env": "^10.1.0",
     "playwright-core": "^1.62.1",
+    "rollup-plugin-visualizer": "^7.0.1",
     "sharp": "^0.35.3",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",

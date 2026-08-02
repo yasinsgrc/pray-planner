@@ -29,7 +29,11 @@ export interface PushSenderDeps {
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
     payload: string
   ) => Promise<unknown>;
-  onExpired: (endpoint: string) => void;
+  // May be sync or async — a real SubscriptionStore.removeSubscription is
+  // async (design-refresh-v3 Faz 6 B5), and this is awaited below so the
+  // deletion genuinely completes before sendPushNotification returns,
+  // rather than firing-and-forgetting it.
+  onExpired: (endpoint: string) => void | Promise<void>;
 }
 
 export function createPushSender(
@@ -43,7 +47,7 @@ export function createPushSender(
     } catch (err) {
       const statusCode = (err as { statusCode?: number }).statusCode;
       if (statusCode === 404 || statusCode === 410) {
-        deps.onExpired(record.endpoint);
+        await deps.onExpired(record.endpoint);
       } else {
         console.error('Push gönderim hatası:', err);
       }

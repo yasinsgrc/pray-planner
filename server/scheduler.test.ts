@@ -85,6 +85,14 @@ function makeSubscription(overrides: Partial<PushSubscriptionRecord> = {}): Push
   };
 }
 
+function makeStore(subs: PushSubscriptionRecord[]) {
+  return {
+    loadSubscriptions: async () => subs,
+    upsertSubscription: async () => {},
+    removeSubscription: async () => {},
+  };
+}
+
 function makeSchedule(prayerTime: Date): DayPrayerSchedule {
   const prayer = {
     name: 'ogle' as const,
@@ -123,11 +131,7 @@ test('scheduler tick sends a push once and skips duplicate sends in the same min
   const sent: unknown[] = [];
 
   const scheduler = createScheduler({
-    store: {
-      loadSubscriptions: () => [sub],
-      upsertSubscription: () => {},
-      removeSubscription: () => {},
-    },
+    store: makeStore([sub]),
     calculatePrayerTimes: () => makeSchedule(prayerTime),
     sendPush: async (record, event) => {
       sent.push({ endpoint: record.endpoint, event });
@@ -152,11 +156,7 @@ test('scheduler tick isolates a throwing subscription so later subscriptions sti
   // (goodSub) succeeds.
   let callCount = 0;
   const scheduler = createScheduler({
-    store: {
-      loadSubscriptions: () => [badSub, goodSub],
-      upsertSubscription: () => {},
-      removeSubscription: () => {},
-    },
+    store: makeStore([badSub, goodSub]),
     calculatePrayerTimes: () => {
       callCount += 1;
       if (callCount === 1) {
@@ -184,11 +184,7 @@ test('scheduler tick sends again on a new day for the same prayer key', async ()
   let current = day1;
 
   const scheduler = createScheduler({
-    store: {
-      loadSubscriptions: () => [sub],
-      upsertSubscription: () => {},
-      removeSubscription: () => {},
-    },
+    store: makeStore([sub]),
     calculatePrayerTimes: () => makeSchedule(current),
     sendPush: async () => {
       sent.push(current);

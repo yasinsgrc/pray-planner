@@ -77,6 +77,12 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     return date.toISOString().slice(0, 10);
   }
 
+  // Recomputes prayer times for every subscription on every tick, even
+  // when many subscriptions share the same city — fine at today's scale,
+  // but once subscriber count reaches four digits this becomes the
+  // dominant cost every minute. If that happens, group subscriptions by
+  // (location, calculationMethod) and call calculatePrayerTimes once per
+  // group instead of once per subscription (design-refresh-v3 Faz 6 B5).
   async function tick(): Promise<void> {
     const now = (deps.now ?? (() => new Date()))();
     const today = dayKey(now);
@@ -86,7 +92,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       lastDayKey = today;
     }
 
-    const subscriptions = deps.store.loadSubscriptions();
+    const subscriptions = await deps.store.loadSubscriptions();
 
     for (const sub of subscriptions) {
       try {

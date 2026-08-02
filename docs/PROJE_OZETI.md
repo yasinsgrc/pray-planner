@@ -8,7 +8,7 @@
 
 - **Frontend:** React 19 + TypeScript + Vite 6, Tailwind CSS 4, `motion` (animasyon), `@phosphor-icons/react` (ikonlar)
 - **Vakit hesaplama:** `adhan` kütüphanesi (Diyanet, MWL, ISNA, Mısır, Karaçi, Mekke yöntemleri desteklenir)
-- **Backend:** Node.js + Express (`server/`), `web-push` (gerçek push bildirimleri için), JSON dosya tabanlı abonelik deposu
+- **Backend:** Node.js + Express (`server/`), `web-push` (gerçek push bildirimleri için), abonelik deposu (dosya tabanlı varsayılan, `DATABASE_URL` tanımlıysa Postgres)
 - **Test:** Node'un yerleşik `node:test` çalıştırıcısı, `tsx` üzerinden — ek bir frontend test framework'ü yok
 - **Geliştirme araçları:** `concurrently` (frontend+backend birlikte), `dotenv`
 
@@ -22,7 +22,7 @@ src/
                                 ZikirmatikModal, LiveActivityWidgetModal, DailyInspirationCard
   hooks/useCompassHeading.ts — cihaz pusulası sensör hook'u
   utils/                     — prayerCalculator, hijri, audio, compassHeading, pushClient
-  data/                      — locations.ts (16 sabit şehir), dailyContent.ts (ayet/hadis/dua)
+  data/                      — locations.ts (81 il + populer ilçeler, ~430 kayıt), dailyContent.ts (ayet/hadis/dua)
 server/                      — Express push bildirim sunucusu (abonelik, zamanlayıcı, web-push gönderimi)
 public/sw.js                 — push bildirimleri için service worker
 docs/superpowers/specs/      — her özellik için yazılı tasarım dokümanları
@@ -43,7 +43,6 @@ docs/superpowers/plans/      — her özellik için adım adım implementasyon p
 
 ## Devam Eden / Bilinen Eksikler
 
-- Konum sistemi hâlâ 16 sabit şehirle sınırlı, serbest arama/geocoding yok
 - Play Store paketleme (Capacitor) hiç başlanmadı
 - Store hazırlığı (gizlilik politikası, ekran görüntüleri, listing metni) yok
 - `@google/genai` zaten kaldırılmıştı; `esbuild`/`autoprefixer` (kullanılmayan AI Studio şablon kalıntıları) ve mükerrer `vite` dependency girişi de temizlendi — `dotenv`/`express` gerçekten kullanılıyor, kalıntı değil

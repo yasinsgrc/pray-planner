@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapNominatimResultToLocationItem, createGeocodingClient } from './geocoding';
+import {
+  mapNominatimResultToLocationItem,
+  createGeocodingClient,
+  withCacheAndRateLimit,
+  GeocodingRateLimitedError,
+} from './geocoding';
+import type { GeocodingClient } from './geocoding';
 
 test('maps city/suburb/country fields directly when present', () => {
   const item = mapNominatimResultToLocationItem({
@@ -111,4 +117,97 @@ test('reverseGeocode maps a successful response', async () => {
   const client = createGeocodingClient(fakeFetch);
   const result = await client.reverseGeocode(41, 29);
   assert.equal(result?.cityName, 'İstanbul');
+});
+
+test('searchLocations throws GeocodingRateLimitedError when Nominatim responds 429', async () => {
+  const fakeFetch = (async () => fakeResponse([], false, 429)) as typeof fetch;
+  const client = createGeocodingClient(fakeFetch);
+  await assert.rejects(() => client.searchLocations('test'), GeocodingRateLimitedError);
+});
+
+test('searchLocations throws GeocodingRateLimitedError when Nominatim responds 503', async () => {
+  const fakeFetch = (async () => fakeResponse([], false, 503)) as typeof fetch;
+  const client = createGeocodingClient(fakeFetch);
+  await assert.rejects(() => client.searchLocations('test'), GeocodingRateLimitedError);
+});
+
+function makeLocationResult(cityName: string): ReturnType<typeof mapNominatimResultToLocationItem> {
+  return { id: `x-${cityName}`, cityName, districtName: '', country: 'Türkiye', lat: 1, lng: 2 };
+}
+
+test('withCacheAndRateLimit caches identical (case-insensitive) queries so the client is called once', async () => {
+  let calls = 0;
+  const fakeClient: GeocodingClient = {
+    searchLocations: async () => {
+      calls += 1;
+      return [makeLocationResult('Ankara')];
+    },
+    reverseGeocode: async () => null,
+  };
+  let time = 0;
+  const wrapped = withCacheAndRateLimit(fakeClient, {
+    now: () => time,
+    sleep: async (ms) => {
+      time += ms;
+    },
+  });
+
+  const first = await wrapped.searchLocations('ankara');
+  const second = await wrapped.searchLocations('Ankara');
+
+  assert.equal(calls, 1);
+  assert.deepEqual(first, second);
+});
+
+test('withCacheAndRateLimit enforces at least 1100ms between outbound requests, even when called concurrently', async () => {
+  const callTimes: number[] = [];
+  let time = 0;
+  const fakeClient: GeocodingClient = {
+    searchLocations: async () => {
+      callTimes.push(time);
+      return [];
+    },
+    reverseGeocode: async () => null,
+  };
+  const wrapped = withCacheAndRateLimit(fakeClient, {
+    now: () => time,
+    sleep: async (ms) => {
+      time += ms;
+    },
+  });
+
+  await Promise.all([wrapped.searchLocations('a'), wrapped.searchLocations('b'), wrapped.searchLocations('c')]);
+
+  assert.equal(callTimes.length, 3);
+  const sorted = [...callTimes].sort((a, b) => a - b);
+  assert.ok(sorted[1] - sorted[0] >= 1100, `expected >=1100ms gap, got ${sorted[1] - sorted[0]}`);
+  assert.ok(sorted[2] - sorted[1] >= 1100, `expected >=1100ms gap, got ${sorted[2] - sorted[1]}`);
+});
+
+test('withCacheAndRateLimit evicts the least-recently-used entry once the cache exceeds 500 entries', async () => {
+  let calls = 0;
+  const fakeClient: GeocodingClient = {
+    searchLocations: async (q) => {
+      calls += 1;
+      return [makeLocationResult(q)];
+    },
+    reverseGeocode: async () => null,
+  };
+  let time = 0;
+  const wrapped = withCacheAndRateLimit(fakeClient, {
+    now: () => time,
+    sleep: async (ms) => {
+      time += ms;
+    },
+  });
+
+  for (let i = 0; i < 501; i += 1) {
+    await wrapped.searchLocations(`query-${i}`);
+  }
+  calls = 0;
+
+  // query-0 was the least-recently-used entry and should have been evicted
+  // by query-500 pushing the cache past its 500-entry ceiling.
+  await wrapped.searchLocations('query-0');
+  assert.equal(calls, 1);
 });

@@ -68,9 +68,9 @@ const SCENARIOS = [
 
 const violations = [];
 
-function run(cmd, args) {
+function run(cmd, args, envOverrides = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: 'inherit', shell: true });
+    const child = spawn(cmd, args, { stdio: 'inherit', shell: true, env: { ...process.env, ...envOverrides } });
     child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited ${code}`))));
   });
 }
@@ -648,7 +648,18 @@ async function main() {
   await scanForbiddenColors(path.resolve('src'));
 
   console.log('Building...');
-  await run('npm', ['run', 'build']);
+  // Fake but well-formed support config so the "Destek Ol" sheet (IBAN row,
+  // copy button, payment/store links) renders and gets its usual contrast/
+  // touch-target/overflow coverage below — the real default (no env vars
+  // set) swaps that button for a plain "Uygulamayı Paylaş" share action
+  // with no sheet at all (design-refresh-v3 Faz 6 B2), which would leave
+  // the sheet's own UI completely unchecked here.
+  await run('npm', ['run', 'build'], {
+    VITE_SUPPORT_IBAN: 'TR00 0000 0000 0000 0000 0000 00',
+    VITE_SUPPORT_NAME: 'Test Kullanıcı',
+    VITE_SUPPORT_PAYMENT_URL: 'https://example.com/destek-ol',
+    VITE_SUPPORT_STORE_URL: 'https://play.google.com/store/apps/details?id=test',
+  });
 
   console.log('Starting preview server on port', PORT, '...');
   const preview = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {
@@ -663,102 +674,117 @@ async function main() {
 
     const browser = await chromium.launch({ channel: 'chrome', headless: true });
 
-    for (const scenario of SCENARIOS) {
-      console.log(`\n=== Scenario: ${scenario.name} (${scenario.time}) ===`);
-      const context = await browser.newContext({
-        viewport: { width: 390, height: 844 },
-        deviceScaleFactor: 3,
-        locale: 'tr-TR',
-        timezoneId: 'Europe/Istanbul',
-      });
-      const page = await context.newPage();
-      page.setDefaultTimeout(10000); // safety net: no single action hangs indefinitely
-      const fixedTime = new Date(scenario.time).getTime();
-      await page.clock.install({ time: fixedTime });
+    // A thrown error anywhere in the scenario loop (a selector timeout, a
+    // failed assertion helper, etc.) must not skip browser.close() — an
+    // open Chromium connection keeps Node's event loop alive indefinitely,
+    // so an uncaught mid-loop error previously hung this whole script
+    // forever instead of failing loudly (caught the hard way: a real
+    // selector mismatch here produced a run that looked identical to a
+    // genuine hang, with near-zero CPU, for as long as it was left running).
+    try {
+      for (const scenario of SCENARIOS) {
+        console.log(`\n=== Scenario: ${scenario.name} (${scenario.time}) ===`);
+        const context = await browser.newContext({
+          viewport: { width: 390, height: 844 },
+          deviceScaleFactor: 3,
+          locale: 'tr-TR',
+          timezoneId: 'Europe/Istanbul',
+        });
+        const page = await context.newPage();
+        page.setDefaultTimeout(10000); // safety net: no single action hangs indefinitely
+        const fixedTime = new Date(scenario.time).getTime();
+        await page.clock.install({ time: fixedTime });
 
-      // 'load' not 'networkidle': this app registers a Service Worker and
-      // does periodic background fetches (push, daily verse), so
-      // networkidle can hang indefinitely waiting for a quiet period that
-      // never comes.
-      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
-      await page.waitForTimeout(600); // fonts / entrance animations settle
+        // 'load' not 'networkidle': this app registers a Service Worker and
+        // does periodic background fetches (push, daily verse), so
+        // networkidle can hang indefinitely waiting for a quiet period that
+        // never comes.
+        await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+        await page.waitForTimeout(600); // fonts / entrance animations settle
 
-      for (const tab of TABS) {
-        await page.getByRole('tab', { name: tab.label }).click();
-        await page.waitForTimeout(500);
+        for (const tab of TABS) {
+          await page.getByRole('tab', { name: tab.label }).click();
+          await page.waitForTimeout(500);
 
-        await checkScreen(page, scenario, tab.id);
+          await checkScreen(page, scenario, tab.id);
 
-        // Countdown width only applies to the focus tab's dial.
-        if (tab.id === 'focus') {
-          const countdownWidth = await page.evaluate(() => {
-            const el = document.querySelector('[data-testid="countdown"]');
-            return el ? el.getBoundingClientRect().width : null;
-          });
-          if (countdownWidth !== null && countdownWidth > COUNTDOWN_MAX_WIDTH) {
-            violations.push(
-              `[${scenario.name}/${tab.id}] countdown width=${countdownWidth.toFixed(1)}px > ${COUNTDOWN_MAX_WIDTH}px`
-            );
-          } else if (countdownWidth === null) {
-            violations.push(`[${scenario.name}/${tab.id}] countdown element not found (data-testid="countdown")`);
+          // Countdown width only applies to the focus tab's dial.
+          if (tab.id === 'focus') {
+            const countdownWidth = await page.evaluate(() => {
+              const el = document.querySelector('[data-testid="countdown"]');
+              return el ? el.getBoundingClientRect().width : null;
+            });
+            if (countdownWidth !== null && countdownWidth > COUNTDOWN_MAX_WIDTH) {
+              violations.push(
+                `[${scenario.name}/${tab.id}] countdown width=${countdownWidth.toFixed(1)}px > ${COUNTDOWN_MAX_WIDTH}px`
+              );
+            } else if (countdownWidth === null) {
+              violations.push(`[${scenario.name}/${tab.id}] countdown element not found (data-testid="countdown")`);
+            }
           }
         }
-      }
 
-      // Zikirmatik modal: not a tab, only reachable via the Header button,
-      // so it needs its own explicit check — the dhikr-chip row previously
-      // relied on hidden horizontal scroll (design-refresh-v3 Faz 2 F3) and
-      // was never exercised by the per-tab loop above.
-      await page.getByRole('button', { name: 'Zikirmatik' }).click();
-      await page.waitForTimeout(500);
-      await checkScreen(page, scenario, 'zikirmatik');
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(300);
+        // Zikirmatik modal: not a tab, only reachable via the Header button,
+        // so it needs its own explicit check — the dhikr-chip row previously
+        // relied on hidden horizontal scroll (design-refresh-v3 Faz 2 F3) and
+        // was never exercised by the per-tab loop above.
+        await page.getByRole('button', { name: 'Zikirmatik' }).click();
+        await page.waitForTimeout(500);
+        await checkScreen(page, scenario, 'zikirmatik');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
 
-      // Destek Ol sheet: reached from Ayarlar > Hakkında, also not a tab.
-      await page.getByRole('tab', { name: 'Ayarlar' }).click();
-      await page.waitForTimeout(500);
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(1000);
-      await page.getByRole('button', { name: 'Destek Ol' }).click();
-      await page.waitForTimeout(500);
-      await checkScreen(page, scenario, 'destek');
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(300);
+        // Destek Ol sheet: reached from Ayarlar > Hakkında, also not a tab.
+        // The build below sets VITE_SUPPORT_* so this button is in its
+        // "has a payment method" form (label "Destek Ol", opens a sheet) —
+        // otherwise (no env vars, the real production default) it reads
+        // "Uygulamayı Paylaş" and shares directly instead of opening a
+        // sheet (design-refresh-v3 Faz 6 B2), and there'd be no sheet here
+        // to check.
+        await page.getByRole('tab', { name: 'Ayarlar' }).click();
+        await page.waitForTimeout(500);
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(1000);
+        await page.getByRole('button', { name: 'Destek Ol' }).click();
+        await page.waitForTimeout(500);
+        await checkScreen(page, scenario, 'destek');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
 
-      // 320px pass: touch-target/overlap only (design-refresh-v3 Faz 3 F4)
-      // — controls that clear 44px with room to spare at 390px can end up
-      // with overlapping invisible ::before zones once the viewport (and
-      // therefore the gaps between them) shrinks. Screenshots/contrast
-      // aren't re-run here; only hit-area geometry changes with width.
-      await page.setViewportSize({ width: 320, height: 844 });
-      await page.waitForTimeout(300);
-      for (const tab of TABS) {
-        await page.getByRole('tab', { name: tab.label }).click();
+        // 320px pass: touch-target/overlap only (design-refresh-v3 Faz 3 F4)
+        // — controls that clear 44px with room to spare at 390px can end up
+        // with overlapping invisible ::before zones once the viewport (and
+        // therefore the gaps between them) shrinks. Screenshots/contrast
+        // aren't re-run here; only hit-area geometry changes with width.
+        await page.setViewportSize({ width: 320, height: 844 });
+        await page.waitForTimeout(300);
+        for (const tab of TABS) {
+          await page.getByRole('tab', { name: tab.label }).click();
+          await page.waitForTimeout(400);
+          await checkTouchTargets(page, scenario, `${tab.id}-320px`);
+        }
+        await page.getByRole('button', { name: 'Zikirmatik' }).click();
         await page.waitForTimeout(400);
-        await checkTouchTargets(page, scenario, `${tab.id}-320px`);
+        await checkTouchTargets(page, scenario, 'zikirmatik-320px');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        await page.getByRole('tab', { name: 'Ayarlar' }).click();
+        await page.waitForTimeout(400);
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(800);
+        await page.getByRole('button', { name: 'Destek Ol' }).click();
+        await page.waitForTimeout(400);
+        await checkTouchTargets(page, scenario, 'destek-320px');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+
+        await context.close();
       }
-      await page.getByRole('button', { name: 'Zikirmatik' }).click();
-      await page.waitForTimeout(400);
-      await checkTouchTargets(page, scenario, 'zikirmatik-320px');
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(300);
-      await page.getByRole('tab', { name: 'Ayarlar' }).click();
-      await page.waitForTimeout(400);
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(800);
-      await page.getByRole('button', { name: 'Destek Ol' }).click();
-      await page.waitForTimeout(400);
-      await checkTouchTargets(page, scenario, 'destek-320px');
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(300);
 
-      await context.close();
+      await checkOfflineSupport(browser);
+    } finally {
+      await browser.close();
     }
-
-    await checkOfflineSupport(browser);
-
-    await browser.close();
   } finally {
     // preview.kill() alone only signals the immediate `npx` shell wrapper
     // on Windows, not the actual vite process it spawned underneath —
