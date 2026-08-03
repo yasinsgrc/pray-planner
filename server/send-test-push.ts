@@ -1,6 +1,8 @@
 import 'dotenv/config';
-import { createSubscriptionStore, DEFAULT_DATA_FILE } from './subscriptionStore';
-import { configureWebPush, createPushSender, defaultSendNotification } from './push';
+import { Pool } from 'pg';
+import { createPostgresPushStore, createInMemoryPushStore } from './pushStore';
+import type { PushStore } from './pushStore';
+import { configureWebPush, defaultSendNotification } from './push';
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? '';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? '';
@@ -13,25 +15,28 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
 
 configureWebPush(VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT);
 
-const store = createSubscriptionStore(DEFAULT_DATA_FILE);
-const subs = await store.loadSubscriptions();
+let pushStore: PushStore;
+if (process.env.DATABASE_URL) {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  pushStore = await createPostgresPushStore(pool);
+} else {
+  pushStore = createInMemoryPushStore();
+  console.error('DATABASE_URL tanımlı değil — bellek içi depoda test edilecek abonelik yok, çıkılıyor.');
+  process.exit(1);
+}
+
+const subs = await pushStore.listSubscriptions();
 
 if (subs.length === 0) {
   console.error('Kayıtlı abonelik yok. Önce uygulamada "Bildirimlere İzin Ver" butonuna basın.');
   process.exit(1);
 }
 
-const sendPush = createPushSender({
-  sendNotification: defaultSendNotification,
-  onExpired: store.removeSubscription,
-});
+const payload = JSON.stringify({ title: 'Test Bildirimi', body: 'VAKİT push altyapısı çalışıyor.' });
 
-const testEvent = {
-  type: 'prayer' as const,
-  prayerName: 'ogle' as const,
-  label: 'Test Bildirimi',
-  soundMode: 'bildirim' as const,
-};
-
-await Promise.all(subs.map((sub) => sendPush(sub, testEvent)));
+await Promise.all(
+  subs.map((sub) =>
+    defaultSendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
+  )
+);
 console.log(`${subs.length} aboneliğe test bildirimi gönderildi.`);

@@ -22,7 +22,14 @@ import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { playEzanAudio } from '../utils/audio';
 import { PRAYER_LABELS } from '../data/strings';
 import { PRIVACY_SUMMARY } from '../data/privacy';
+import {
+  PUSH_CONSENT_TITLE,
+  PUSH_CONSENT_TEXT,
+  PUSH_CONSENT_CONFIRM_LABEL,
+  PUSH_CONSENT_DECLINE_LABEL,
+} from '../data/pushConsent';
 import { useApiAvailable } from '../hooks/useApiAvailable';
+import { isIOSStandaloneNoticeNeeded } from '../utils/pushClient';
 import type { PushStatus } from '../utils/pushClient';
 
 interface SpiritualSettingsProps {
@@ -32,6 +39,11 @@ interface SpiritualSettingsProps {
   onUpdateNotification: (prayer: PrayerName, mode: SoundMode) => void;
   pushStatus: PushStatus;
   pushError: string | null;
+  /** ISO timestamp of the last successful subscribe/schedule sync, or null
+   * if never synced — surfaced so a silently-expired 30-day window
+   * (design-refresh-v3 Faz 15) is at least visible, not just silent
+   * (Faz 16). */
+  pushLastSyncAt: string | null;
   onEnablePush: () => void;
   onDisablePush: () => void;
 }
@@ -61,15 +73,6 @@ const CALC_METHOD_OPTIONS: {
   { value: 'Karachi', label: 'Karaçi İslam İlimleri Üniversitesi', description: 'Güney Asya için yaygın yöntem' },
 ];
 
-function isIOSStandaloneNoticeNeeded(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isStandalone =
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as unknown as { standalone?: boolean }).standalone === true;
-  return isIOS && !isStandalone;
-}
-
 export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   settings,
   schedule,
@@ -77,6 +80,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   onUpdateNotification,
   pushStatus,
   pushError,
+  pushLastSyncAt,
   onEnablePush,
   onDisablePush,
 }) => {
@@ -84,7 +88,16 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   const [openSoundSheet, setOpenSoundSheet] = useState<PrayerName | null>(null);
   const [isMethodSheetOpen, setIsMethodSheetOpen] = useState(false);
   const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
+  // Bildirim izni istenmeden ÖNCE açık rıza — kullanıcı onaylamazsa
+  // onEnablePush hiç çağrılmaz, hiçbir abonelik denemesi yapılmaz
+  // (design-refresh-v3 Faz 16).
+  const [isPushConsentSheetOpen, setIsPushConsentSheetOpen] = useState(false);
   const apiAvailable = useApiAvailable();
+
+  const handleConfirmPushConsent = () => {
+    setIsPushConsentSheetOpen(false);
+    onEnablePush();
+  };
 
   const adjustPrayer = (prayer: PrayerName, delta: number) => {
     const current = prayerAdjustments[prayer] ?? 0;
@@ -149,20 +162,35 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               </div>
 
               {pushStatus === 'granted' ? (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs text-success-ink font-semibold">
-                    <CheckIcon className="w-4 h-4" /> Bildirimler etkin
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs text-success-ink font-semibold">
+                      <CheckIcon className="w-4 h-4" /> Bildirimler etkin
+                    </div>
+                    <button
+                      onClick={onDisablePush}
+                      className="min-h-[44px] flex items-center text-xs text-mist hover:text-danger-ink cursor-pointer transition-colors"
+                    >
+                      Kapat
+                    </button>
                   </div>
-                  <button
-                    onClick={onDisablePush}
-                    className="min-h-[44px] flex items-center text-xs text-mist hover:text-danger-ink cursor-pointer transition-colors"
-                  >
-                    Kapat
-                  </button>
+                  {/* 30 günlük zamanlama penceresi sessizce dolarsa
+                      bildirimler de sessizce durur (design-refresh-v3 Faz
+                      15) — bu satır en azından görünür kılar. */}
+                  <p className="text-[10px] text-mist">
+                    {pushLastSyncAt
+                      ? `Son güncelleme: ${new Intl.DateTimeFormat('tr-TR', {
+                          day: 'numeric',
+                          month: 'long',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }).format(new Date(pushLastSyncAt))}`
+                      : 'Son güncelleme: henüz yok'}
+                  </p>
                 </div>
               ) : (
                 <button
-                  onClick={onEnablePush}
+                  onClick={() => setIsPushConsentSheetOpen(true)}
                   disabled={pushStatus === 'loading'}
                   className="relative w-full py-2.5 px-4 rounded-full bg-gold hover:bg-gold-hover text-on-gold font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all duration-200 cursor-pointer disabled:opacity-60 hover:scale-[1.02] active:scale-95 before:content-[''] before:absolute before:-top-2 before:-bottom-2 before:inset-x-0"
                 >
@@ -478,6 +506,33 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       </div>
 
       <PrivacyPolicyModal isOpen={isPrivacySheetOpen} onClose={() => setIsPrivacySheetOpen(false)} />
+
+      {/* Bildirim izni açık rıza sheet'i — onEnablePush yalnızca burada
+          "Onaylıyorum, Devam Et" tıklanınca çağrılır (design-refresh-v3
+          Faz 16). Metin şu an yer tutucu (bkz. src/data/pushConsent.ts). */}
+      <BottomSheet
+        isOpen={isPushConsentSheetOpen}
+        onClose={() => setIsPushConsentSheetOpen(false)}
+        title={PUSH_CONSENT_TITLE}
+      >
+        <div className="space-y-4 pb-2">
+          <p className="text-xs text-ink leading-relaxed">{PUSH_CONSENT_TEXT}</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsPushConsentSheetOpen(false)}
+              className="flex-1 min-h-[44px] px-4 rounded-xl bg-paper border border-hairline text-xs font-semibold text-mist cursor-pointer hover:bg-hairline/30 transition-colors"
+            >
+              {PUSH_CONSENT_DECLINE_LABEL}
+            </button>
+            <button
+              onClick={handleConfirmPushConsent}
+              className="flex-1 min-h-[44px] px-4 rounded-xl bg-gold hover:bg-gold-hover text-on-gold text-xs font-semibold cursor-pointer transition-colors"
+            >
+              {PUSH_CONSENT_CONFIRM_LABEL}
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Bildirim Sheet */}
       <BottomSheet

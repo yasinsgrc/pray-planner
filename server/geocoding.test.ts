@@ -99,26 +99,6 @@ test('searchLocations throws when Nominatim responds with a non-ok status', asyn
   await assert.rejects(() => client.searchLocations('test'));
 });
 
-test('reverseGeocode returns null when Nominatim responds with a non-ok status', async () => {
-  const fakeFetch = (async () => fakeResponse({}, false, 404)) as typeof fetch;
-  const client = createGeocodingClient(fakeFetch);
-  const result = await client.reverseGeocode(41, 29);
-  assert.equal(result, null);
-});
-
-test('reverseGeocode maps a successful response', async () => {
-  const fakeFetch = (async () =>
-    fakeResponse({
-      lat: '41',
-      lon: '29',
-      display_name: 'İstanbul',
-      address: { city: 'İstanbul', country: 'Türkiye' },
-    })) as typeof fetch;
-  const client = createGeocodingClient(fakeFetch);
-  const result = await client.reverseGeocode(41, 29);
-  assert.equal(result?.cityName, 'İstanbul');
-});
-
 test('searchLocations throws GeocodingRateLimitedError when Nominatim responds 429', async () => {
   const fakeFetch = (async () => fakeResponse([], false, 429)) as typeof fetch;
   const client = createGeocodingClient(fakeFetch);
@@ -142,7 +122,6 @@ test('withCacheAndRateLimit caches identical (case-insensitive) queries so the c
       calls += 1;
       return [makeLocationResult('Ankara')];
     },
-    reverseGeocode: async () => null,
   };
   let time = 0;
   const wrapped = withCacheAndRateLimit(fakeClient, {
@@ -167,7 +146,6 @@ test('withCacheAndRateLimit enforces at least 1100ms between outbound requests, 
       callTimes.push(time);
       return [];
     },
-    reverseGeocode: async () => null,
   };
   const wrapped = withCacheAndRateLimit(fakeClient, {
     now: () => time,
@@ -191,7 +169,6 @@ test('withCacheAndRateLimit evicts the least-recently-used entry once the cache 
       calls += 1;
       return [makeLocationResult(q)];
     },
-    reverseGeocode: async () => null,
   };
   let time = 0;
   const wrapped = withCacheAndRateLimit(fakeClient, {

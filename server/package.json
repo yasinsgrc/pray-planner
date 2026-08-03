@@ -1,0 +1,17 @@
+{
+  "name": "vakit-push-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Coordinate-free push notification API + scheduler for VAKİT (design-refresh-v3 Faz 15). Deployed separately from the static frontend — Railway's Root Directory should point here.",
+  "scripts": {
+    "start": "node --import tsx index.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.22.0",
+    "web-push": "^3.6.7",
+    "dotenv": "^17.2.3",
+    "tsx": "^4.21.0"
+  }
+}

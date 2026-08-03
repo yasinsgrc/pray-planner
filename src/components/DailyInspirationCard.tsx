@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BookOpenIcon, CopyIcon, CheckIcon, QuotesIcon, ShareNetworkIcon } from './icons';
 import { DAILY_INSPIRATIONS } from '../data/dailyContent';
 import { useApiAvailable } from '../hooks/useApiAvailable';
+import { apiUrl } from '../utils/apiBaseUrl';
 
 export const DailyInspirationCard: React.FC = () => {
   const [tab, setTab] = useState<'verse' | 'hadith' | 'dua'>('verse');
@@ -32,7 +33,7 @@ export const DailyInspirationCard: React.FC = () => {
 
     let ignore = false;
 
-    fetch('/api/daily-verse')
+    fetch(apiUrl('/api/daily-verse'))
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => {
         if (!ignore && data?.verse && data?.verseRef) {

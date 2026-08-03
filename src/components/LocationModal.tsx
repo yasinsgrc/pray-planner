@@ -6,6 +6,7 @@ import { findNearestLocation } from '../utils/geo';
 import { guessTimeZone } from '../utils/timezone';
 import { normalizeTurkish } from '../utils/turkishText';
 import { useApiAvailable } from '../hooks/useApiAvailable';
+import { apiUrl } from '../utils/apiBaseUrl';
 import { BottomSheet } from './BottomSheet';
 
 interface LocationModalProps {
@@ -102,7 +103,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
     if (trimmedQuery.length < REMOTE_MIN_LENGTH) return;
     setRemoteStatus('loading');
     try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(trimmedQuery)}`);
+      const res = await fetch(apiUrl(`/api/geocode?q=${encodeURIComponent(trimmedQuery)}`));
       if (res.status === 503) {
         setRemoteStatus('rate-limited');
         setRemoteResults([]);
@@ -139,15 +140,19 @@ export const LocationModal: React.FC<LocationModalProps> = ({
     setGpsError(null);
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const { latitude, longitude } = pos.coords;
-        // Nearest known city's name paired with the GPS's own precise
-        // coordinates — used both as the immediate result and as the
-        // fallback if reverse-geocoding fails or there's no backend at
-        // all (this app can be deployed statically, without the Express
-        // server, in which case /api/reverse-geocode always 404s).
+        // Never sent to any server — reverse-geocoding was removed
+        // entirely (design-refresh-v3 Faz 16): it silently sent the
+        // user's exact GPS coordinate to the backend on every tap of this
+        // button, which is precisely the automatic, invisible coordinate
+        // exposure the "Mevcut Konum" honesty decision (Faz 14) requires
+        // there be none of. The nearest known city's name is only ever a
+        // label (Header shows "Mevcut Konum", not this name, as the
+        // primary heading) — the real GPS coordinate is what's actually
+        // used for prayer time calculation, entirely on-device.
         const nearest = findNearestLocation(latitude, longitude);
-        const fallbackLoc: LocationItem = {
+        const resolvedLoc: LocationItem = {
           ...nearest,
           id: `gps-${Date.now()}`,
           lat: latitude,
@@ -155,28 +160,8 @@ export const LocationModal: React.FC<LocationModalProps> = ({
           isGpsDerived: true,
         };
 
-        try {
-          const res = await fetch(`/api/reverse-geocode?lat=${latitude}&lng=${longitude}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.location) {
-              setIsLocating(false);
-              onSelectLocation({
-                ...data.location,
-                id: `gps-${Date.now()}`,
-                timeZone: data.location.timeZone ?? guessTimeZone(data.location.lat, data.location.lng),
-                isGpsDerived: true,
-              });
-              onClose();
-              return;
-            }
-          }
-        } catch {
-          // Ağ hatası: sessizce en yakın bilinen şehre düş
-        }
-
         setIsLocating(false);
-        onSelectLocation(fallbackLoc);
+        onSelectLocation(resolvedLoc);
         onClose();
       },
       (error) => {

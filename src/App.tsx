@@ -22,7 +22,7 @@ import {
   registerServiceWorker,
   applyServiceWorkerUpdate,
   subscribeToPush,
-  syncSubscription,
+  refreshPushSchedule,
   getExistingPushSubscription,
   unsubscribeFromPush,
   PushStatus,
@@ -49,6 +49,11 @@ import {
 import { dateKeyInZone } from './utils/timezone';
 
 const LOCAL_STORAGE_KEY = 'vakit_app_settings_v1';
+// 30 günlük zamanlama penceresi sessizce dolarsa bildirimler de sessizce
+// durur — kullanıcı bunu Ayarlar'da "son güncelleme" olarak görüp fark
+// edebilsin diye her başarılı subscribe/schedule sonrası güncellenir
+// (design-refresh-v3 Faz 16).
+const PUSH_LAST_SYNC_STORAGE_KEY = 'vakit_push_last_sync_v1';
 
 const PRAYER_ACCENT_VAR: Record<PrayerName, string> = {
   imsak: '--v-imsak',
@@ -160,7 +165,34 @@ export default function App() {
 
   const [pushStatus, setPushStatus] = useState<PushStatus>('idle');
   const [pushError, setPushError] = useState<string | null>(null);
+  const [pushLastSyncAt, setPushLastSyncAt] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(PUSH_LAST_SYNC_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
   const apiAvailable = useApiAvailable();
+
+  const recordPushSync = () => {
+    const now = new Date().toISOString();
+    setPushLastSyncAt(now);
+    try {
+      localStorage.setItem(PUSH_LAST_SYNC_STORAGE_KEY, now);
+    } catch {
+      // localStorage yoksa/doluysa sessizce vazgeç — bu yalnızca bir
+      // bilgilendirme etiketi, işlevsel akışı etkilemez.
+    }
+  };
+
+  const clearPushSync = () => {
+    setPushLastSyncAt(null);
+    try {
+      localStorage.removeItem(PUSH_LAST_SYNC_STORAGE_KEY);
+    } catch {
+      // no-op
+    }
+  };
 
   // Offline-ready service worker (design-refresh-v3 Faz 4 F1).
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -297,15 +329,17 @@ export default function App() {
     setLocationSuggestion(null);
   };
 
-  // Ayarlar değiştikçe backend'deki aboneliği güncel tut
+  // Ayarlar değiştikçe (konum, hesaplama yöntemi, bildirim tercihleri) 30
+  // günlük zamanlamayı sunucuda yenile — eskisi tamamen yerini alır, asla
+  // birleşmez (design-refresh-v3 Faz 15: değişmeyen ayarla bildirim almak
+  // yanlış şehrin vaktinde bildirim almak demektir). Uygulama her açılışında
+  // da çalışır (pushStatus mount sırasında 'granted' olur), zamanlamanın
+  // 30 günü aşmasını da böylece önler.
   useEffect(() => {
     if (pushStatus !== 'granted') return;
-    (async () => {
-      const existing = await getExistingPushSubscription();
-      if (existing) {
-        await syncSubscription(existing, settings);
-      }
-    })();
+    refreshPushSchedule(settings).then((result) => {
+      if (result.ok) recordPushSync();
+    });
   }, [settings, pushStatus]);
 
   // Expensive adhan computation: only re-runs when location, method, or the
@@ -408,6 +442,7 @@ export default function App() {
       setPushError(result.reason);
     } else {
       setPushStatus('granted');
+      recordPushSync();
     }
   };
 
@@ -421,6 +456,7 @@ export default function App() {
     setPushStatus('loading');
     await unsubscribeFromPush(apiAvailable === true);
     setPushStatus('idle');
+    clearPushSync();
   };
 
   return (
@@ -547,6 +583,7 @@ export default function App() {
                 onUpdateNotification={handleUpdateNotification}
                 pushStatus={pushStatus}
                 pushError={pushError}
+                pushLastSyncAt={pushLastSyncAt}
                 onEnablePush={handleEnablePush}
                 onDisablePush={handleDisablePush}
               />

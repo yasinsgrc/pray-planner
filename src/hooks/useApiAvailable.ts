@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../utils/apiBaseUrl';
 
 /**
  * Whether this deployment has the Express server behind it at all — the
@@ -27,7 +28,7 @@ let cachedResult: Promise<boolean> | null = null;
 /** Exported for direct testing (useApiAvailable.test.ts) without needing a DOM — the hook itself just wraps this with React state. */
 export async function checkApiAvailable(): Promise<boolean> {
   try {
-    const res = await fetch('/health', {
+    const res = await fetch(apiUrl('/health'), {
       method: 'GET',
       signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
     });

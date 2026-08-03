@@ -38,7 +38,6 @@ export function mapNominatimResultToLocationItem(result: NominatimResult): Locat
 
 export interface GeocodingClient {
   searchLocations(query: string): Promise<LocationItem[]>;
-  reverseGeocode(lat: number, lng: number): Promise<LocationItem | null>;
 }
 
 /**
@@ -68,23 +67,7 @@ export function createGeocodingClient(fetchImpl: typeof fetch = fetch): Geocodin
     return results.map(mapNominatimResultToLocationItem);
   }
 
-  async function reverseGeocode(lat: number, lng: number): Promise<LocationItem | null> {
-    const url = `${NOMINATIM_BASE_URL}/reverse?lat=${lat}&lon=${lng}&format=jsonv2&addressdetails=1&accept-language=tr`;
-    const res = await fetchImpl(url, { headers: { 'User-Agent': USER_AGENT } });
-
-    if (!res.ok) {
-      return null;
-    }
-
-    const result = (await res.json()) as NominatimResult;
-    if (!result || !result.lat) {
-      return null;
-    }
-
-    return mapNominatimResultToLocationItem(result);
-  }
-
-  return { searchLocations, reverseGeocode };
+  return { searchLocations };
 }
 
 const CACHE_MAX_ENTRIES = 500;
@@ -163,12 +146,6 @@ export function withCacheAndRateLimit(
       const results = await schedule(() => client.searchLocations(query));
       cacheSet(key, results);
       return results;
-    },
-    async reverseGeocode(lat: number, lng: number): Promise<LocationItem | null> {
-      // GPS coordinates are effectively unique per call, so caching isn't
-      // useful here — still routed through the same outbound queue so it
-      // counts toward the shared 1 req/sec ceiling.
-      return schedule(() => client.reverseGeocode(lat, lng));
     },
   };
 }

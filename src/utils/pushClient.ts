@@ -1,4 +1,6 @@
 import { AppSettings } from '../types';
+import { apiUrl } from './apiBaseUrl';
+import { buildPushSchedule, PushScheduleEntry } from './pushSchedule';
 
 const SERVICE_WORKER_URL = '/sw.js';
 
@@ -63,9 +65,33 @@ export async function getExistingPushSubscription(): Promise<PushSubscription | 
   return registration.pushManager.getSubscription();
 }
 
-export async function syncSubscription(
+/**
+ * iOS Safari only supports web push inside an installed (Add to Home
+ * Screen) PWA on iOS 16.4+ — a plain Safari tab's Notification.requestPermission()
+ * either doesn't exist or silently never delivers anything. subscribeToPush
+ * checks this BEFORE touching the permission API at all (design-refresh-v3
+ * Faz 15): the user gets a clear "install first" message instead of a
+ * button that appears to work but quietly never notifies them.
+ */
+export function isIOSStandaloneNoticeNeeded(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true;
+  return isIOS && !isStandalone;
+}
+
+const IOS_STANDALONE_REQUIRED_MESSAGE =
+  "iPhone'da bildirim alabilmek için önce Safari'de Paylaş → Ana Ekrana Ekle ile uygulamayı yükleyin.";
+
+/** Shared by subscribeToPush and refreshPushSchedule — both just upsert the
+ * subscription + REPLACE its schedule server-side (design-refresh-v3 Faz 15);
+ * they differ only in which endpoint expresses the caller's intent. */
+async function sendScheduleToServer(
+  path: string,
   subscription: PushSubscription,
-  settings: AppSettings
+  schedule: PushScheduleEntry[]
 ): Promise<PushSyncResult> {
   const { keys } = subscription.toJSON();
   if (!keys) {
@@ -73,16 +99,10 @@ export async function syncSubscription(
   }
 
   try {
-    const res = await fetch('/api/subscribe', {
+    const res = await fetch(apiUrl(path), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        endpoint: subscription.endpoint,
-        keys,
-        location: settings.location,
-        calculationMethod: settings.calculationMethod,
-        notifications: settings.notifications,
-      }),
+      body: JSON.stringify({ endpoint: subscription.endpoint, keys, schedule }),
     });
 
     if (!res.ok) {
@@ -121,7 +141,7 @@ export async function unsubscribeFromPush(apiAvailable: boolean): Promise<PushSy
 
     if (apiAvailable) {
       try {
-        await fetch('/api/subscribe', {
+        await fetch(apiUrl('/api/push/unsubscribe'), {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ endpoint }),
@@ -130,7 +150,7 @@ export async function unsubscribeFromPush(apiAvailable: boolean): Promise<PushSy
         // Sunucudaki kayıt silinemedi ama tarayıcı aboneliği zaten iptal
         // edildi — kullanıcı için "bildirimler kapalı" zaten doğru; kayıt
         // en geç bir sonraki başarısız gönderimde otomatik temizlenir
-        // (server/push.ts, 404/410 -> removeSubscription).
+        // (server/pushCron.ts, 404/410 -> removeSubscription).
       }
     }
 
@@ -141,6 +161,9 @@ export async function unsubscribeFromPush(apiAvailable: boolean): Promise<PushSy
 }
 
 export async function subscribeToPush(settings: AppSettings): Promise<PushSyncResult> {
+  if (isIOSStandaloneNoticeNeeded()) {
+    return { ok: false, reason: IOS_STANDALONE_REQUIRED_MESSAGE };
+  }
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     return { ok: false, reason: 'Bu tarayıcı bildirimleri desteklemiyor.' };
   }
@@ -156,7 +179,7 @@ export async function subscribeToPush(settings: AppSettings): Promise<PushSyncRe
       return { ok: false, reason: 'Service worker kaydedilemedi.' };
     }
 
-    const keyRes = await fetch('/api/vapid-public-key');
+    const keyRes = await fetch(apiUrl('/api/vapid-public-key'));
     if (!keyRes.ok) {
       return { ok: false, reason: 'Bildirim sunucusuna ulaşılamadı.' };
     }
@@ -170,8 +193,26 @@ export async function subscribeToPush(settings: AppSettings): Promise<PushSyncRe
       });
     }
 
-    return await syncSubscription(subscription, settings);
+    const schedule = buildPushSchedule(settings.location, settings.calculationMethod, settings.notifications);
+    return await sendScheduleToServer('/api/push/subscribe', subscription, schedule);
   } catch {
     return { ok: false, reason: 'Bildirim aboneliği başarısız oldu.' };
   }
+}
+
+/**
+ * Re-sends the 30-day schedule for an ALREADY-existing subscription —
+ * called whenever settings change (location, calculation method, or sound
+ * preferences all change which fire_at instants are correct) and once on
+ * every app open, so the rolling 30-day window never runs out
+ * (design-refresh-v3 Faz 15). A no-op if the user was never subscribed —
+ * there's nothing to refresh.
+ */
+export async function refreshPushSchedule(settings: AppSettings): Promise<PushSyncResult> {
+  const subscription = await getExistingPushSubscription();
+  if (!subscription) {
+    return { ok: true };
+  }
+  const schedule = buildPushSchedule(settings.location, settings.calculationMethod, settings.notifications);
+  return await sendScheduleToServer('/api/push/schedule', subscription, schedule);
 }

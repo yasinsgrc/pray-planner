@@ -1,20 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import type { AddressInfo } from 'node:net';
-import type { NotificationSettings } from '../src/types';
 import { createApp } from './app';
-import { createSubscriptionStore } from './subscriptionStore';
+import { createInMemoryPushStore } from './pushStore';
+import type { PushStore } from './pushStore';
 import type { GeocodingClient } from './geocoding';
 import { GeocodingRateLimitedError } from './geocoding';
 import type { DailyVerseService } from './dailyVerse';
 
+const CORS_ALLOWED_ORIGIN = 'https://vakit.yasinsigirci.com.tr';
+
 function createFakeGeocodingClient(overrides: Partial<GeocodingClient> = {}): GeocodingClient {
   return {
     searchLocations: async () => [],
-    reverseGeocode: async () => null,
     ...overrides,
   };
 }
@@ -27,50 +25,39 @@ function createFakeDailyVerseService(overrides: Partial<DailyVerseService> = {})
 }
 
 async function withServer(
-  run: (baseUrl: string, store: ReturnType<typeof createSubscriptionStore>) => Promise<void>,
-  geocodingClient: GeocodingClient = createFakeGeocodingClient(),
-  dailyVerseService: DailyVerseService = createFakeDailyVerseService()
+  run: (baseUrl: string, pushStore: PushStore) => Promise<void>,
+  opts: {
+    geocodingClient?: GeocodingClient;
+    dailyVerseService?: DailyVerseService;
+    pushStore?: PushStore;
+  } = {}
 ) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'vakit-app-'));
-  const store = createSubscriptionStore(path.join(dir, 'subs.json'));
-  const app = createApp({ store, vapidPublicKey: 'test-public-key', geocodingClient, dailyVerseService });
+  const pushStore = opts.pushStore ?? createInMemoryPushStore();
+  const app = createApp({
+    pushStore,
+    vapidPublicKey: 'test-public-key',
+    geocodingClient: opts.geocodingClient ?? createFakeGeocodingClient(),
+    dailyVerseService: opts.dailyVerseService ?? createFakeDailyVerseService(),
+    corsAllowedOrigin: CORS_ALLOWED_ORIGIN,
+  });
   const server = app.listen(0);
 
   try {
     await new Promise((resolve) => server.once('listening', resolve));
     const { port } = server.address() as AddressInfo;
-    await run(`http://127.0.0.1:${port}`, store);
+    await run(`http://127.0.0.1:${port}`, pushStore);
   } finally {
     await new Promise((resolve) => server.close(resolve));
-    rmSync(dir, { recursive: true, force: true });
   }
 }
 
-const validBody = {
+const validScheduleBody = {
   endpoint: 'https://push.example.com/a',
   keys: { p256dh: 'p', auth: 'a' },
-  location: {
-    id: 'uskudar-istanbul',
-    cityName: 'İstanbul',
-    districtName: 'Üsküdar',
-    country: 'Türkiye',
-    lat: 41.0264,
-    lng: 29.0152,
-  },
-  calculationMethod: 'Diyanet',
-  notifications: {
-    imsak: 'bildirim',
-    gunes: 'sessiz',
-    ogle: 'bildirim',
-    ikindi: 'bildirim',
-    aksam: 'bildirim',
-    yatsi: 'bildirim',
-    earlyWarningMinutes: 15,
-    earlyWarningSound: 'bildirim',
-  } satisfies NotificationSettings,
+  schedule: [{ fireAt: '2026-08-10T02:30:00.000Z', prayerKey: 'imsak' }],
 };
 
-test('GET /health returns 200 ok with a service discriminator the client checks for', async () => {
+test('GET /health returns 200 ok with a service discriminator when the store is healthy', async () => {
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/health`);
     const body = await res.json();
@@ -81,7 +68,24 @@ test('GET /health returns 200 ok with a service discriminator the client checks 
     // field to tell a real /health response apart from a static host's SPA
     // fallback answering the same path with 200 + index.html.
     assert.equal(body.service, 'vakit-api');
+    assert.equal(body.db, 'connected');
   });
+});
+
+test('GET /health returns 503 when the store reports it is unhealthy (real DB check)', async () => {
+  const unhealthyStore: PushStore = {
+    ...createInMemoryPushStore(),
+    checkHealth: async () => false,
+  };
+  await withServer(
+    async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/health`);
+      const body = await res.json();
+      assert.equal(res.status, 503);
+      assert.equal(body.ok, false);
+    },
+    { pushStore: unhealthyStore }
+  );
 });
 
 test('GET /api/vapid-public-key returns the configured key', async () => {
@@ -93,69 +97,119 @@ test('GET /api/vapid-public-key returns the configured key', async () => {
   });
 });
 
-test('POST /api/subscribe stores a valid subscription', async () => {
-  await withServer(async (baseUrl, store) => {
-    const res = await fetch(`${baseUrl}/api/subscribe`, {
+test('POST /api/push/subscribe stores a subscription and its schedule', async () => {
+  await withServer(async (baseUrl, pushStore) => {
+    const res = await fetch(`${baseUrl}/api/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(validBody),
+      body: JSON.stringify(validScheduleBody),
     });
 
     assert.equal(res.status, 200);
-    const subs = await store.loadSubscriptions();
-    assert.equal(subs.length, 1);
-    assert.equal(subs[0].endpoint, validBody.endpoint);
+    const due = await pushStore.claimDueSchedules(new Date('2026-08-10T02:30:01.000Z'));
+    assert.equal(due.length, 1);
+    assert.equal(due[0].prayerKey, 'imsak');
   });
 });
 
-test('POST /api/subscribe rejects a request missing required fields', async () => {
-  await withServer(async (baseUrl, store) => {
-    const { location, ...incomplete } = validBody;
-    const res = await fetch(`${baseUrl}/api/subscribe`, {
+test('POST /api/push/subscribe rejects a request missing endpoint', async () => {
+  await withServer(async (baseUrl) => {
+    const { endpoint, ...incomplete } = validScheduleBody;
+    const res = await fetch(`${baseUrl}/api/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(incomplete),
     });
-
     assert.equal(res.status, 400);
-    assert.equal((await store.loadSubscriptions()).length, 0);
   });
 });
 
-test('POST /api/unsubscribe removes a stored subscription', async () => {
-  await withServer(async (baseUrl, store) => {
-    await store.upsertSubscription({ ...validBody, updatedAt: new Date().toISOString() });
-
-    const res = await fetch(`${baseUrl}/api/unsubscribe`, {
+test('POST /api/push/subscribe rejects a request missing keys', async () => {
+  await withServer(async (baseUrl) => {
+    const { keys, ...incomplete } = validScheduleBody;
+    const res = await fetch(`${baseUrl}/api/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: validBody.endpoint }),
+      body: JSON.stringify(incomplete),
     });
-
-    assert.equal(res.status, 200);
-    assert.equal((await store.loadSubscriptions()).length, 0);
+    assert.equal(res.status, 400);
   });
 });
 
-test('DELETE /api/subscribe removes the matching record — the Gizlilik Politikası "kayıt silinir" promise', async () => {
-  await withServer(async (baseUrl, store) => {
-    await store.upsertSubscription({ ...validBody, updatedAt: new Date().toISOString() });
+test('POST /api/push/subscribe rejects a schedule entry with an invalid fireAt', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...validScheduleBody, schedule: [{ fireAt: 'not-a-date', prayerKey: 'imsak' }] }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
 
-    const res = await fetch(`${baseUrl}/api/subscribe`, {
+test('POST /api/push/subscribe rejects a schedule exceeding the maximum entry count', async () => {
+  await withServer(async (baseUrl) => {
+    const schedule = Array.from({ length: 401 }, (_, i) => ({
+      fireAt: new Date(Date.UTC(2026, 0, 1, 0, i)).toISOString(),
+      prayerKey: 'imsak',
+    }));
+    const res = await fetch(`${baseUrl}/api/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...validScheduleBody, schedule }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('POST /api/push/schedule replaces an existing schedule rather than merging it', async () => {
+  await withServer(async (baseUrl, pushStore) => {
+    await fetch(`${baseUrl}/api/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validScheduleBody),
+    });
+
+    const res = await fetch(`${baseUrl}/api/push/schedule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...validScheduleBody,
+        schedule: [{ fireAt: '2026-08-10T12:00:00.000Z', prayerKey: 'ogle' }],
+      }),
+    });
+
+    assert.equal(res.status, 200);
+    const due = await pushStore.claimDueSchedules(new Date('2026-08-10T12:00:01.000Z'));
+    assert.equal(due.length, 1);
+    assert.equal(due[0].prayerKey, 'ogle', 'the old imsak entry must be gone, not merged with');
+  });
+});
+
+test('DELETE /api/push/unsubscribe removes the subscription and its schedule', async () => {
+  await withServer(async (baseUrl, pushStore) => {
+    await fetch(`${baseUrl}/api/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validScheduleBody),
+    });
+
+    const res = await fetch(`${baseUrl}/api/push/unsubscribe`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: validBody.endpoint }),
+      body: JSON.stringify({ endpoint: validScheduleBody.endpoint }),
     });
 
     assert.equal(res.status, 200);
-    const subs = await store.loadSubscriptions();
-    assert.equal(subs.length, 0);
+    const due = await pushStore.claimDueSchedules(new Date('2026-08-10T02:30:01.000Z'));
+    assert.equal(due.length, 0);
+    assert.equal((await pushStore.listSubscriptions()).length, 0);
   });
 });
 
-test('DELETE /api/subscribe rejects a request missing endpoint', async () => {
+test('DELETE /api/push/unsubscribe rejects a request missing endpoint', async () => {
   await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/subscribe`, {
+    const res = await fetch(`${baseUrl}/api/push/unsubscribe`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -164,35 +218,46 @@ test('DELETE /api/subscribe rejects a request missing endpoint', async () => {
   });
 });
 
-test('DELETE /api/subscribe does not throw or error when the endpoint was never subscribed', async () => {
-  await withServer(async (baseUrl, store) => {
-    const res = await fetch(`${baseUrl}/api/subscribe`, {
+test('DELETE /api/push/unsubscribe does not throw for an endpoint that was never subscribed', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/push/unsubscribe`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ endpoint: 'https://push.example.com/never-existed' }),
     });
-
     assert.equal(res.status, 200);
-    assert.equal((await store.loadSubscriptions()).length, 0);
   });
 });
 
-test('DELETE /api/subscribe only removes the matching record, leaving others untouched', async () => {
-  await withServer(async (baseUrl, store) => {
-    await store.upsertSubscription({ ...validBody, updatedAt: new Date().toISOString() });
-    const other = { ...validBody, endpoint: 'https://push.example.com/other', updatedAt: new Date().toISOString() };
-    await store.upsertSubscription(other);
-
-    const res = await fetch(`${baseUrl}/api/subscribe`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: validBody.endpoint }),
+test('CORS: a preflight from a non-allowed origin is rejected on the real app', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/push/subscribe`, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://evil.example.com', 'Access-Control-Request-Method': 'POST' },
     });
+    assert.equal(res.status, 403);
+  });
+});
 
-    assert.equal(res.status, 200);
-    const subs = await store.loadSubscriptions();
-    assert.equal(subs.length, 1);
-    assert.equal(subs[0].endpoint, other.endpoint);
+test('CORS: the configured origin is allowed on the real app', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/health`, { headers: { Origin: CORS_ALLOWED_ORIGIN } });
+    assert.equal(res.headers.get('access-control-allow-origin'), CORS_ALLOWED_ORIGIN);
+  });
+});
+
+test('rate limiting: POST /api/push/subscribe is limited on the real app', async () => {
+  await withServer(async (baseUrl) => {
+    let lastStatus = 200;
+    for (let i = 0; i < 15; i++) {
+      const res = await fetch(`${baseUrl}/api/push/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...validScheduleBody, endpoint: `https://push.example.com/${i}` }),
+      });
+      lastStatus = res.status;
+    }
+    assert.equal(lastStatus, 429);
   });
 });
 
@@ -213,13 +278,16 @@ test('GET /api/geocode returns mapped results from the geocoding client', async 
     },
   });
 
-  await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
-    const body = await res.json();
-    assert.equal(res.status, 200);
-    assert.equal(body.results.length, 1);
-    assert.equal(body.results[0].cityName, 'Ankara');
-  }, fakeClient);
+  await withServer(
+    async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
+      const body = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(body.results.length, 1);
+      assert.equal(body.results[0].cityName, 'Ankara');
+    },
+    { geocodingClient: fakeClient }
+  );
 });
 
 test('GET /api/geocode rejects a query shorter than 3 characters', async () => {
@@ -236,10 +304,13 @@ test('GET /api/geocode returns 502 when the geocoding client throws', async () =
     },
   });
 
-  await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
-    assert.equal(res.status, 502);
-  }, fakeClient);
+  await withServer(
+    async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
+      assert.equal(res.status, 502);
+    },
+    { geocodingClient: fakeClient }
+  );
 });
 
 test('GET /api/geocode returns 503 with a friendly message when Nominatim is rate-limited', async () => {
@@ -249,44 +320,25 @@ test('GET /api/geocode returns 503 with a friendly message when Nominatim is rat
     },
   });
 
-  await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
-    const body = await res.json();
-    assert.equal(res.status, 503);
-    assert.equal(body.error, 'Arama servisi şu an yoğun, listeden seçebilirsiniz.');
-  }, fakeClient);
+  await withServer(
+    async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/geocode?q=ankara`);
+      const body = await res.json();
+      assert.equal(res.status, 503);
+      assert.equal(body.error, 'Arama servisi şu an yoğun, listeden seçebilirsiniz.');
+    },
+    { geocodingClient: fakeClient }
+  );
 });
 
-test('GET /api/reverse-geocode returns a mapped location', async () => {
-  const fakeClient = createFakeGeocodingClient({
-    reverseGeocode: async (lat, lng) => {
-      assert.equal(lat, 41);
-      assert.equal(lng, 29);
-      return { id: 'y', cityName: 'İstanbul', districtName: '', country: 'Türkiye', lat, lng };
-    },
-  });
-
+// /api/reverse-geocode was removed entirely (design-refresh-v3 Faz 16) —
+// it silently forwarded the user's real GPS coordinate to this server on
+// every GPS-location tap. Confirm it's genuinely gone, not just unrouted
+// by accident.
+test('GET /api/reverse-geocode no longer exists', async () => {
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/api/reverse-geocode?lat=41&lng=29`);
-    const body = await res.json();
-    assert.equal(res.status, 200);
-    assert.equal(body.location.cityName, 'İstanbul');
-  }, fakeClient);
-});
-
-test('GET /api/reverse-geocode rejects non-numeric coordinates', async () => {
-  await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/reverse-geocode?lat=abc&lng=29`);
-    assert.equal(res.status, 400);
-  });
-});
-
-test('GET /api/reverse-geocode returns location: null when nothing is found', async () => {
-  await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/reverse-geocode?lat=0&lng=0`);
-    const body = await res.json();
-    assert.equal(res.status, 200);
-    assert.equal(body.location, null);
+    assert.equal(res.status, 404);
   });
 });
 
@@ -301,17 +353,15 @@ test('GET /api/daily-verse returns the verse from the daily verse service', asyn
       const body = await res.json();
       assert.equal(res.status, 200);
       assert.equal(body.verse, 'Örnek meal');
-      assert.equal(body.verseRef, 'Fâtiha Suresi, 1. Ayet');
     },
-    undefined,
-    fakeService
+    { dailyVerseService: fakeService }
   );
 });
 
 test('GET /api/daily-verse returns 502 when the service throws', async () => {
   const fakeService = createFakeDailyVerseService({
     getVerseOfTheDay: async () => {
-      throw new Error('network down');
+      throw new Error('down');
     },
   });
 
@@ -320,7 +370,6 @@ test('GET /api/daily-verse returns 502 when the service throws', async () => {
       const res = await fetch(`${baseUrl}/api/daily-verse`);
       assert.equal(res.status, 502);
     },
-    undefined,
-    fakeService
+    { dailyVerseService: fakeService }
   );
 });
