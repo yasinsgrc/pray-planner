@@ -1,5 +1,4 @@
-import { PRAYER_LABELS } from '../src/data/strings';
-import type { PrayerName } from '../src/types';
+import { PRAYER_LABELS, PrayerName } from './prayerLabels';
 
 const PRAYER_NAMES = new Set<string>(Object.keys(PRAYER_LABELS));
 

@@ -1,4 +1,20 @@
-import type { LocationItem } from '../src/types';
+/**
+ * A standalone shape, not imported from src/types.ts — the server must
+ * import NOTHING from outside server/ (design-refresh-v3 Faz 17: Railway's
+ * Root Directory=server only copies this directory into the build
+ * container, ../src/... doesn't exist there at all). Same field names as
+ * the client's GeocodedLocation so the JSON this produces still matches what
+ * the client expects to receive over the wire; there is no shared type
+ * across that boundary by design, just an agreed-on JSON shape.
+ */
+export interface GeocodedLocation {
+  id: string;
+  cityName: string;
+  districtName: string;
+  country: string;
+  lat: number;
+  lng: number;
+}
 
 export interface NominatimAddress {
   city?: string;
@@ -16,7 +32,7 @@ export interface NominatimResult {
   address?: NominatimAddress;
 }
 
-export function mapNominatimResultToLocationItem(result: NominatimResult): LocationItem {
+export function mapNominatimResultToLocationItem(result: NominatimResult): GeocodedLocation {
   const address = result.address ?? {};
   const cityName =
     address.city ??
@@ -37,7 +53,7 @@ export function mapNominatimResultToLocationItem(result: NominatimResult): Locat
 }
 
 export interface GeocodingClient {
-  searchLocations(query: string): Promise<LocationItem[]>;
+  searchLocations(query: string): Promise<GeocodedLocation[]>;
 }
 
 /**
@@ -52,7 +68,7 @@ const USER_AGENT = 'VAKIT-Namaz-App/1.0 (https://github.com/yasinsgrc/pray-plann
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
 
 export function createGeocodingClient(fetchImpl: typeof fetch = fetch): GeocodingClient {
-  async function searchLocations(query: string): Promise<LocationItem[]> {
+  async function searchLocations(query: string): Promise<GeocodedLocation[]> {
     const url = `${NOMINATIM_BASE_URL}/search?q=${encodeURIComponent(query)}&format=jsonv2&addressdetails=1&limit=8&accept-language=tr`;
     const res = await fetchImpl(url, { headers: { 'User-Agent': USER_AGENT } });
 
@@ -75,7 +91,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MIN_REQUEST_INTERVAL_MS = 1100;
 
 interface CacheEntry {
-  results: LocationItem[];
+  results: GeocodedLocation[];
   expiresAt: number;
 }
 
@@ -98,7 +114,7 @@ export function withCacheAndRateLimit(
   let lastRequestAt = 0;
   let queue: Promise<unknown> = Promise.resolve();
 
-  function cacheGet(key: string): LocationItem[] | undefined {
+  function cacheGet(key: string): GeocodedLocation[] | undefined {
     const entry = cache.get(key);
     if (!entry) return undefined;
     if (entry.expiresAt < now()) {
@@ -111,7 +127,7 @@ export function withCacheAndRateLimit(
     return entry.results;
   }
 
-  function cacheSet(key: string, results: LocationItem[]): void {
+  function cacheSet(key: string, results: GeocodedLocation[]): void {
     if (cache.size >= CACHE_MAX_ENTRIES) {
       const oldestKey = cache.keys().next().value;
       if (oldestKey !== undefined) cache.delete(oldestKey);
@@ -139,7 +155,7 @@ export function withCacheAndRateLimit(
   }
 
   return {
-    async searchLocations(query: string): Promise<LocationItem[]> {
+    async searchLocations(query: string): Promise<GeocodedLocation[]> {
       const key = query.trim().toLowerCase();
       const cached = cacheGet(key);
       if (cached) return cached;
