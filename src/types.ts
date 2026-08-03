@@ -16,6 +16,18 @@ export interface LocationItem {
    * silently assume the device's own zone.
    */
   timeZone?: string;
+  /**
+   * True only when this location came from the device's GPS, not a
+   * user's deliberate choice from the list. GPS gives a precise
+   * coordinate but the district NAME attached to it is a nearest-known-
+   * center guess (or a reverse-geocoding result) — never something the
+   * user actually confirmed. Claiming it as a definite district name is
+   * misleading (design-refresh-v3 Faz 14 — real-device report: GPS in
+   * Darıca matched "Çayırova", an adjacent district with a very close
+   * center coordinate). The header shows "Mevcut Konum" + coordinates +
+   * "en yakın merkez: X" instead of asserting X as fact.
+   */
+  isGpsDerived?: boolean;
 }
 
 export interface PrayerTimeDetails {

@@ -1277,6 +1277,81 @@ async function checkInteractionSweep(browser) {
   }
 }
 
+/**
+ * GPS-derived locations must not claim a district name as fact — the
+ * coordinate is real but the name attached to it is a nearest-known-center
+ * guess (design-refresh-v3 Faz 14, real-device report: GPS in Darıca
+ * matched "Çayırova", an adjacent district with a very close center
+ * coordinate). Mocks geolocation to Darıca's own stored coordinate (so the
+ * nearest-match is deterministic — this isn't testing match *accuracy*,
+ * it's testing that the header is honest about what it is regardless of
+ * whether the match happens to be right), and separately confirms a
+ * manually-picked location still gets the district name as its title —
+ * without that control case, this check could pass by coincidence if the
+ * conditional were inverted or dropped entirely.
+ */
+async function checkGpsLocationLabelHonesty(browser) {
+  console.log('\n=== GPS location label honesty (no district-name claim) ===');
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: 'tr-TR',
+    geolocation: { latitude: 40.76, longitude: 29.38 },
+    permissions: ['geolocation'],
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+  const violationsBefore = violations.length;
+
+  try {
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Mevcut Konumumu Otomatik Kullan (GPS)' }).click();
+    await page.waitForTimeout(1200);
+
+    const headerText = await page.evaluate(
+      () => document.querySelector('[aria-label="Konumu Değiştir"]')?.textContent ?? ''
+    );
+    if (!headerText.includes('Mevcut Konum')) {
+      violations.push(`[gps-label] GPS sonrası başlık "Mevcut Konum" demiyor: "${headerText}"`);
+    }
+    if (headerText.includes('Darıca') && !headerText.includes('en yakın merkez')) {
+      violations.push(
+        `[gps-label] GPS sonrası başlık ilçe adını "en yakın merkez" bağlamı olmadan içeriyor: "${headerText}"`
+      );
+    }
+    if (!/\d\d?\.\d\d,\s*\d\d?\.\d\d/.test(headerText)) {
+      violations.push(`[gps-label] GPS sonrası başlıkta koordinat (2 ondalık) görünmüyor: "${headerText}"`);
+    }
+
+    // Control: a manually-picked location must still show the district
+    // name as its title — proves this check actually distinguishes the
+    // two paths instead of just matching new copy anywhere.
+    await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: /Çankaya/ }).click();
+    await page.waitForTimeout(400);
+    const headerTextAfterManualPick = await page.evaluate(
+      () => document.querySelector('[aria-label="Konumu Değiştir"]')?.textContent ?? ''
+    );
+    if (!headerTextAfterManualPick.includes('Çankaya') || headerTextAfterManualPick.includes('Mevcut Konum')) {
+      violations.push(
+        `[gps-label] elle seçilen konum başlıkta ilçe adı olarak görünmüyor: "${headerTextAfterManualPick}"`
+      );
+    }
+
+    if (violations.length === violationsBefore) {
+      console.log('  GPS başlığı ilçe adı iddia etmiyor; elle seçim hâlâ ilçe adını gösteriyor.');
+    }
+  } catch (err) {
+    violations.push(`[gps-label] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
@@ -1422,6 +1497,7 @@ async function main() {
       await checkSpaFallbackRegression(browser);
       await checkLocationSearchFocusRegression(browser);
       await checkInteractionSweep(browser);
+      await checkGpsLocationLabelHonesty(browser);
     } finally {
       await browser.close();
     }

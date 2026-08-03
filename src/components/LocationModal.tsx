@@ -152,6 +152,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
           id: `gps-${Date.now()}`,
           lat: latitude,
           lng: longitude,
+          isGpsDerived: true,
         };
 
         try {
@@ -164,6 +165,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
                 ...data.location,
                 id: `gps-${Date.now()}`,
                 timeZone: data.location.timeZone ?? guessTimeZone(data.location.lat, data.location.lng),
+                isGpsDerived: true,
               });
               onClose();
               return;

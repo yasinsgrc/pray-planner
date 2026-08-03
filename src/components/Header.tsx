@@ -59,16 +59,33 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="w-7 h-7 rounded-full bg-gold/10 flex items-center justify-center text-gold-ink group-hover:bg-gold/20 transition-colors">
             <MapPinIcon className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-xs font-semibold tracking-wide text-ink flex items-center gap-1">
-              <span>{location.districtName}</span>
-              <span className="text-gold-ink">•</span>
-              <span className="opacity-80">{location.cityName}</span>
+          {/* GPS'ten gelen bir konum, kullanıcının hiç onaylamadığı bir
+              ilçe adını kesin olgu gibi sunmamalı — GPS koordinatı kesin
+              ama ona iliştirilen isim en-yakın-merkez tahmini (design-refresh-v3
+              Faz 14: Darıca'da GPS "Çayırova" bulmuştu, komşu ve merkezi
+              çok yakın bir ilçe). Listeden elle seçilen bir konum içinse
+              kullanıcı zaten o ismi onayladığı için ana başlık olarak kalır. */}
+          {location.isGpsDerived ? (
+            <div>
+              <div className="text-xs font-semibold tracking-wide text-ink">
+                Mevcut Konum
+              </div>
+              <div className="text-label text-mist font-medium">
+                {location.lat.toFixed(2)}, {location.lng.toFixed(2)} · en yakın merkez: {location.districtName || location.cityName}
+              </div>
             </div>
-            <div className="text-label text-mist font-medium">
-              {location.country}
+          ) : (
+            <div>
+              <div className="text-xs font-semibold tracking-wide text-ink flex items-center gap-1">
+                <span>{location.districtName}</span>
+                <span className="text-gold-ink">•</span>
+                <span className="opacity-80">{location.cityName}</span>
+              </div>
+              <div className="text-label text-mist font-medium">
+                {location.country}
+              </div>
             </div>
-          </div>
+          )}
         </button>
 
         {/* Sağ: İkonlar */}
