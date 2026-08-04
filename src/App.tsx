@@ -9,6 +9,7 @@ import { WifiSlashIcon, ArrowsClockwiseIcon, MapPinIcon } from './components/ico
 import { Header } from './components/Header';
 import { MainCountdownRing } from './components/MainCountdownRing';
 import { DailyFlowList } from './components/DailyFlowList';
+import { RamadanModeCard } from './components/RamadanModeCard';
 import { SpiritualSettings } from './components/SpiritualSettings';
 import { SpiritualHub } from './components/SpiritualHub';
 import { Navbar, TabType } from './components/Navbar';
@@ -505,11 +506,14 @@ export default function App() {
             className="flex-1 flex flex-col"
           >
             {activeTab === 'focus' && (
-              <MainCountdownRing
-                schedule={schedule}
-                onScrollToFlow={() => setActiveTab('flow')}
-                onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
-              />
+              <>
+                <RamadanModeCard schedule={schedule} now={now} />
+                <MainCountdownRing
+                  schedule={schedule}
+                  onScrollToFlow={() => setActiveTab('flow')}
+                  onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
+                />
+              </>
             )}
 
             {activeTab === 'flow' && (

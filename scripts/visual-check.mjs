@@ -1340,6 +1340,81 @@ async function checkGpsLocationLabelHonesty(browser) {
 }
 
 /**
+ * Ramazan modu (design-refresh-v3 Faz 19 Ekleme 6) — RamadanModeCard only
+ * renders when getRamadanInfo() finds `now` inside a verified Ramadan
+ * range (religiousDays.ts), so the app's two fixed SCENARIOS (2026-08-01)
+ * never exercise it — without a dedicated check here, this whole screen
+ * would ship with zero overflow/contrast/touch-target coverage. Also
+ * verifies the reverse: the card must be completely absent outside
+ * Ramadan (the explicit "hidden outside Ramadan" requirement) — checked
+ * against the same 2026-08-01 date the main SCENARIOS already use, so a
+ * regression here would already be a second, independent signal beyond
+ * this function alone.
+ */
+async function checkRamadanMode(browser) {
+  console.log('\n=== Ramazan modu (yalnızca Ramazan\'da görünür) ===');
+
+  // Inside Ramadan 2026 (2026-02-19 .. 2026-03-19), a daytime hour so the
+  // card is in its "İftara kalan" branch — the more visually complex of
+  // its two live states (both header rows + countdown + İmsak/İftar row).
+  const ramadanContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 3,
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+  });
+  const ramadanPage = await ramadanContext.newPage();
+  ramadanPage.setDefaultTimeout(10000);
+  try {
+    await ramadanPage.clock.install({ time: new Date('2026-03-01T13:00:00').getTime() });
+    await ramadanPage.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await ramadanPage.waitForTimeout(600);
+
+    const cardVisible = await ramadanPage.evaluate(() =>
+      [...document.querySelectorAll('div')].some((el) => el.textContent?.trim() === 'İftara')
+    );
+    if (!cardVisible) {
+      violations.push('[ramazan] Ramazan içinde RamadanModeCard görünmüyor ("İftara" etiketi bulunamadı)');
+    } else {
+      await checkScreen(ramadanPage, { name: 'ramazan' }, 'focus-ramazan');
+      console.log('  Ramazan içinde kart görünüyor; ekran kontrolleri (taşma/kontrast/tap hedefi) geçti.');
+    }
+  } catch (err) {
+    violations.push(`[ramazan] active-state check threw: ${err.message}`);
+  } finally {
+    await ramadanContext.close();
+  }
+
+  // Outside Ramadan (same date the main SCENARIOS already use): the card
+  // must render nothing at all, not just be visually empty.
+  const nonRamadanContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+  });
+  const nonRamadanPage = await nonRamadanContext.newPage();
+  nonRamadanPage.setDefaultTimeout(10000);
+  try {
+    await nonRamadanPage.clock.install({ time: new Date('2026-08-01T13:30:00').getTime() });
+    await nonRamadanPage.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await nonRamadanPage.waitForTimeout(600);
+
+    const cardVisibleOutsideRamadan = await nonRamadanPage.evaluate(() =>
+      [...document.querySelectorAll('div')].some((el) => el.textContent?.trim() === 'İftara')
+    );
+    if (cardVisibleOutsideRamadan) {
+      violations.push('[ramazan] RamadanModeCard Ramazan dışında da görünüyor — tamamen gizli olmalı');
+    } else {
+      console.log('  Ramazan dışında kart tamamen gizli.');
+    }
+  } catch (err) {
+    violations.push(`[ramazan] hidden-state check threw: ${err.message}`);
+  } finally {
+    await nonRamadanContext.close();
+  }
+}
+
+/**
  * Bottom Navbar legibility (design-refresh-v3 Faz 18 F7) — .glass-panel's
  * background must obscure content scrolled behind the fixed Navbar, not
  * just look translucent in isolation. Real-device report: "22:04 Bildirim"
@@ -1721,6 +1796,7 @@ async function main() {
       await checkLocationSearchFocusRegression(browser);
       await checkInteractionSweep(browser);
       await checkGpsLocationLabelHonesty(browser);
+      await checkRamadanMode(browser);
       await checkNavbarLegibility(browser);
       await checkTabTransitionStability(browser);
     } finally {

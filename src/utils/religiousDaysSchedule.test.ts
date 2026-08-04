@@ -1,12 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getNextReligiousDay, getUpcomingReligiousDays } from './religiousDaysSchedule';
+import { getNextReligiousDay, getUpcomingReligiousDays, getRamadanInfo } from './religiousDaysSchedule';
 import { ReligiousDayEntry } from '../data/religiousDays';
 
 const ENTRIES: ReligiousDayEntry[] = [
   { name: 'A', date: '2026-01-15' },
   { name: 'B', date: '2026-02-02' },
   { name: 'C', date: '2026-02-19' },
+];
+
+const RAMADAN_ENTRIES: ReligiousDayEntry[] = [
+  { name: 'Ramazan Başlangıcı', date: '2026-02-19' },
+  { name: 'Kadir Gecesi', date: '2026-03-16' },
+  { name: 'Ramazan Bayramı Arefesi', date: '2026-03-19' },
+  { name: 'Ramazan Bayramı (1. Gün)', date: '2026-03-20' },
 ];
 
 test('getNextReligiousDay returns the nearest future entry with correct daysRemaining', () => {
@@ -58,6 +65,48 @@ test('getNextReligiousDay uses the given timeZone to determine "today", not the 
   assert.ok(result);
   assert.equal(result?.entry.name, 'A');
   assert.equal(result?.daysRemaining, 0);
+});
+
+test('getRamadanInfo returns null before Ramadan starts', () => {
+  const result = getRamadanInfo(new Date('2026-02-18T12:00:00Z'), undefined, RAMADAN_ENTRIES);
+  assert.equal(result, null);
+});
+
+test('getRamadanInfo returns day 1 on the first day of Ramadan', () => {
+  const result = getRamadanInfo(new Date('2026-02-19T12:00:00Z'), undefined, RAMADAN_ENTRIES);
+  assert.ok(result);
+  assert.equal(result?.dayNumber, 1);
+  assert.equal(result?.totalDays, 29);
+});
+
+test('getRamadanInfo returns the correct day number mid-Ramadan', () => {
+  const result = getRamadanInfo(new Date('2026-03-01T12:00:00Z'), undefined, RAMADAN_ENTRIES);
+  assert.ok(result);
+  assert.equal(result?.dayNumber, 11);
+  assert.equal(result?.totalDays, 29);
+});
+
+test('getRamadanInfo still returns a result on the last day (Ramazan Bayramı Arefesi)', () => {
+  const result = getRamadanInfo(new Date('2026-03-19T12:00:00Z'), undefined, RAMADAN_ENTRIES);
+  assert.ok(result);
+  assert.equal(result?.dayNumber, 29);
+  assert.equal(result?.totalDays, 29);
+});
+
+test('getRamadanInfo returns null once Ramazan Bayramı starts', () => {
+  const result = getRamadanInfo(new Date('2026-03-20T12:00:00Z'), undefined, RAMADAN_ENTRIES);
+  assert.equal(result, null);
+});
+
+test('getRamadanInfo returns null when the data set has no Ramadan range at all', () => {
+  const result = getRamadanInfo(new Date('2026-02-19T12:00:00Z'), undefined, ENTRIES);
+  assert.equal(result, null);
+});
+
+test('getRamadanInfo works against the real RELIGIOUS_DAYS data set for 2026 Ramadan', async () => {
+  const result = getRamadanInfo(new Date('2026-02-19T12:00:00Z'));
+  assert.ok(result);
+  assert.equal(result?.dayNumber, 1);
 });
 
 test('the real RELIGIOUS_DAYS data set is non-empty, chronologically sorted, and every date is well-formed', async () => {
