@@ -6,6 +6,7 @@ import { LocationItem } from '../types';
 import { calculateQiblaBearing } from '../utils/qibla';
 import { PRESET_DHIKRS, ZikirmatikState, getCounterFor } from '../utils/zikirmatikStorage';
 import { ESMA_UL_HUSNA } from '../data/esmaulHusna';
+import { ReligiousDaysCard } from './ReligiousDaysCard';
 
 interface SpiritualHubProps {
   location: LocationItem;
@@ -132,6 +133,8 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
           </p>
         </motion.div>
       )}
+
+      <ReligiousDaysCard location={location} />
 
       {/* Günün Esmâsı */}
       <motion.div
