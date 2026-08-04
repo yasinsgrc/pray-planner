@@ -81,17 +81,23 @@ export interface NotificationSettings {
   earlyWarningSound: SoundMode;
 }
 
-/** Per-prayer minute offset applied only to the already-computed display time, never to the adhan calculation itself (design-refresh-v3 Faz 7 F5). Range -10..+10, default 0, global (not per-location). */
-export type PrayerAdjustments = Record<PrayerName, number>;
-
 export interface AppSettings {
   themeMode: 'auto' | 'light' | 'dark';
-  calculationMethod: 'Diyanet' | 'MWL' | 'ISNA' | 'Egypt' | 'Karachi' | 'Makkah';
+  /**
+   * Diyanet only (design-refresh-v3 Faz 19) — MWL/ISNA/Egypt/Karachi/Makkah
+   * were removed: this app's users are in Turkey, and any other method
+   * produces times that disagree with the local mosque, which is the one
+   * thing a prayer-time app cannot get wrong. Narrowed to a single-value
+   * literal type (not just "always happens to be Diyanet at runtime") so
+   * the type system itself makes any other value a compile error —
+   * appSettingsStorage.ts's migration is what guarantees a value loaded
+   * from an older build's localStorage also collapses to this at runtime.
+   */
+  calculationMethod: 'Diyanet';
   location: LocationItem;
   notifications: NotificationSettings;
   /** Plays the real ezan recording out loud when the active prayer changes while the app is open in a tab — the one sound behavior this app can actually promise (design-refresh-v3 Faz 7 F1). */
   playEzanInForeground: boolean;
-  prayerAdjustments: PrayerAdjustments;
 }
 
 export interface DailyInspiration {

@@ -17,6 +17,8 @@ export { BellIcon } from '@phosphor-icons/react/dist/csr/Bell';
 export { BookOpenIcon } from '@phosphor-icons/react/dist/csr/BookOpen';
 export { CalendarDotsIcon } from '@phosphor-icons/react/dist/csr/CalendarDots';
 export { CaretDownIcon } from '@phosphor-icons/react/dist/csr/CaretDown';
+export { CaretLeftIcon } from '@phosphor-icons/react/dist/csr/CaretLeft';
+export { CaretRightIcon } from '@phosphor-icons/react/dist/csr/CaretRight';
 export { CheckIcon } from '@phosphor-icons/react/dist/csr/Check';
 export { ClockIcon } from '@phosphor-icons/react/dist/csr/Clock';
 export { CloudSunIcon } from '@phosphor-icons/react/dist/csr/CloudSun';

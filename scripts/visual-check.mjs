@@ -1233,42 +1233,29 @@ async function checkInteractionSweep(browser) {
     await page.getByRole('button', { name: 'Otomatik' }).click();
     await page.waitForTimeout(300);
 
-    // --- Ayarlar: calculation method picker changes value + persists ---
-    // "Hesaplama Yöntemi" is a plain heading `<div>`, not the button itself
-    // — the actual opener is the value button below it, whose accessible
-    // name is the CURRENT method's own label (e.g. "Türkiye Diyanet İşleri
-    // Başkanlığı"), found by walking from the heading to its sibling button.
-    const methodButtonBefore = await page.evaluate(() => {
-      const heading = [...document.querySelectorAll('div')].find((el) => el.textContent.trim() === 'Hesaplama Yöntemi');
-      return heading?.parentElement?.parentElement?.parentElement?.querySelector('button')?.innerText ?? '';
-    });
-    await page.getByRole('button', { name: methodButtonBefore, exact: false }).click();
-    await page.waitForTimeout(400);
-    await page.getByRole('button', { name: /Müslüman Dünya Ligi/ }).click();
-    await page.waitForTimeout(400);
-    const methodButtonAfter = await page.evaluate(() => {
-      const heading = [...document.querySelectorAll('div')].find((el) => el.textContent.trim() === 'Hesaplama Yöntemi');
-      return heading?.parentElement?.parentElement?.parentElement?.querySelector('button')?.innerText ?? '';
-    });
-    if (!methodButtonAfter.includes('Müslüman Dünya Ligi')) {
-      violations.push(`[sweep] Hesaplama yöntemi seçimi yansımadı: "${methodButtonAfter}"`);
-    }
-    await page.reload({ waitUntil: 'load', timeout: 20000 });
-    await page.waitForTimeout(600);
+    // --- Ayarlar: hesaplama yöntemi artık sabit (Diyanet), seçim arayüzü
+    // yok (design-refresh-v3 Faz 19) — bilgi satırının göründüğünü ve
+    // tıklanabilir/etkileşimli bir seçim kontrolü OLMADIĞINI doğrular, tam
+    // tersi kalıcılık testinin yerini alır.
     await page.getByRole('tab', { name: 'Ayarlar' }).click();
     await page.waitForTimeout(500);
-    const methodButtonAfterReload = await page.evaluate(() => {
-      const heading = [...document.querySelectorAll('div')].find((el) => el.textContent.trim() === 'Hesaplama Yöntemi');
-      return heading?.parentElement?.parentElement?.parentElement?.querySelector('button')?.innerText ?? '';
-    });
-    if (!methodButtonAfterReload.includes('Müslüman Dünya Ligi')) {
-      violations.push('[sweep] Hesaplama yöntemi tercihi sayfa yenilendikten sonra kalıcı değil');
+    const methodInfoVisible = await page.evaluate(() =>
+      [...document.querySelectorAll('div')].some((el) => el.textContent.trim() === 'Türkiye Diyanet İşleri Başkanlığı yöntemi')
+    );
+    if (!methodInfoVisible) {
+      violations.push('[sweep] "Türkiye Diyanet İşleri Başkanlığı yöntemi" bilgi satırı görünmüyor');
+    }
+    const methodPickerStillExists = await page.evaluate(() =>
+      [...document.querySelectorAll('button')].some((el) => /Müslüman Dünya Ligi|ISNA|Ümmü.?l-Kurâ|Karaçi/.test(el.textContent ?? ''))
+    );
+    if (methodPickerStillExists) {
+      violations.push('[sweep] kaldırılmış hesaplama yöntemi seçim arayüzü hâlâ mevcut');
     }
 
     if (consoleErrors.length > 0) {
       violations.push(`[sweep] konsola ${consoleErrors.length} hata düştü: ${consoleErrors.join(' | ')}`);
     } else {
-      console.log('  Navbar, konum seçimi, Kıble/Zikirmatik sheet\'leri, tema ve hesaplama yöntemi kalıcılığı doğru; konsol temiz.');
+      console.log('  Navbar, konum seçimi, Kıble/Zikirmatik sheet\'leri, tema kalıcılığı ve hesaplama yöntemi bilgi satırı doğru; konsol temiz.');
     }
   } catch (err) {
     violations.push(`[sweep] check threw: ${err.message}`);

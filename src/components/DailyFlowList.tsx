@@ -7,13 +7,13 @@ import {
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { PRAYER_ICON_COMPONENTS } from './prayerIcons';
 import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels';
-import { formatAdjustedTime } from '../utils/prayerAdjustments';
-import { PrayerName, SoundMode, PrayerAdjustments } from '../types';
+import { AppSettings, PrayerName, SoundMode } from '../types';
+import { MonthlyScheduleTable } from './MonthlyScheduleTable';
 
 interface DailyFlowListProps {
   schedule: DayPrayerSchedule;
   notifications: Record<PrayerName, SoundMode>;
-  prayerAdjustments: PrayerAdjustments;
+  calculationMethod: AppSettings['calculationMethod'];
   onOpenSettings: () => void;
   onOpenKerahetInfo: () => void;
 }
@@ -21,7 +21,7 @@ interface DailyFlowListProps {
 export const DailyFlowList: React.FC<DailyFlowListProps> = ({
   schedule,
   notifications,
-  prayerAdjustments,
+  calculationMethod,
   onOpenSettings,
   onOpenKerahetInfo,
 }) => {
@@ -163,7 +163,7 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                   <div className="flex items-center gap-3 text-right">
                     <div>
                       <div className={`font-numbers text-lg font-bold ${item.isActive ? 'text-gold-ink' : 'text-ink'}`}>
-                        {formatAdjustedTime(item.dateObj, item.name, prayerAdjustments, resolvedTimeZone)}
+                        {item.timeString}
                       </div>
                       <button
                         onClick={onOpenSettings}
@@ -223,6 +223,13 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
           <div>{tomorrowAksamTime} <span className="text-mist font-normal">Akşam</span></div>
         </div>
       </div>
+
+      <MonthlyScheduleTable
+        location={schedule.location}
+        calculationMethod={calculationMethod}
+        today={schedule.date}
+        timeZone={resolvedTimeZone}
+      />
     </div>
   );
 };

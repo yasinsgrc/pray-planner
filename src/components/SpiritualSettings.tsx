@@ -57,22 +57,6 @@ const SOUND_OPTIONS: { value: SoundMode; label: string }[] = [
   { value: 'sessiz', label: 'Sessiz' },
 ];
 
-const ADJUSTMENT_MIN = -10;
-const ADJUSTMENT_MAX = 10;
-
-const CALC_METHOD_OPTIONS: {
-  value: AppSettings['calculationMethod'];
-  label: string;
-  description: string;
-}[] = [
-  { value: 'Diyanet', label: 'Türkiye Diyanet İşleri Başkanlığı', description: 'Türkiye için resmi hesaplama parametreleri' },
-  { value: 'MWL', label: 'Müslüman Dünya Ligi (MWL)', description: 'Uluslararası yaygın kullanılan standart' },
-  { value: 'Makkah', label: "Ümmü'l-Kurâ (Mekke-i Mükerreme)", description: 'Suudi Arabistan resmi yöntemi' },
-  { value: 'ISNA', label: 'Kuzey Amerika İslam Cemiyeti (ISNA)', description: 'Kuzey Amerika için yaygın standart' },
-  { value: 'Egypt', label: 'Mısır Genel Ölçüm Heyeti', description: 'Mısır ve çevresi için yaygın yöntem' },
-  { value: 'Karachi', label: 'Karaçi İslam İlimleri Üniversitesi', description: 'Güney Asya için yaygın yöntem' },
-];
-
 export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   settings,
   schedule,
@@ -84,9 +68,8 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   onEnablePush,
   onDisablePush,
 }) => {
-  const { notifications, themeMode, calculationMethod, playEzanInForeground, prayerAdjustments } = settings;
+  const { notifications, themeMode, playEzanInForeground } = settings;
   const [openSoundSheet, setOpenSoundSheet] = useState<PrayerName | null>(null);
-  const [isMethodSheetOpen, setIsMethodSheetOpen] = useState(false);
   const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
   // Bildirim izni istenmeden ÖNCE açık rıza — kullanıcı onaylamazsa
   // onEnablePush hiç çağrılmaz, hiçbir abonelik denemesi yapılmaz
@@ -97,12 +80,6 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   const handleConfirmPushConsent = () => {
     setIsPushConsentSheetOpen(false);
     onEnablePush();
-  };
-
-  const adjustPrayer = (prayer: PrayerName, delta: number) => {
-    const current = prayerAdjustments[prayer] ?? 0;
-    const next = Math.max(ADJUSTMENT_MIN, Math.min(ADJUSTMENT_MAX, current + delta));
-    onUpdateSettings({ prayerAdjustments: { ...prayerAdjustments, [prayer]: next } });
   };
 
   const aksamTime = schedule.prayers.find((p) => p.name === 'aksam')?.timeString ?? '--:--';
@@ -391,7 +368,15 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       <div className="space-y-3">
         <div className="text-label font-bold text-mist px-1">Hesaplama</div>
 
-        <FadeIn delay={0.24} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
+        {/* Seçim arayüzü kaldırıldı (design-refresh-v3 Faz 19):
+            MWL/ISNA/Mısır/Karaçi/Mekke seçenekleri, kullanıcı kitlesi
+            Türkiye'de olduğu için mahalle camisiyle uyuşmayan vakitler
+            üretmekten başka işe yaramıyordu. Diyanet artık tek ve sabit
+            yöntem — bkz. appSettingsStorage.ts'teki sessiz göç ve
+            types.ts'teki daraltılmış AppSettings['calculationMethod']
+            tipi ('Diyanet' dışında bir değer artık derleme zamanında
+            hata verir). */}
+        <FadeIn delay={0.24} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-1">
           <div className="flex items-center gap-2">
             <GearIcon className="w-4 h-4 text-gold-ink" />
             <div>
@@ -399,77 +384,20 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                 Hesaplama Yöntemi
               </div>
               <div className="text-[11px] text-mist">
-                Diyanet İşleri Başkanlığı ve uluslararası astronomik yöntemler
+                Türkiye Diyanet İşleri Başkanlığı yöntemi
               </div>
             </div>
           </div>
-
-          <button
-            onClick={() => setIsMethodSheetOpen(true)}
-            className="relative w-full flex items-center justify-between p-2.5 rounded-xl bg-paper text-left cursor-pointer before:content-[''] before:absolute before:-top-1.5 before:-bottom-1.5 before:inset-x-0"
-          >
-            <span className="text-xs font-semibold text-ink">
-              {CALC_METHOD_OPTIONS.find((o) => o.value === calculationMethod)?.label}
-            </span>
-            <CaretDownIcon className="w-3.5 h-3.5 text-mist shrink-0" />
-          </button>
         </FadeIn>
 
-        {/* Vakit başına ince ayar — yalnızca hesaplanmış sonuca uygulanır,
-            adhan çağrısını veya prayerCalculator'ın çıktı sözleşmesini
-            değiştirmez (design-refresh-v3 Faz 7 F5). Kullanıcılar Diyanet'in
-            yayınladığı vakitlerle 1-2 dakika fark görüp bunu "yanlış" olarak
-            okuyabiliyor; bu, o farkı elle kapatabilecekleri bir kaçış yolu. */}
-        <FadeIn delay={0.3} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
-          <div className="flex items-center gap-2">
-            <ClockIcon className="w-4 h-4 text-gold-ink" />
-            <div>
-              <div className="text-sm font-bold text-ink">Vakit Düzeltmesi</div>
-              <div className="text-[11px] text-mist">
-                Her vakit için ±{ADJUSTMENT_MAX} dakikaya kadar ince ayar yapın
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            {(Object.keys(PRAYER_LABELS) as PrayerName[]).map((prayer) => {
-              const value = prayerAdjustments[prayer] ?? 0;
-              return (
-                <div
-                  key={prayer}
-                  className="flex items-center justify-between py-2 border-b border-hairline last:border-0"
-                >
-                  <span className="text-sm font-medium text-ink">{PRAYER_LABELS[prayer]}</span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => adjustPrayer(prayer, -1)}
-                      disabled={value <= ADJUSTMENT_MIN}
-                      aria-label={`${PRAYER_LABELS[prayer]} düzeltmesini bir dakika azalt`}
-                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-base font-bold text-gold-ink hover:bg-gold/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      −
-                    </button>
-                    <span className="font-numbers text-sm font-bold text-ink w-12 text-center tabular-nums">
-                      {value > 0 ? `+${value}` : value} dk
-                    </span>
-                    <button
-                      onClick={() => adjustPrayer(prayer, 1)}
-                      disabled={value >= ADJUSTMENT_MAX}
-                      aria-label={`${PRAYER_LABELS[prayer]} düzeltmesini bir dakika artır`}
-                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-base font-bold text-gold-ink hover:bg-gold/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <p className="text-[11px] text-mist pt-1">
-            Vakitler Diyanet yöntemiyle hesaplanır; resmî vakitler için Diyanet İşleri Başkanlığı'na bakınız.
-          </p>
-        </FadeIn>
+        {/* "Vakit Düzeltmesi" (±10dk elle kaydırma) kaldırıldı
+            (design-refresh-v3 Faz 19): ölçüldü — adhan'ın Türkiye yöntemi
+            Diyanet'in yayınladığı vakitlerden en fazla 1 dakika sapıyor, yani
+            bu ayar yalnızca 1 dakikalık yuvarlama farkı için ±10 dakikalık
+            YANLIŞ yapma yetkisi veriyordu, doğru yapma değil. */}
+        <p className="text-[11px] text-mist px-1">
+          Vakitler Diyanet yöntemiyle hesaplanır; resmî takvimle karşılaştırıldığında 1 dakikaya kadar yuvarlama farkı olabilir.
+        </p>
       </div>
 
       {/* HAKKINDA */}
@@ -565,42 +493,6 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
         </div>
       </BottomSheet>
 
-      {/* Hesaplama Yöntemi Sheet */}
-      <BottomSheet
-        isOpen={isMethodSheetOpen}
-        onClose={() => setIsMethodSheetOpen(false)}
-        title="Hesaplama Yöntemi"
-      >
-        <div className="space-y-1 pb-2">
-          {CALC_METHOD_OPTIONS.map((opt) => {
-            const isSelected = calculationMethod === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => {
-                  onUpdateSettings({ calculationMethod: opt.value });
-                  setIsMethodSheetOpen(false);
-                }}
-                className={`w-full flex items-start gap-2 p-3 rounded-xl text-left cursor-pointer ${
-                  isSelected ? 'bg-gold/10' : ''
-                }`}
-              >
-                {isSelected ? (
-                  <CheckIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
-                ) : (
-                  <span className="w-4 h-4 shrink-0" />
-                )}
-                <div>
-                  <div className={`text-sm font-semibold ${isSelected ? 'text-gold-ink' : 'text-ink'}`}>
-                    {opt.label}
-                  </div>
-                  <div className="text-[11px] text-mist mt-0.5">{opt.description}</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </BottomSheet>
     </div>
   );
 };

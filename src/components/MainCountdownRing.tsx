@@ -1,27 +1,21 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ClockIcon, DeviceMobileIcon, CalendarDotsIcon } from './icons';
+import { ClockIcon, CalendarDotsIcon } from './icons';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { SunArcDial } from './SunArcDial';
 import { DialLegend } from './DialLegend';
 import { KerahetStrip } from './KerahetStrip';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
-import { formatAdjustedTime } from '../utils/prayerAdjustments';
-import { PrayerAdjustments } from '../types';
 
 interface MainCountdownRingProps {
   schedule: DayPrayerSchedule;
-  prayerAdjustments: PrayerAdjustments;
   onScrollToFlow: () => void;
-  onOpenLiveActivity: () => void;
   onOpenKerahetInfo: () => void;
 }
 
 export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
   schedule,
-  prayerAdjustments,
   onScrollToFlow,
-  onOpenLiveActivity,
   onOpenKerahetInfo,
 }) => {
   const {
@@ -124,39 +118,25 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
 
           <div className="text-right">
             <div className="font-numbers text-lg font-bold text-gold-ink">
-              {formatAdjustedTime(nextPrayer.dateObj, nextPrayer.name, prayerAdjustments, schedule.resolvedTimeZone)}
+              {nextPrayer.timeString}
             </div>
           </div>
         </motion.div>
 
-        {/* Kilit Ekranı Görünümü Kısayolu */}
+        {/* Tüm Vakitler Kısayolu — "Kilit Ekranı Görünümü" (iOS Live
+            Activity / Android widget önizlemesi) kaldırıldı (design-refresh-v3
+            Faz 19): PWA bunu gerçekten sunamıyor, olmayan bir yetenek vaat
+            ediyordu. Tasarım git geçmişinde kalıyor, native widget
+            yapılırken şartname olarak kullanılabilir. col-span-2: artık bu
+            ızgara satırındaki tek öğe. */}
         <motion.button
-          onClick={onOpenLiveActivity}
+          onClick={onScrollToFlow}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.18, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.97 }}
-          className="p-3.5 rounded-2xl bg-card/70 border border-hairline/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-gold/40"
-          title="Kilit Ekranı / Canlı Etkinlik Widget'ını Gör"
-        >
-          <div className="w-8 h-8 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center">
-            <DeviceMobileIcon className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-semibold text-ink leading-tight">
-            Kilit Ekranı Görünümü
-          </span>
-        </motion.button>
-
-        {/* Tüm Vakitler Kısayolu */}
-        <motion.button
-          onClick={onScrollToFlow}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.24, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.97 }}
-          className="p-3.5 rounded-2xl bg-card/70 border border-hairline/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-gold/40"
+          className="col-span-2 p-3.5 rounded-2xl bg-card/70 border border-hairline/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-gold/40"
         >
           <div className="w-8 h-8 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center">
             <CalendarDotsIcon className="w-4 h-4" />

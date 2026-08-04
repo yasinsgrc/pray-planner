@@ -15,7 +15,6 @@ import { Navbar, TabType } from './components/Navbar';
 import { LocationModal } from './components/LocationModal';
 import { QiblaCompassModal } from './components/QiblaCompassModal';
 import { ZikirmatikModal } from './components/ZikirmatikModal';
-import { LiveActivityWidgetModal } from './components/LiveActivityWidgetModal';
 import { KnowledgeSheet } from './components/KnowledgeSheet';
 import { KERAHET_KNOWLEDGE } from './data/knowledge';
 import {
@@ -30,7 +29,6 @@ import {
 import { useApiAvailable } from './hooks/useApiAvailable';
 
 import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
-import { DEFAULT_LOCATION } from './data/locations';
 import { getHijriDate } from './utils/hijri';
 import { calculateDaySchedule, deriveLiveSchedule } from './utils/prayerCalculator';
 import { playEzanAudio } from './utils/audio';
@@ -46,9 +44,9 @@ import {
   pruneOldZikirLogEntries,
   getDayTotal,
 } from './utils/zikirmatikStorage';
+import { loadAppSettings, saveAppSettings } from './utils/appSettingsStorage';
 import { dateKeyInZone } from './utils/timezone';
 
-const LOCAL_STORAGE_KEY = 'vakit_app_settings_v1';
 // 30 günlük zamanlama penceresi sessizce dolarsa bildirimler de sessizce
 // durur — kullanıcı bunu Ayarlar'da "son güncelleme" olarak görüp fark
 // edebilsin diye her başarılı subscribe/schedule sonrası güncellenir
@@ -74,59 +72,10 @@ const PRAYER_ACCENT_INK_VAR: Record<PrayerName, string> = {
 };
 
 export default function App() {
-  // Load settings from localStorage or fallback to defaults
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    const defaults: AppSettings = {
-      themeMode: 'auto',
-      calculationMethod: 'Diyanet',
-      location: DEFAULT_LOCATION,
-      notifications: {
-        imsak: 'bildirim',
-        gunes: 'sessiz',
-        ogle: 'bildirim',
-        ikindi: 'bildirim',
-        aksam: 'bildirim',
-        yatsi: 'bildirim',
-        earlyWarningMinutes: 15,
-        earlyWarningSound: 'bildirim',
-      },
-      playEzanInForeground: true,
-      prayerAdjustments: { imsak: 0, gunes: 0, ogle: 0, ikindi: 0, aksam: 0, yatsi: 0 },
-    };
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Faz 7 F1: SoundMode dropped 'ezan'/'tini'/'ilahi1-3' down to just
-        // 'bildirim'/'sessiz' (a web push notification's sound was never
-        // actually controllable by this app — see types.ts). Migrate any
-        // older stored value instead of letting an unrecognized string
-        // silently reach the sound-select UI.
-        const migrateSoundMode = (value: unknown): SoundMode => (value === 'sessiz' ? 'sessiz' : 'bildirim');
-        return {
-          ...defaults,
-          ...parsed,
-          notifications: {
-            imsak: migrateSoundMode(parsed?.notifications?.imsak),
-            gunes: migrateSoundMode(parsed?.notifications?.gunes),
-            ogle: migrateSoundMode(parsed?.notifications?.ogle),
-            ikindi: migrateSoundMode(parsed?.notifications?.ikindi),
-            aksam: migrateSoundMode(parsed?.notifications?.aksam),
-            yatsi: migrateSoundMode(parsed?.notifications?.yatsi),
-            earlyWarningMinutes:
-              parsed?.notifications?.earlyWarningMinutes ?? defaults.notifications.earlyWarningMinutes,
-            earlyWarningSound: migrateSoundMode(parsed?.notifications?.earlyWarningSound),
-          },
-          playEzanInForeground:
-            typeof parsed?.playEzanInForeground === 'boolean' ? parsed.playEzanInForeground : true,
-          prayerAdjustments: { ...defaults.prayerAdjustments, ...(parsed?.prayerAdjustments ?? {}) },
-        };
-      }
-    } catch (e) {
-      console.error('LocalStorage error:', e);
-    }
-    return defaults;
-  });
+  // Load settings from localStorage or fallback to defaults — parsing and
+  // migration logic lives in appSettingsStorage.ts (unit-tested there
+  // directly), mirroring zikirmatikStorage.ts's existing load/save split.
+  const [settings, setSettings] = useState<AppSettings>(loadAppSettings);
 
   const [activeTab, setActiveTab] = useState<TabType>('focus');
   const [now, setNow] = useState(new Date());
@@ -135,7 +84,6 @@ export default function App() {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isQiblaModalOpen, setIsQiblaModalOpen] = useState(false);
   const [isZikirmatikModalOpen, setIsZikirmatikModalOpen] = useState(false);
-  const [isLiveActivityModalOpen, setIsLiveActivityModalOpen] = useState(false);
   const [isKerahetSheetOpen, setIsKerahetSheetOpen] = useState(false);
 
   // Zikirmatik: single source of truth so the modal and the Maneviyat
@@ -203,11 +151,7 @@ export default function App() {
 
   // Save settings to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settings));
-    } catch (e) {
-      console.error('Failed to save settings:', e);
-    }
+    saveAppSettings(settings);
   }, [settings]);
 
   // Timer interval: updates every second for ticking countdown
@@ -563,9 +507,7 @@ export default function App() {
             {activeTab === 'focus' && (
               <MainCountdownRing
                 schedule={schedule}
-                prayerAdjustments={settings.prayerAdjustments}
                 onScrollToFlow={() => setActiveTab('flow')}
-                onOpenLiveActivity={() => setIsLiveActivityModalOpen(true)}
                 onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
               />
             )}
@@ -574,7 +516,7 @@ export default function App() {
               <DailyFlowList
                 schedule={schedule}
                 notifications={settings.notifications}
-                prayerAdjustments={settings.prayerAdjustments}
+                calculationMethod={settings.calculationMethod}
                 onOpenSettings={() => setActiveTab('settings')}
                 onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
               />
@@ -633,12 +575,6 @@ export default function App() {
         state={zikirState}
         onChange={setZikirState}
         onDhikrTap={handleDhikrTap}
-      />
-
-      <LiveActivityWidgetModal
-        schedule={schedule}
-        isOpen={isLiveActivityModalOpen}
-        onClose={() => setIsLiveActivityModalOpen(false)}
       />
 
       <KnowledgeSheet
