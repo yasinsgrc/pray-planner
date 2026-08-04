@@ -300,11 +300,47 @@
  * this class never fights a utility like border-l-4 over border-width/color
  * (both are single-class selectors; whichever rule is later in the
  * generated stylesheet would otherwise silently win).
+ *
+ * 65% opacity (design-refresh-v3 Faz 18 finding): scrolled text sliding
+ * behind the bottom Navbar stayed legible through the blur. Measured with
+ * a real pixel-sampling regression test (npm run visual, "empty glass"
+ * points inside the Navbar's own hit-box padding, well clear of its
+ * icons/labels/active-pill highlight/top border — the exact spot a
+ * real-device screenshot showed a ghosted "22:04 Bildirim" through
+ * "AYARLAR"): local pixel gradient (3px apart) peaked at 79/255 at 65%
+ * opacity — an unambiguous edge. Iteratively raised opacity and
+ * re-measured the same way rather than guessing a number: 90% -> 22,
+ * 96% -> 9, 98.5% -> 4 (light and dark mode both), the last of these
+ * comfortably below what the automated test now enforces. saturate(1.3)
+ * keeps the "liquid glass" character (a flatly opaque panel reads as
+ * plain, not glass) instead of the blur alone looking washed out at this
+ * opacity — colors/shapes scrolling underneath still visibly tint and
+ * soften through the panel, just without resolving into legible shapes.
  */
 .glass-panel {
-  background: color-mix(in srgb, var(--card-bg) 65%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--card-bg) 98.5%, transparent);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+}
+
+/*
+ * Browsers with neither the prefixed nor unprefixed backdrop-filter
+ * (blur never runs) are the worst case for legibility, not the best:
+ * .glass-panel's background is still only 98.5% opaque, un-blurred text
+ * shows through even more sharply without the blur softening its edges.
+ * Force near-opaque here specifically — checked as "supports neither",
+ * not just "doesn't support the unprefixed property", so a browser that
+ * only understands -webkit-backdrop-filter (and therefore DOES still
+ * blur) isn't needlessly pushed into this flatter fallback. Deliberately
+ * MORE opaque than the blurred base rule (99% > 98.5%): the whole reason
+ * this fallback exists is that this case has strictly less legibility
+ * protection (no blur at all) than the base rule, so it needs to lean
+ * harder on opacity alone to compensate.
+ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel {
+    background: color-mix(in srgb, var(--card-bg) 99%, transparent);
+  }
 }
 
 @keyframes blurUpIn {

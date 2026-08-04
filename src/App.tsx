@@ -531,16 +531,32 @@ export default function App() {
       )}
 
       {/* Ana İçerik Alanı */}
-      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
+      {/* [scrollbar-gutter:stable]: kalıcı genel çözüm — dikey kaydırma
+          çubuğu HANGİ sebeple belirip kaybolursa kaybolsun (bu geçiş,
+          gelecekte eklenecek başka bir içerik değişikliği), <main>'in
+          genişliği sabit kalır; çubuk için yer her zaman ayrılmış olur
+          (design-refresh-v3 Faz 18). */}
+      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
             id={`tabpanel-${activeTab}`}
             role="tabpanel"
             aria-labelledby={`tab-${activeTab}`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            // y ekseninde kayma YOK — yalnızca opacity (design-refresh-v3
+            // Faz 18). Kök sebep: transform:translateY, CSS'in tanımına
+            // göre bir taşınan torunun geometrisi hâlâ en yakın
+            // overflow:visible olmayan atasının (burada <main>) kaydırılabilir
+            // taşma alanına dahil olur — iç sarmalayıcıya taşımak bunu
+            // gerçekten çözmez, torun yine <main>'in torunu kalır. y:8 ile
+            // monte olan panel 8px daha aşağı taşıyor, <main> geçici olarak
+            // "taşıyor" sanıyor, dikey kaydırma çubuğu beliriyor → içerik
+            // ~15px daralıyor → y sıfırlanınca çubuk kayboluyor → gridler
+            // geri genişliyor. Transformu tamamen kaldırmak, scrollbar-gutter
+            // gibi bir yan etkiyi gizlemek yerine kök nedeni ortadan kaldırır.
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className="flex-1 flex flex-col"
           >

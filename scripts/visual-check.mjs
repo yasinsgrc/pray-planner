@@ -1352,6 +1352,242 @@ async function checkGpsLocationLabelHonesty(browser) {
   }
 }
 
+/**
+ * Bottom Navbar legibility (design-refresh-v3 Faz 18 F7) — .glass-panel's
+ * background must obscure content scrolled behind the fixed Navbar, not
+ * just look translucent in isolation. Real-device report: "22:04 Bildirim"
+ * (a DailyFlowList row) was legibly ghosted through the "AYARLAR" tab.
+ * Reproduced and calibrated the fix with this exact pixel-sampling
+ * approach: page-scrolls the Vakitler tab (confirmed via measurement to be
+ * the actual scrolling context — main's own overflow-y-auto is inert here
+ * since the root shell only sets min-height, so main grows to fit content
+ * and the DOCUMENT scrolls) to a position partway through its range (0.3 x
+ * max — not the natural rest/max scroll, which the app's own
+ * .app-shell-padding correctly clears; the legibility risk is content
+ * passing behind the Navbar mid-scroll, before it settles), then samples
+ * pixels ONLY in genuinely "glass-only" spots: inside the Navbar's own
+ * hit-box padding (real risk area — a button's box is much bigger than
+ * its icon+label) but outside every button's icon/label/active-pill
+ * highlight and the Navbar's own top border line (all legitimate Navbar
+ * chrome, sampling there would false-positive on the Navbar's own
+ * rendering, not bleed-through). A real letter/digit edge survives a 16px
+ * blur as a local jump between pixels a few px apart; a properly-obscured
+ * background does not. Threshold calibrated against real measurements:
+ * 65% opacity (the original bug) peaked at 79/255, 90% at 22, the shipped
+ * 98.5% at 4 (light and dark both) — 15 sits with margin above the fix's
+ * real reading and well below every reading that was actually visible.
+ */
+const NAVBAR_EDGE_THRESHOLD = 15;
+
+async function checkNavbarLegibility(browser) {
+  console.log('\n=== Alt menü (Navbar) okunabilirlik testi ===');
+  for (const scenario of SCENARIOS) {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 3,
+      locale: 'tr-TR',
+      timezoneId: 'Europe/Istanbul',
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    try {
+      const fixedTime = new Date(scenario.time).getTime();
+      await page.clock.install({ time: fixedTime });
+      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(600);
+
+      // Vakitler (DailyFlowList) has the longest, densest text list — the
+      // real report came from exactly this screen.
+      await page.getByRole('tab', { name: 'Vakitler' }).click();
+      await page.waitForTimeout(500);
+
+      const maxScroll = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+      await page.evaluate((y) => window.scrollTo(0, Math.round(y)), maxScroll * 0.3);
+      await page.waitForTimeout(300);
+
+      const dpr = await page.evaluate(() => window.devicePixelRatio);
+      const navRect = await page.evaluate(() => {
+        const nav = document.querySelector('[role="tablist"]');
+        const r = nav.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      });
+
+      const points = await page.evaluate(({ x, y, width, height }) => {
+        // svg/span/path: each tab's own icon+label. The active tab's pill
+        // highlight (motion.div, bg-accent/10, `inset-0` filling that
+        // button's own box) is ALSO excluded here — it's a deliberate,
+        // by-design color difference marking the selected tab, not
+        // bleed-through, and its rounded-corner antialiasing would
+        // otherwise false-positive this check.
+        const skipEls = [
+          ...document.querySelectorAll('[role="tablist"] svg, [role="tablist"] span, [role="tablist"] path, [role="tablist"] .bg-accent\\/10'),
+        ];
+        const skipBoxes = skipEls.map((el) => {
+          const r = el.getBoundingClientRect();
+          const margin = 4;
+          return { left: r.left - margin, right: r.right + margin, top: r.top - margin, bottom: r.bottom + margin };
+        });
+        const pts = [];
+        const cols = 40, rows = 12;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const px = x + (width * (c + 0.5)) / cols;
+            const py = y + (height * (r + 0.5)) / rows;
+            if (py < y + 8) continue; // clear the Navbar's own top border line
+            if (px < 6 || px > width - 6) continue; // clear screen edges
+            const skipped = skipBoxes.some((b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom);
+            if (!skipped) pts.push({ x: px, y: py });
+          }
+        }
+        return pts;
+      }, navRect);
+
+      if (points.length < 10) {
+        violations.push(
+          `[${scenario.name}/navbar-legibility] yeterli "boş cam" pikseli bulunamadı (${points.length}) — test güvenilir değil`
+        );
+        continue;
+      }
+
+      const shot = await page.screenshot();
+      const { data, info } = await sharp(shot).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const samplePixel = (px, py) => {
+        const x = Math.min(Math.max(Math.round(px), 0), info.width - 1);
+        const y = Math.min(Math.max(Math.round(py), 0), info.height - 1);
+        const i = (y * info.width + x) * info.channels;
+        return [data[i], data[i + 1], data[i + 2]];
+      };
+
+      let maxDelta = 0;
+      let maxPoint = null;
+      for (const pt of points) {
+        const base = samplePixel(pt.x * dpr, pt.y * dpr);
+        for (const [dx, dy] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) {
+          const neighbor = samplePixel((pt.x + dx) * dpr, (pt.y + dy) * dpr);
+          const delta = Math.max(
+            Math.abs(base[0] - neighbor[0]),
+            Math.abs(base[1] - neighbor[1]),
+            Math.abs(base[2] - neighbor[2])
+          );
+          if (delta > maxDelta) {
+            maxDelta = delta;
+            maxPoint = pt;
+          }
+        }
+      }
+
+      if (maxDelta > NAVBAR_EDGE_THRESHOLD) {
+        violations.push(
+          `[${scenario.name}/navbar-legibility] alt menü arkasından metin sızıyor: piksel farkı ${maxDelta} ` +
+            `(eşik ${NAVBAR_EDGE_THRESHOLD}) @ (${maxPoint.x.toFixed(0)},${maxPoint.y.toFixed(0)})`
+        );
+      } else {
+        console.log(`  [${scenario.name}] alt menü arkasındaki metin görünmüyor (maks piksel farkı ${maxDelta} <= ${NAVBAR_EDGE_THRESHOLD}).`);
+      }
+    } catch (err) {
+      violations.push(`[${scenario.name}/navbar-legibility] check threw: ${err.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
+/**
+ * Tab-transition layout stability (design-refresh-v3 Faz 18 F8) — root
+ * cause was App.tsx's tab-panel motion.div mounting with `y: 8`: a CSS
+ * transform on a descendant still counts toward its nearest
+ * non-`overflow:visible` ancestor's (here, `<main>`, which has
+ * `overflow-y-auto`) scrollable-overflow region, regardless of nesting
+ * depth — moving the transform to an inner wrapper would NOT have fixed
+ * this (still a descendant of `<main>`), so the fix removes the y
+ * transform entirely (opacity-only fade) rather than relocating it.
+ * Verified directly: with `y: 8` still in place, sampling every 15ms
+ * through a real transition showed `main.scrollHeight` briefly read 690
+ * against a `main.clientHeight` of 682 — an 8px phantom overflow, exactly
+ * the transform amount, present for roughly one transition frame. With
+ * the fix, scrollHeight tracks clientHeight exactly at every sampled
+ * instant. `[scrollbar-gutter:stable]` on `<main>` is kept as the
+ * general-purpose defense the task asked for (confirmed as the correct
+ * target: this exact transient desync happens on `<main>` itself, not
+ * the document — a SEPARATE, expected, non-bug behavior also exists
+ * where switching between two tabs of genuinely different total content
+ * height changes whether the whole page scrolls at all, which is
+ * unrelated to this animation and out of scope here).
+ */
+async function checkTabTransitionStability(browser) {
+  console.log('\n=== Sekme geçişinde layout kayması testi ===');
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+  try {
+    await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    // Reference "settled" geometry per tab — captured with no transition
+    // in flight, used as the ceiling scrollHeight must never exceed while
+    // that tab is the one mounted (entering or exiting) during a switch.
+    const settled = {};
+    for (const tab of TABS) {
+      await page.getByRole('tab', { name: tab.label }).click();
+      await page.waitForTimeout(500);
+      settled[tab.id] = await page.evaluate(() => ({
+        scrollHeight: document.querySelector('main').scrollHeight,
+        clientWidth: document.querySelector('main').clientWidth,
+      }));
+    }
+
+    // Cycle through all 4 tabs in order, sampling frequently through each
+    // switch — mode="wait" means exit (180ms) then enter (180ms) run
+    // sequentially, never overlapping, so ~450ms covers a full cycle with
+    // margin. Content-container width must never change (the reported
+    // symptom); scrollHeight must never exceed whichever tab is currently
+    // mounted's own settled ceiling (the actual root-cause mechanism,
+    // caught regardless of whether this platform's scrollbars are the
+    // overlay or classic/width-consuming kind).
+    let widthChanged = false;
+    let widthValues = new Set();
+    let overshootDetail = null;
+
+    for (let i = 0; i < TABS.length; i++) {
+      const tab = TABS[i];
+      const prevTab = TABS[(i - 1 + TABS.length) % TABS.length];
+      await page.getByRole('tab', { name: tab.label }).click();
+      for (let t = 0; t < 30; t++) {
+        const sample = await page.evaluate(() => ({
+          clientWidth: document.querySelector('main').clientWidth,
+          scrollHeight: document.querySelector('main').scrollHeight,
+        }));
+        widthValues.add(sample.clientWidth);
+        // Either the tab being entered or the one just exited may
+        // legitimately be mounted at this instant (mode="wait").
+        const ceiling = Math.max(settled[tab.id].scrollHeight, settled[prevTab.id].scrollHeight);
+        if (sample.scrollHeight > ceiling && !overshootDetail) {
+          overshootDetail = `${prevTab.id}->${tab.id}: scrollHeight=${sample.scrollHeight} > ceiling=${ceiling} @ t=${t * 15}ms`;
+        }
+        await page.waitForTimeout(15);
+      }
+    }
+
+    if (widthValues.size > 1) {
+      widthChanged = true;
+      violations.push(
+        `[tab-transition] içerik kapsayıcısının genişliği geçiş sırasında değişti: ${[...widthValues].join(', ')}`
+      );
+    }
+    if (overshootDetail) {
+      violations.push(`[tab-transition] main.scrollHeight geçici olarak gerçek içerikten büyüdü: ${overshootDetail}`);
+    }
+    if (!widthChanged && !overshootDetail) {
+      console.log('  Sekme geçişleri boyunca içerik genişliği sabit, scrollHeight hiçbir anda gerçek içeriği aşmadı.');
+    }
+  } catch (err) {
+    violations.push(`[tab-transition] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
@@ -1498,6 +1734,8 @@ async function main() {
       await checkLocationSearchFocusRegression(browser);
       await checkInteractionSweep(browser);
       await checkGpsLocationLabelHonesty(browser);
+      await checkNavbarLegibility(browser);
+      await checkTabTransitionStability(browser);
     } finally {
       await browser.close();
     }
