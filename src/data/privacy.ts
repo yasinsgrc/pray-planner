@@ -55,11 +55,10 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       'Vakit bildirimlerini etkinleştirdiğinizde, bildirimin doğru saatte gönderilebilmesi için aşağıdaki veriler sunucumuzda saklanır:\n\n' +
       '- Tarayıcı push abonelik adresi (endpoint) — bildirimin cihazınıza ulaştırılabilmesi için zorunludur\n' +
       '- Push şifreleme anahtarları (p256dh, auth) — bildirim içeriğinin yalnızca sizin cihazınızca açılabilmesi için zorunludur\n' +
-      '- Seçtiğiniz konumun adı ve koordinatları — namaz vakitlerinin doğru hesaplanabilmesi için gereklidir\n' +
-      '- Hesaplama yöntemi tercihiniz — vakitlerin tercihinize uygun hesaplanması için gereklidir\n' +
-      '- Bildirim tercihleriniz (hangi vakit, ses, erken uyarı) — yalnızca istediğiniz bildirimlerin gönderilmesi için gereklidir\n' +
-      '- Kaydın son güncellenme tarihi — kayıt yönetimi ve temizliği için\n\n' +
-      'Bu kayıt kimliğinizle ilişkilendirilmez. Adınız, e-postanız, telefon numaranız veya cihaz kimliğiniz saklanmaz. Konum bilgisi, GPS\'ten alınan hassas konumunuz değil, sizin seçtiğiniz şehir/ilçe merkezinin koordinatıdır.\n\n' +
+      '- Önümüzdeki 30 güne ait bildirim zamanları listesi — her biri sadece bir tarih/saat damgası ve hangi vakit olduğunu belirten bir etiket (örn. "öğle" veya "öğleden 15 dakika önce") içerir\n' +
+      '- Aboneliğin oluşturulma tarihi — kayıt yönetimi için\n\n' +
+      'Bu liste, namaz vakitleri gibi, TAMAMEN cihazınızda hesaplanır. Konumunuz, şehir/ilçe adınız ve hesaplama yöntemi tercihiniz sunucumuza HİÇBİR ZAMAN gönderilmez; sunucu bunları bilmez, sadece "ne zaman" bilgisini bilir, "nerede" veya "nasıl hesaplandığını" bilmez.\n\n' +
+      'Bu kayıt kimliğinizle ilişkilendirilmez. Adınız, e-postanız, telefon numaranız veya cihaz kimliğiniz saklanmaz.\n\n' +
       'Hukuki sebep: KVKK m.5/2-c — bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması (talep ettiğiniz bildirim hizmetinin sunulabilmesi). Bildirimi kapattığınızda bu hukuki sebep ortadan kalkar ve kayıt silinir.',
   },
   {
@@ -103,7 +102,14 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       '- Sunucuda parola, ödeme bilgisi veya kimlik belgesi saklanmaz; bu tür veriler hiçbir aşamada talep edilmez.',
   },
   {
-    title: '10. Değişiklikler',
+    title: '10. Geri Bildirim (Hata Bildirimi)',
+    body:
+      'Uygulama içinden "Geri Bildirim Gönder" ile bir hata bildirdiğinizde, bu sunucumuza bir form gönderimi DEĞİLDİR — cihazınızın kendi e-posta uygulamasını (mailto:) açan bir bağlantıdır. Siz e-postayı göndermediğiniz sürece hiçbir şey bize ulaşmaz; biz bu adımda hiçbir veri toplamaz, saklamaz.\n\n' +
+      'Gönderdiğiniz e-postanın gövdesine otomatik olarak şu teşhis bilgileri eklenir (göndermeden önce görüp düzenleyebilir veya silebilirsiniz): uygulama sürümü, tarayıcı/işletim sisteminiz ve konumunuzu GPS ile mi yoksa elle mi seçtiğiniz. Şehir adınız, koordinatınız veya başka bir konum bilgisi ASLA otomatik eklenmez.\n\n' +
+      'E-postayı gönderdiğinizde, içeriği (adresiniz dahil) doğrudan e-posta sağlayıcınız üzerinden {{CONTACT_EMAIL}} adresine ulaşır; bu noktadan sonrası genel e-posta yazışması olarak değerlendirilir, bu politikanın kapsamındaki otomatik veri işleme süreçlerinin bir parçası değildir.',
+  },
+  {
+    title: '11. Değişiklikler',
     body: 'Bu metinde değişiklik yapılması hâlinde güncelleme tarihi yenilenir ve önemli değişiklikler uygulama içinde duyurulur.',
   },
 ];
