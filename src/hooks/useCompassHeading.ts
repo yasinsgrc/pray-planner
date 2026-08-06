@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   applyScreenOrientationCompensation,
   computeHeadingFromOrientationEvent,
+  computeHeadingDrift,
   getAngularDifference,
   smoothHeading,
   INITIAL_SMOOTHER_STATE,
@@ -18,6 +19,12 @@ export interface CompassDebugInfo {
   screenAngle: number;
   rawHeading: number | null;
   smoothedHeading: number | null;
+  /** Degrees travelled between the oldest and newest reading in the last
+   * DRIFT_WINDOW_MS — null until that much time has actually elapsed.
+   * Real-device report: heading drifts progressively, not by a fixed
+   * offset (design-refresh-v3 Faz 20 madde 3). This measures it instead of
+   * guessing; it does not, by itself, prove or disable anything. */
+  driftDeg: number | null;
 }
 
 export interface CompassHeadingState {
@@ -53,6 +60,13 @@ const JITTER_THRESHOLD_DEG = 20;
 // large positive value means the heading could be off by that many
 // degrees — either way, not trustworthy enough to point someone at Mecca.
 const IOS_ACCURACY_THRESHOLD_DEG = 15;
+// design-refresh-v3 Faz 20 madde 3: how far back the drift measurement
+// looks. Matches the exact window the user was asked to read off manually
+// ("aynı fiziksel yönde dururken 60 saniyede kaç derece kaydı").
+const DRIFT_WINDOW_MS = 60_000;
+// Sampling more often than this would just bloat the buffer without adding
+// precision — one sample every few seconds is plenty to measure a 60s trend.
+const DRIFT_SAMPLE_INTERVAL_MS = 2000;
 
 function getScreenAngle(): number {
   return window.screen.orientation?.angle ?? 0;
@@ -70,10 +84,12 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     screenAngle: 0,
     rawHeading: null,
     smoothedHeading: null,
+    driftDeg: null,
   });
   const hasUsableHeadingRef = useRef(false);
   const smootherRef = useRef<CircularSmootherState>(INITIAL_SMOOTHER_STATE);
   const jitterWindowRef = useRef<number[]>([]);
+  const driftBufferRef = useRef<{ heading: number; t: number }[]>([]);
 
   const requestPermission = useCallback(async () => {
     if (typeof DeviceOrientationEvent === 'undefined') {
@@ -101,6 +117,7 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     hasUsableHeadingRef.current = false;
     smootherRef.current = INITIAL_SMOOTHER_STATE;
     jitterWindowRef.current = [];
+    driftBufferRef.current = [];
 
     function acceptEvent(event: DeviceOrientationEventWithExtras, isAbsolute: boolean) {
       const rawHeading = computeHeadingFromOrientationEvent({
@@ -147,6 +164,22 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
       smootherRef.current = state;
       const compensated = applyScreenOrientationCompensation(smoothed, screenAngle);
 
+      // Sampled (not every event — deviceorientation can fire dozens of
+      // times/sec, which would blow up this array for no added precision)
+      // buffer of the final, ready-to-use heading, oldest-first.
+      const now = Date.now();
+      const buffer = driftBufferRef.current;
+      if (buffer.length === 0 || now - buffer[buffer.length - 1].t >= DRIFT_SAMPLE_INTERVAL_MS) {
+        buffer.push({ heading: compensated, t: now });
+      }
+      while (buffer.length > 0 && now - buffer[0].t > DRIFT_WINDOW_MS * 1.5) {
+        buffer.shift();
+      }
+      const driftDeg =
+        buffer.length >= 2
+          ? computeHeadingDrift(buffer[0].heading, compensated, now - buffer[0].t, DRIFT_WINDOW_MS)
+          : null;
+
       setHeading(compensated);
       setDebug({
         alpha: event.alpha,
@@ -156,6 +189,7 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
         screenAngle,
         rawHeading,
         smoothedHeading: smoothed,
+        driftDeg,
       });
     }
 

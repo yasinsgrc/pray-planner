@@ -7,6 +7,7 @@ import {
   getAngularDifference,
   isAlignedWithBearing,
   getTurnInstruction,
+  computeHeadingDrift,
 } from './compassHeading';
 
 test('computeHeadingFromOrientationEvent prefers webkitCompassHeading when present (iOS)', () => {
@@ -141,4 +142,25 @@ test('getTurnInstruction takes the short way around the 0/360 seam (left)', () =
 test('getTurnInstruction never reports more than 180 degrees', () => {
   const result = getTurnInstruction(180, 0);
   assert.ok(result.degrees <= 180);
+});
+
+// design-refresh-v3 Faz 20 madde 3 — real-device report: the compass
+// heading drifts progressively over time (not a fixed offset). A fixed
+// offset would point to magnetic declination; a growing one points to the
+// underlying sensor fusion (or a code bug), so the debug panel needs a real
+// measured number instead of a guess — this is that measurement's pure core.
+test('computeHeadingDrift returns null when the buffer does not yet span the minimum window', () => {
+  assert.equal(computeHeadingDrift(10, 12, 30_000, 60_000), null);
+});
+
+test('computeHeadingDrift returns 0 when the heading has not moved across the window', () => {
+  assert.equal(computeHeadingDrift(45, 45, 60_000, 60_000), 0);
+});
+
+test('computeHeadingDrift returns the angular distance travelled once the window is met', () => {
+  assert.equal(computeHeadingDrift(10, 25, 65_000, 60_000), 15);
+});
+
+test('computeHeadingDrift handles wrap-around near the 0/360 seam', () => {
+  assert.equal(computeHeadingDrift(350, 10, 60_000, 60_000), 20);
 });

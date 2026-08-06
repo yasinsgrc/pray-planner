@@ -82,6 +82,28 @@ export function smoothHeading(
   return { value: (angle + 360) % 360, state: { sin, cos, initialized: true } };
 }
 
+/**
+ * Angular distance travelled between the oldest and newest heading in a
+ * rolling buffer, or null until that buffer actually spans `minWindowMs` —
+ * design-refresh-v3 Faz 20 madde 3, added specifically to MEASURE a
+ * real-device report of the compass drifting progressively over time
+ * (not a fixed offset) instead of guessing at a cause. A fixed offset
+ * would point to magnetic declination (deliberately NOT applied until
+ * this is understood); a growing one points to the sensor fusion behind
+ * `deviceorientationabsolute`/`absolute:true` not actually being
+ * magnetometer-locked on that device — something no amount of smoothing
+ * or flag-checking in this file can correct, only reveal.
+ */
+export function computeHeadingDrift(
+  oldestHeadingDeg: number,
+  newestHeadingDeg: number,
+  spanMs: number,
+  minWindowMs = 60_000
+): number | null {
+  if (spanMs < minWindowMs) return null;
+  return getAngularDifference(oldestHeadingDeg, newestHeadingDeg);
+}
+
 export interface TurnInstruction {
   /** 0-180, the short way around. */
   degrees: number;

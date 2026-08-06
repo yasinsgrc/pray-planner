@@ -207,6 +207,12 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
             <div>son heading (dönüşüm telafili): {heading?.toFixed(2) ?? 'null'}</div>
             <div>kıble açısı: {qiblaBearing.toFixed(2)}</div>
             <div>fark: {heading !== null ? Math.abs(qiblaBearing - heading).toFixed(2) : 'null'}</div>
+            <div className="pt-1 border-t border-hairline/50 mt-1">
+              60sn sürüklenme: {debug.driftDeg !== null ? `${debug.driftDeg.toFixed(1)}°` : 'ölçülüyor…'}
+            </div>
+            <div className="text-[9px] text-mist/80">
+              Telefonu 60 sn aynı yönde sabit tutup bu değeri okuyun — sıfıra yakınsa sensör sabit, büyükse sürüklenme var.
+            </div>
           </div>
         )}
       </div>
