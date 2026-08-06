@@ -8,6 +8,10 @@ import {
   isAlignedWithBearing,
   getTurnInstruction,
   computeHeadingDrift,
+  computeHeadingStats,
+  classifyDriftCharacter,
+  summarizePlatform,
+  determineActiveEventType,
 } from './compassHeading';
 
 test('computeHeadingFromOrientationEvent prefers webkitCompassHeading when present (iOS)', () => {
@@ -163,4 +167,98 @@ test('computeHeadingDrift returns the angular distance travelled once the window
 
 test('computeHeadingDrift handles wrap-around near the 0/360 seam', () => {
   assert.equal(computeHeadingDrift(350, 10, 60_000, 60_000), 20);
+});
+
+// design-refresh-v3 Faz 21 madde 2 — the debug panel needs to distinguish
+// a fixed offset (could be declination) from a growing one (sensor
+// fusion / code bug), and neither guess-based reasoning nor eyeballing a
+// single number tells you that; these stats do.
+test('computeHeadingStats returns null for an empty buffer', () => {
+  assert.equal(computeHeadingStats([]), null);
+});
+
+test('computeHeadingStats reports a single sample as its own min/max/average with zero spread', () => {
+  const stats = computeHeadingStats([42]);
+  assert.deepEqual(stats, { min: 42, max: 42, average: 42, spread: 0 });
+});
+
+test('computeHeadingStats computes plain min/max/spread when nothing wraps', () => {
+  const stats = computeHeadingStats([10, 20, 30]);
+  assert.equal(stats?.min, 10);
+  assert.equal(stats?.max, 30);
+  assert.equal(stats?.spread, 20);
+  assert.equal(stats?.average, 20);
+});
+
+// The whole reason `spread` exists alongside raw min/max: naive min/max
+// (2 and 358) would claim a 356 degree spread for values that are all
+// within ~14 degrees of each other physically, once you cross the 0/360
+// seam. `spread` (max pairwise angular difference, circular-safe) must
+// report the true ~14, even though raw min/max still show 2 and 358.
+test('computeHeadingStats spread stays small across the 0/360 seam even though raw min/max look huge', () => {
+  const stats = computeHeadingStats([350, 352, 358, 2, 4]);
+  assert.equal(stats?.min, 2);
+  assert.equal(stats?.max, 358);
+  assert.ok(stats!.spread <= 15, `expected a small circular spread, got ${stats?.spread}`);
+});
+
+test('classifyDriftCharacter reports insufficient-data with fewer than 3 samples', () => {
+  assert.equal(classifyDriftCharacter([10]), 'insufficient-data');
+  assert.equal(classifyDriftCharacter([10, 12]), 'insufficient-data');
+});
+
+test('classifyDriftCharacter reports stable when the heading barely moves', () => {
+  assert.equal(classifyDriftCharacter([10, 10.1, 9.9, 10, 10.2]), 'stable');
+});
+
+test('classifyDriftCharacter reports monotonic for a one-directional trend', () => {
+  assert.equal(classifyDriftCharacter([10, 15, 20, 25, 30]), 'monotonic');
+});
+
+test('classifyDriftCharacter reports monotonic across the 0/360 seam (not fooled by the wrap)', () => {
+  assert.equal(classifyDriftCharacter([355, 358, 1, 4, 7]), 'monotonic');
+});
+
+test('classifyDriftCharacter reports oscillating for a back-and-forth pattern', () => {
+  assert.equal(classifyDriftCharacter([10, 25, 10, 25, 10, 25]), 'oscillating');
+});
+
+test('summarizePlatform extracts a short platform + browser label from an Android Chrome UA', () => {
+  const ua =
+    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+  const summary = summarizePlatform(ua);
+  assert.match(summary, /Linux; Android 14/);
+  assert.match(summary, /Chrome\/120\.0\.0\.0/);
+});
+
+test('summarizePlatform extracts a short platform + browser label from an iOS Safari UA', () => {
+  const ua =
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/604.1';
+  const summary = summarizePlatform(ua);
+  assert.match(summary, /iPhone; CPU iPhone OS 17_4 like Mac OS X/);
+});
+
+test('summarizePlatform falls back gracefully on an unrecognized string', () => {
+  assert.equal(summarizePlatform(''), 'bilinmiyor · bilinmiyor');
+});
+
+// design-refresh-v3 Faz 21 madde 2 — "hangi API'nin aktif olduğu" must be
+// SET directly by whichever handler actually fired, never inferred after
+// the fact from unrelated state; this is that decision, extracted so the
+// debug panel's most important field is unit-tested like everything else
+// feeding it (this project has no jsdom/React test renderer, so the hook
+// itself — which needs real DOM events — stays untested by design; this
+// function carries 100% of its non-trivial logic out to where it can be).
+test('determineActiveEventType prefers webkitCompassHeading whenever it is present, regardless of source', () => {
+  assert.equal(determineActiveEventType(123.4, 'deviceorientation'), 'webkitCompassHeading');
+  assert.equal(determineActiveEventType(0, 'deviceorientationabsolute'), 'webkitCompassHeading');
+});
+
+test('determineActiveEventType falls back to the event source name when there is no webkitCompassHeading', () => {
+  assert.equal(determineActiveEventType(undefined, 'deviceorientationabsolute'), 'deviceorientationabsolute');
+  assert.equal(determineActiveEventType(undefined, 'deviceorientation'), 'deviceorientation');
+});
+
+test('determineActiveEventType treats NaN webkitCompassHeading as absent', () => {
+  assert.equal(determineActiveEventType(NaN, 'deviceorientationabsolute'), 'deviceorientationabsolute');
 });

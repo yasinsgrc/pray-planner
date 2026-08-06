@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CompassIcon, WarningCircleIcon } from './icons';
+import { CompassIcon, WarningCircleIcon, CopyIcon, CheckIcon } from './icons';
 import { LocationItem } from '../types';
-import { useCompassHeading } from '../hooks/useCompassHeading';
-import { isAlignedWithBearing, getTurnInstruction } from '../utils/compassHeading';
+import { useCompassHeading, CompassDebugInfo } from '../hooks/useCompassHeading';
+import { isAlignedWithBearing, getTurnInstruction, DriftCharacter } from '../utils/compassHeading';
 import { calculateQiblaBearing } from '../utils/qibla';
 import { BottomSheet } from './BottomSheet';
 
@@ -19,6 +19,20 @@ interface QiblaCompassModalProps {
 const DEV_TAP_COUNT = 7;
 const DEV_TAP_WINDOW_MS = 3000;
 
+const ACTIVE_EVENT_TYPE_LABEL: Record<CompassDebugInfo['activeEventType'], string> = {
+  webkitCompassHeading: 'webkitCompassHeading (iOS)',
+  deviceorientationabsolute: 'deviceorientationabsolute',
+  deviceorientation: 'deviceorientation (absolute:true)',
+  none: 'yok — kullanılabilir kaynak yok',
+};
+
+const DRIFT_CHARACTER_LABEL: Record<DriftCharacter, string> = {
+  'insufficient-data': 'ölçülüyor… (yetersiz veri)',
+  stable: 'sabit (gerçek hareket yok)',
+  monotonic: 'tek yönlü (muhtemel sürüklenme)',
+  oscillating: 'salınımlı (gürültü, sürüklenme değil)',
+};
+
 export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
   location,
   isOpen,
@@ -28,6 +42,7 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
     useCompassHeading(isOpen);
   const wasAlignedRef = useRef(false);
   const [devPanelVisible, setDevPanelVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
   const tapTimesRef = useRef<number[]>([]);
 
   const qiblaBearing = calculateQiblaBearing(location);
@@ -57,6 +72,28 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
       tapTimesRef.current = [];
     }
   };
+
+  const buildDebugReportText = () =>
+    [
+      `platform: ${debug.userAgentSummary || 'bilinmiyor'}`,
+      `aktif API: ${ACTIVE_EVENT_TYPE_LABEL[debug.activeEventType]}`,
+      `absolute: ${debug.isAbsolute}`,
+      `alpha: ${debug.alpha ?? 'null'}`,
+      `webkitCompassHeading: ${debug.webkitCompassHeading ?? 'yok'}`,
+      `webkitCompassAccuracy: ${debug.webkitCompassAccuracy ?? 'yok'}`,
+      `screen.orientation.angle: ${debug.screenAngle}`,
+      `ham heading: ${debug.rawHeading ?? 'null'}`,
+      `yumuşatılmış heading: ${debug.smoothedHeading?.toFixed(2) ?? 'null'}`,
+      `son heading (dönüşüm telafili): ${heading?.toFixed(2) ?? 'null'}`,
+      `kıble açısı: ${qiblaBearing.toFixed(2)}`,
+      `fark: ${heading !== null ? Math.abs(qiblaBearing - heading).toFixed(2) : 'null'}`,
+      `kalibrasyon uyarısı: ${needsCalibration}`,
+      `oturum ilk okuması: ${debug.firstRawHeadingDeg ?? 'null'}`,
+      `60sn sürüklenme (uç-uca): ${debug.driftDeg !== null ? `${debug.driftDeg.toFixed(1)}°` : 'ölçülüyor…'}`,
+      `60sn min/maks/ort: ${debug.stats ? `${debug.stats.min.toFixed(1)} / ${debug.stats.max.toFixed(1)} / ${debug.stats.average.toFixed(1)}` : 'ölçülüyor…'}`,
+      `60sn toplam yayılım (dairesel): ${debug.stats ? `${debug.stats.spread.toFixed(1)}°` : 'ölçülüyor…'}`,
+      `kayma karakteri: ${DRIFT_CHARACTER_LABEL[debug.driftCharacter]}`,
+    ].join('\n');
 
   const directionText = aligned
     ? 'Kıbleye yönelik'
@@ -196,22 +233,52 @@ export const QiblaCompassModal: React.FC<QiblaCompassModalProps> = ({
 
         {devPanelVisible && (
           <div className="p-3 rounded-xl bg-card border border-hairline text-left text-[10px] font-mono text-mist space-y-0.5">
-            <div className="text-label font-bold text-ink mb-1">Geliştirici — ham sensör verisi</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-label font-bold text-ink">Geliştirici — ham sensör verisi</div>
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(buildDebugReportText());
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="relative min-h-[44px] min-w-[44px] flex items-center justify-center text-gold-ink cursor-pointer before:content-[''] before:absolute before:-inset-2"
+                aria-label="Hata ayıklama verisini panoya kopyala"
+              >
+                {copied ? <CheckIcon className="w-4 h-4 text-success-ink" /> : <CopyIcon className="w-4 h-4" />}
+              </button>
+            </div>
+            <div>platform: {debug.userAgentSummary || 'bilinmiyor'}</div>
+            <div>aktif API: {ACTIVE_EVENT_TYPE_LABEL[debug.activeEventType]}</div>
+            <div>absolute: {String(debug.isAbsolute)}</div>
             <div>alpha: {debug.alpha ?? 'null'}</div>
             <div>webkitCompassHeading: {debug.webkitCompassHeading ?? 'yok'}</div>
             <div>webkitCompassAccuracy: {debug.webkitCompassAccuracy ?? 'yok'}</div>
-            <div>absolute: {String(debug.isAbsolute)}</div>
             <div>screen.orientation.angle: {debug.screenAngle}</div>
-            <div>ham heading (ham): {debug.rawHeading ?? 'null'}</div>
+            <div>ham heading: {debug.rawHeading ?? 'null'}</div>
             <div>yumuşatılmış heading: {debug.smoothedHeading?.toFixed(2) ?? 'null'}</div>
             <div>son heading (dönüşüm telafili): {heading?.toFixed(2) ?? 'null'}</div>
             <div>kıble açısı: {qiblaBearing.toFixed(2)}</div>
             <div>fark: {heading !== null ? Math.abs(qiblaBearing - heading).toFixed(2) : 'null'}</div>
+            <div>kalibrasyon uyarısı: {String(needsCalibration)}</div>
             <div className="pt-1 border-t border-hairline/50 mt-1">
-              60sn sürüklenme: {debug.driftDeg !== null ? `${debug.driftDeg.toFixed(1)}°` : 'ölçülüyor…'}
+              oturum ilk okuması: {debug.firstRawHeadingDeg ?? 'null'}
             </div>
-            <div className="text-[9px] text-mist/80">
-              Telefonu 60 sn aynı yönde sabit tutup bu değeri okuyun — sıfıra yakınsa sensör sabit, büyükse sürüklenme var.
+            <div>
+              60sn sürüklenme (uç-uca): {debug.driftDeg !== null ? `${debug.driftDeg.toFixed(1)}°` : 'ölçülüyor…'}
+            </div>
+            <div>
+              60sn min/maks/ort: {debug.stats
+                ? `${debug.stats.min.toFixed(1)} / ${debug.stats.max.toFixed(1)} / ${debug.stats.average.toFixed(1)}`
+                : 'ölçülüyor…'}
+            </div>
+            <div>
+              60sn toplam yayılım (dairesel): {debug.stats ? `${debug.stats.spread.toFixed(1)}°` : 'ölçülüyor…'}
+            </div>
+            <div>kayma karakteri: {DRIFT_CHARACTER_LABEL[debug.driftCharacter]}</div>
+            <div className="text-[9px] text-mist/80 pt-1">
+              Telefonu 60 sn aynı yönde sabit tutup bu değerleri okuyun. Sabit bir fark (kayma karakteri "sabit",
+              sürüklenme ~0) deklinasyona işaret edebilir; büyüyen/tek yönlü bir fark ("tek yönlü") sensör
+              füzyonunda bir sorun olduğunu gösterir. "Salınımlı" ise gürültüdür, sürüklenme değildir.
             </div>
           </div>
         )}

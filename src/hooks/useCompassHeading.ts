@@ -3,10 +3,17 @@ import {
   applyScreenOrientationCompensation,
   computeHeadingFromOrientationEvent,
   computeHeadingDrift,
+  computeHeadingStats,
+  classifyDriftCharacter,
+  summarizePlatform,
+  determineActiveEventType,
   getAngularDifference,
   smoothHeading,
   INITIAL_SMOOTHER_STATE,
   CircularSmootherState,
+  HeadingStats,
+  DriftCharacter,
+  ActiveEventType,
 } from '../utils/compassHeading';
 
 export type CompassPermissionState = 'idle' | 'granted' | 'denied' | 'unsupported';
@@ -25,6 +32,20 @@ export interface CompassDebugInfo {
    * offset (design-refresh-v3 Faz 20 madde 3). This measures it instead of
    * guessing; it does not, by itself, prove or disable anything. */
   driftDeg: number | null;
+  /** Which source actually produced the current heading — not inferred
+   * after the fact, set directly by whichever handler fired (design-
+   * refresh-v3 Faz 21 madde 2: "hangi API'nin aktif olduğu"). */
+  activeEventType: ActiveEventType;
+  /** The very first usable raw heading this session — a fixed reference
+   * point to compare everything else against. */
+  firstRawHeadingDeg: number | null;
+  /** Short "platform · browser" label — computed once per session, not per event. */
+  userAgentSummary: string;
+  /** min/max/average/spread over the last DRIFT_WINDOW_MS — lets the panel
+   * tell a fixed offset (could be declination) apart from a growing one
+   * (sensor fusion issue), which a single number can't. */
+  stats: HeadingStats | null;
+  driftCharacter: DriftCharacter;
 }
 
 export interface CompassHeadingState {
@@ -85,11 +106,17 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     rawHeading: null,
     smoothedHeading: null,
     driftDeg: null,
+    activeEventType: 'none',
+    firstRawHeadingDeg: null,
+    userAgentSummary: '',
+    stats: null,
+    driftCharacter: 'insufficient-data',
   });
   const hasUsableHeadingRef = useRef(false);
   const smootherRef = useRef<CircularSmootherState>(INITIAL_SMOOTHER_STATE);
   const jitterWindowRef = useRef<number[]>([]);
   const driftBufferRef = useRef<{ heading: number; t: number }[]>([]);
+  const firstRawHeadingRef = useRef<number | null>(null);
 
   const requestPermission = useCallback(async () => {
     if (typeof DeviceOrientationEvent === 'undefined') {
@@ -118,8 +145,14 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     smootherRef.current = INITIAL_SMOOTHER_STATE;
     jitterWindowRef.current = [];
     driftBufferRef.current = [];
+    firstRawHeadingRef.current = null;
+    const userAgentSummary = summarizePlatform(navigator.userAgent);
 
-    function acceptEvent(event: DeviceOrientationEventWithExtras, isAbsolute: boolean) {
+    function acceptEvent(
+      event: DeviceOrientationEventWithExtras,
+      isAbsolute: boolean,
+      eventSourceName: 'deviceorientationabsolute' | 'deviceorientation'
+    ) {
       const rawHeading = computeHeadingFromOrientationEvent({
         webkitCompassHeading: event.webkitCompassHeading,
         alpha: event.alpha,
@@ -143,6 +176,8 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
       }
 
       hasUsableHeadingRef.current = true;
+      if (firstRawHeadingRef.current === null) firstRawHeadingRef.current = rawHeading;
+      const activeEventType = determineActiveEventType(event.webkitCompassHeading, eventSourceName);
 
       // Jitter window tracks the RAW heading (pre-smoothing) — smoothing
       // would mask exactly the noise this is meant to detect.
@@ -179,6 +214,9 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
         buffer.length >= 2
           ? computeHeadingDrift(buffer[0].heading, compensated, now - buffer[0].t, DRIFT_WINDOW_MS)
           : null;
+      // Precisely the last DRIFT_WINDOW_MS (the buffer itself is kept a bit
+      // longer, 1.5x, so computeHeadingDrift always has an anchor point).
+      const windowHeadings = buffer.filter((s) => now - s.t <= DRIFT_WINDOW_MS).map((s) => s.heading);
 
       setHeading(compensated);
       setDebug({
@@ -190,12 +228,17 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
         rawHeading,
         smoothedHeading: smoothed,
         driftDeg,
+        activeEventType,
+        firstRawHeadingDeg: firstRawHeadingRef.current,
+        userAgentSummary,
+        stats: computeHeadingStats(windowHeadings),
+        driftCharacter: classifyDriftCharacter(windowHeadings),
       });
     }
 
     // deviceorientationabsolute is always north-referenced when it fires.
     function handleOrientationAbsolute(event: Event) {
-      acceptEvent(event as DeviceOrientationEventWithExtras, true);
+      acceptEvent(event as DeviceOrientationEventWithExtras, true, 'deviceorientationabsolute');
     }
 
     // Plain deviceorientation is only north-referenced when its own
@@ -204,7 +247,7 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     // flag) — never assume otherwise.
     function handleOrientation(event: DeviceOrientationEvent) {
       const typedEvent = event as DeviceOrientationEventWithExtras;
-      acceptEvent(typedEvent, typedEvent.absolute === true);
+      acceptEvent(typedEvent, typedEvent.absolute === true, 'deviceorientation');
     }
 
     window.addEventListener('deviceorientationabsolute', handleOrientationAbsolute);

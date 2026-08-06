@@ -104,6 +104,110 @@ export function computeHeadingDrift(
   return getAngularDifference(oldestHeadingDeg, newestHeadingDeg);
 }
 
+function circularMean(headingsDeg: number[]): number {
+  let sin = 0;
+  let cos = 0;
+  for (const h of headingsDeg) {
+    const rad = (h * Math.PI) / 180;
+    sin += Math.sin(rad);
+    cos += Math.cos(rad);
+  }
+  const angle = (Math.atan2(sin, cos) * 180) / Math.PI;
+  return (angle + 360) % 360;
+}
+
+export interface HeadingStats {
+  /** Plain numeric min/max — can look huge (e.g. 2 and 358) for headings
+   * that are actually close together once you cross the 0/360 seam; use
+   * `spread` for the physically-true distance, not these. */
+  min: number;
+  max: number;
+  average: number;
+  /** Max pairwise angular difference (circular-safe) — the trustworthy "how spread out" number. */
+  spread: number;
+}
+
+/**
+ * design-refresh-v3 Faz 21 madde 2 — the debug panel needs to tell a fixed
+ * offset (could be magnetic declination) apart from a growing one (sensor
+ * fusion issue), and a single "current heading" number can't do that.
+ */
+export function computeHeadingStats(headingsDeg: number[]): HeadingStats | null {
+  if (headingsDeg.length === 0) return null;
+  let spread = 0;
+  for (let i = 0; i < headingsDeg.length; i++) {
+    for (let j = i + 1; j < headingsDeg.length; j++) {
+      spread = Math.max(spread, getAngularDifference(headingsDeg[i], headingsDeg[j]));
+    }
+  }
+  return {
+    min: Math.min(...headingsDeg),
+    max: Math.max(...headingsDeg),
+    average: circularMean(headingsDeg),
+    spread,
+  };
+}
+
+export type DriftCharacter = 'insufficient-data' | 'stable' | 'monotonic' | 'oscillating';
+
+// Below this, a delta is noise (hand tremor / quantization), not real movement.
+const MEANINGFUL_DELTA_DEG = 0.5;
+// A dominant-sign fraction at or above this counts as "mostly one direction".
+const MONOTONIC_DOMINANCE_RATIO = 0.7;
+
+/**
+ * Whether consecutive headings mostly move the same way (a real, growing
+ * drift) or flip back and forth (sensor noise/jitter, not drift) — a plain
+ * "did the number change" can't distinguish those, but the SIGN of each
+ * step can (design-refresh-v3 Faz 21 madde 2, explicit user requirement:
+ * "ardışık farkların işareti çoğunlukla aynı mı, yoksa değişken mi").
+ */
+export function classifyDriftCharacter(headingsDeg: number[]): DriftCharacter {
+  if (headingsDeg.length < 3) return 'insufficient-data';
+
+  let positive = 0;
+  let negative = 0;
+  for (let i = 1; i < headingsDeg.length; i++) {
+    // Signed shortest-way delta, wrap-safe (350 -> 358 -> 1 reads as +3, +3, not -352, +1).
+    const delta = ((headingsDeg[i] - headingsDeg[i - 1] + 540) % 360) - 180;
+    if (delta > MEANINGFUL_DELTA_DEG) positive++;
+    else if (delta < -MEANINGFUL_DELTA_DEG) negative++;
+  }
+
+  const total = positive + negative;
+  if (total === 0) return 'stable';
+  return Math.max(positive, negative) / total >= MONOTONIC_DOMINANCE_RATIO ? 'monotonic' : 'oscillating';
+}
+
+const BROWSER_TOKEN_PATTERN = /(Chrome|Firefox|Safari|Edg|CriOS|FxiOS|Version)\/[\d._]+/;
+
+/** Short "platform · browser" label for the debug panel — not the full raw user agent string. */
+export function summarizePlatform(userAgent: string): string {
+  const platformMatch = userAgent.match(/\(([^)]+)\)/);
+  const platform = platformMatch ? platformMatch[1].trim() : 'bilinmiyor';
+  const browserMatch = userAgent.match(BROWSER_TOKEN_PATTERN);
+  const browser = browserMatch ? browserMatch[0] : 'bilinmiyor';
+  return `${platform} · ${browser}`;
+}
+
+export type ActiveEventType =
+  | 'deviceorientationabsolute'
+  | 'deviceorientation'
+  | 'webkitCompassHeading'
+  | 'none';
+
+/**
+ * Which source actually produced the heading — webkitCompassHeading takes
+ * priority whenever present (matches computeHeadingFromOrientationEvent's
+ * own precedence), otherwise whichever event literally fired.
+ */
+export function determineActiveEventType(
+  webkitCompassHeading: number | undefined,
+  eventSourceName: 'deviceorientationabsolute' | 'deviceorientation'
+): ActiveEventType {
+  return Number.isFinite(webkitCompassHeading) ? 'webkitCompassHeading' : eventSourceName;
+}
+
 export interface TurnInstruction {
   /** 0-180, the short way around. */
   degrees: number;
