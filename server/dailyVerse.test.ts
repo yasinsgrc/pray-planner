@@ -77,6 +77,14 @@ test('decodes HTML entities in the API-provided translation (design-refresh-v3 F
   assert.equal(result.verse, 'O, "Rabbimiz" dedi ve Allah\'a sığındı.');
 });
 
+test('decodes numeric HTML entities for Turkish letters with no named form (design-refresh-v3 Faz 21 madde 1)', async () => {
+  const fakeFetch = (async () =>
+    fakeResponse(makeApiBody(1, 1, 'Rabbimiz, kalplerimize sabr&#305; ve sevgi ve merhamet b&#305;rak.'))) as typeof fetch;
+  const service = createDailyVerseService({ fetchImpl: fakeFetch });
+  const result = await service.getVerseOfTheDay();
+  assert.equal(result.verse, 'Rabbimiz, kalplerimize sabrı ve sevgi ve merhamet bırak.');
+});
+
 test('throws when the Turkish translation is missing', async () => {
   const fakeFetch = (async () =>
     fakeResponse({ data: { surah: { number: 1 }, verse: { ayah: 1, translations: {} } } })) as typeof fetch;
