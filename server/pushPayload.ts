@@ -20,11 +20,28 @@ export function buildNotificationPayload(prayerKey: string): NotificationPayload
   if (earlyMatch) {
     const [, name, minutes] = earlyMatch;
     if (!PRAYER_NAMES.has(name)) return null;
+    // Güneş is not a namaz vakti to prepare for — it's the moment Sabah
+    // namazı's window closes. "Abdest ve hazırlık" wrongly implies you're
+    // getting ready to pray at that moment (design-refresh-v3 Faz 20 madde 1).
+    if (name === 'gunes') {
+      return {
+        title: `Sabah Namazı Vaktinin Bitmesine ${minutes} Dakika Kaldı`,
+        body: 'Bu sürenin sonunda kerahet vakti başlar.',
+      };
+    }
     const label = PRAYER_LABELS[name as PrayerName];
     return {
       title: `${label} Vaktine ${minutes} Dakika Kaldı`,
       body: 'Abdest ve hazırlık için hatırlatma.',
     };
+  }
+
+  // Same reasoning as above: Güneş doğuşu bir namaz vaktinin başlangıcı
+  // değil, Sabah namazı vaktinin sona erip İşrâk kerahetinin başladığı
+  // andır — "Vakti Girdi" / "Hayırlı namazlar" burada namaza çağırır gibi
+  // okunur, ki bu dinen yanlıştır.
+  if (prayerKey === 'gunes') {
+    return { title: 'Sabah Namazı Vakti Sona Erdi', body: 'Güneş doğdu, kerahet vakti başladı.' };
   }
 
   if (PRAYER_NAMES.has(prayerKey)) {
