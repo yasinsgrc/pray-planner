@@ -28,6 +28,7 @@ export { DeviceMobileIcon } from '@phosphor-icons/react/dist/csr/DeviceMobile';
 export { GearIcon } from '@phosphor-icons/react/dist/csr/Gear';
 export { GearSixIcon } from '@phosphor-icons/react/dist/csr/GearSix';
 export { HandHeartIcon } from '@phosphor-icons/react/dist/csr/HandHeart';
+export { InfoIcon } from '@phosphor-icons/react/dist/csr/Info';
 export { LockIcon } from '@phosphor-icons/react/dist/csr/Lock';
 export { MagnifyingGlassIcon } from '@phosphor-icons/react/dist/csr/MagnifyingGlass';
 export { MapPinIcon } from '@phosphor-icons/react/dist/csr/MapPin';

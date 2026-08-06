@@ -1668,6 +1668,10 @@ async function main() {
     VITE_SUPPORT_NAME: 'Test Kullanıcı',
     VITE_SUPPORT_PAYMENT_URL: 'https://example.com/destek-ol',
     VITE_SUPPORT_STORE_URL: 'https://play.google.com/store/apps/details?id=test',
+    // FeedbackModal'ın gerçek formunu (metin alanı + Gönder bağlantısı)
+    // değil de "yapılandırılmadı" uyarısını kontrol etmiş olmamak için —
+    // aksi halde bu ekranın gerçek arayüzü hiç denetlenmezdi.
+    VITE_PRIVACY_CONTACT_EMAIL: 'test@example.com',
   });
 
   console.log('Starting preview server on port', PORT, '...');
@@ -1760,6 +1764,27 @@ async function main() {
         await page.keyboard.press('Escape');
         await page.waitForTimeout(300);
 
+        // Hakkında sheet: design-refresh-v3 Faz 20 madde 4, Ayarlar >
+        // Hakkında bölümünden, tab değil — kendi checkScreen'i olmadan bu
+        // ekran hiç denetlenmezdi.
+        await page.getByRole('tab', { name: 'Ayarlar' }).click();
+        await page.waitForTimeout(500);
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(800);
+        await page.getByRole('button', { name: 'Hakkında sayfasını aç →' }).click();
+        await page.waitForTimeout(500);
+        await checkScreen(page, scenario, 'hakkinda');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+
+        // Geri Bildirim sheet: design-refresh-v3 Faz 20 madde 5, aynı
+        // şekilde Ayarlar > Hakkında bölümünden, tab değil.
+        await page.getByRole('button', { name: 'Geri bildirim gönder →' }).click();
+        await page.waitForTimeout(500);
+        await checkScreen(page, scenario, 'geri-bildirim');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+
         // 320px pass: touch-target/overlap only (design-refresh-v3 Faz 3 F4)
         // — controls that clear 44px with room to spare at 390px can end up
         // with overlapping invisible ::before zones once the viewport (and
@@ -1784,6 +1809,16 @@ async function main() {
         await page.getByRole('button', { name: 'Destek Ol' }).click();
         await page.waitForTimeout(400);
         await checkTouchTargets(page, scenario, 'destek-320px');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        await page.getByRole('button', { name: 'Hakkında sayfasını aç →' }).click();
+        await page.waitForTimeout(400);
+        await checkTouchTargets(page, scenario, 'hakkinda-320px');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        await page.getByRole('button', { name: 'Geri bildirim gönder →' }).click();
+        await page.waitForTimeout(400);
+        await checkTouchTargets(page, scenario, 'geri-bildirim-320px');
         await page.keyboard.press('Escape');
         await page.waitForTimeout(300);
 

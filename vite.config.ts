@@ -2,6 +2,12 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig, loadEnv, type Plugin} from 'vite';
+import {readFileSync} from 'fs';
+
+// Geri bildirim mailto'suna otomatik eklenen "uygulama sürümü" tanı
+// bilgisi (design-refresh-v3 Faz 20 madde 5) buradan gelir — package.json
+// tek kaynak, elle senkronize edilen ikinci bir sürüm sabiti yok.
+const packageVersion = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')).version as string;
 
 const REQUIRED_PRIVACY_ENV_KEYS = [
   'VITE_PRIVACY_ENTITY_NAME',
@@ -36,6 +42,9 @@ function warnMissingPrivacyEnv(env: Record<string, string>): Plugin {
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   return {
+    define: {
+      __APP_VERSION__: JSON.stringify(packageVersion),
+    },
     plugins: [react(), tailwindcss(), warnMissingPrivacyEnv(env)],
     resolve: {
       alias: {

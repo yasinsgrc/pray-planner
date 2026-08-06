@@ -11,12 +11,15 @@ import {
   DeviceMobileIcon,
   SpeakerHighIcon,
   LockIcon,
+  InfoIcon,
 } from './icons';
 import { FadeIn } from './FadeIn';
 import { BottomSheet } from './BottomSheet';
 import { SegmentedControl } from './SegmentedControl';
 import { SupportSection } from './SupportSection';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
+import { AboutModal } from './AboutModal';
+import { FeedbackModal } from './FeedbackModal';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { playEzanAudio } from '../utils/audio';
@@ -71,6 +74,8 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   const { notifications, themeMode, playEzanInForeground } = settings;
   const [openSoundSheet, setOpenSoundSheet] = useState<PrayerName | null>(null);
   const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
+  const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
+  const [isFeedbackSheetOpen, setIsFeedbackSheetOpen] = useState(false);
   // Bildirim izni istenmeden ÖNCE açık rıza — kullanıcı onaylamazsa
   // onEnablePush hiç çağrılmaz, hiçbir abonelik denemesi yapılmaz
   // (design-refresh-v3 Faz 16).
@@ -406,6 +411,30 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
         <SupportSection />
 
+        <FadeIn delay={0.34} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
+          <div className="flex items-center gap-2">
+            <InfoIcon className="w-4 h-4 text-gold-ink" />
+            <div className="text-sm font-bold text-ink">VAKİT Hakkında</div>
+          </div>
+          <p className="text-[11px] text-mist leading-relaxed">
+            Uygulamanın amacı, vakit hesaplama yöntemi, dini gün/kandil takvimi ve ezan sesi kaynağı, kullanılan açık kaynak kütüphaneler.
+          </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsAboutSheetOpen(true)}
+              className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"
+            >
+              Hakkında sayfasını aç →
+            </button>
+            <button
+              onClick={() => setIsFeedbackSheetOpen(true)}
+              className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"
+            >
+              Geri bildirim gönder →
+            </button>
+          </div>
+        </FadeIn>
+
         <FadeIn delay={0.36} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-2">
           <div className="flex items-center gap-2">
             <CalendarDotsIcon className="w-4 h-4 text-gold-ink" />
@@ -434,6 +463,19 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
       </div>
 
       <PrivacyPolicyModal isOpen={isPrivacySheetOpen} onClose={() => setIsPrivacySheetOpen(false)} />
+      <AboutModal
+        isOpen={isAboutSheetOpen}
+        onClose={() => setIsAboutSheetOpen(false)}
+        onOpenFeedback={() => {
+          setIsAboutSheetOpen(false);
+          setIsFeedbackSheetOpen(true);
+        }}
+      />
+      <FeedbackModal
+        isOpen={isFeedbackSheetOpen}
+        onClose={() => setIsFeedbackSheetOpen(false)}
+        location={settings.location}
+      />
 
       {/* Bildirim izni açık rıza sheet'i — onEnablePush yalnızca burada
           "Onaylıyorum, Devam Et" tıklanınca çağrılır (design-refresh-v3
