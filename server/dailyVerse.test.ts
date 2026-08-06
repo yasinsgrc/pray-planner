@@ -69,6 +69,14 @@ test('throws when the API responds with a non-ok status', async () => {
   await assert.rejects(() => service.getVerseOfTheDay());
 });
 
+test('decodes HTML entities in the API-provided translation (design-refresh-v3 Faz 20 madde 2)', async () => {
+  const fakeFetch = (async () =>
+    fakeResponse(makeApiBody(1, 1, 'O, &quot;Rabbimiz&quot; dedi ve Allah&#39;a sığındı.'))) as typeof fetch;
+  const service = createDailyVerseService({ fetchImpl: fakeFetch });
+  const result = await service.getVerseOfTheDay();
+  assert.equal(result.verse, 'O, "Rabbimiz" dedi ve Allah\'a sığındı.');
+});
+
 test('throws when the Turkish translation is missing', async () => {
   const fakeFetch = (async () =>
     fakeResponse({ data: { surah: { number: 1 }, verse: { ayah: 1, translations: {} } } })) as typeof fetch;

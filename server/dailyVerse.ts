@@ -1,3 +1,5 @@
+import { decodeHtmlEntities } from './htmlEntities';
+
 const TURKISH_SURAH_NAMES: string[] = [
   'Fâtiha', 'Bakara', 'Âl-i İmrân', 'Nisâ', 'Mâide', 'En\'âm', 'A\'râf', 'Enfâl', 'Tevbe', 'Yûnus',
   'Hûd', 'Yûsuf', 'Ra\'d', 'İbrâhîm', 'Hicr', 'Nahl', 'İsrâ', 'Kehf', 'Meryem', 'Tâhâ',
@@ -67,7 +69,11 @@ export function createDailyVerseService(deps: DailyVerseServiceDeps = {}): Daily
 
     const surahName = TURKISH_SURAH_NAMES[body.data.surah.number - 1] ?? 'Kur\'an';
     const verse: DailyVerse = {
-      verse: turkish,
+      // ummahapi.com'un çeviri metni HTML kaçış karakterleriyle geliyor
+      // (&quot; vb.) — hiç kimse bunu çözmediği için ekranda literal olarak
+      // görünüyordu (design-refresh-v3 Faz 20 madde 2). İçerik değişmiyor,
+      // sadece kaçış karakterleri gerçek karakterlere dönüyor.
+      verse: decodeHtmlEntities(turkish),
       verseRef: `${surahName} Suresi, ${body.data.verse.ayah}. Ayet`,
     };
 
