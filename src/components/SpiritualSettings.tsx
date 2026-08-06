@@ -19,6 +19,7 @@ import { SegmentedControl } from './SegmentedControl';
 import { SupportSection } from './SupportSection';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { AboutModal } from './AboutModal';
+import { LicensesModal } from './LicensesModal';
 import { FeedbackModal } from './FeedbackModal';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
@@ -75,6 +76,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   const [openSoundSheet, setOpenSoundSheet] = useState<PrayerName | null>(null);
   const [isPrivacySheetOpen, setIsPrivacySheetOpen] = useState(false);
   const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
+  const [isLicensesSheetOpen, setIsLicensesSheetOpen] = useState(false);
   const [isFeedbackSheetOpen, setIsFeedbackSheetOpen] = useState(false);
   // Bildirim izni istenmeden ÖNCE açık rıza — kullanıcı onaylamazsa
   // onEnablePush hiç çağrılmaz, hiçbir abonelik denemesi yapılmaz
@@ -470,12 +472,17 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           setIsAboutSheetOpen(false);
           setIsFeedbackSheetOpen(true);
         }}
+        onOpenLicenses={() => {
+          setIsAboutSheetOpen(false);
+          setIsLicensesSheetOpen(true);
+        }}
       />
       <FeedbackModal
         isOpen={isFeedbackSheetOpen}
         onClose={() => setIsFeedbackSheetOpen(false)}
         location={settings.location}
       />
+      <LicensesModal isOpen={isLicensesSheetOpen} onClose={() => setIsLicensesSheetOpen(false)} />
 
       {/* Bildirim izni açık rıza sheet'i — onEnablePush yalnızca burada
           "Onaylıyorum, Devam Et" tıklanınca çağrılır (design-refresh-v3

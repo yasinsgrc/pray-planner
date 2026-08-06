@@ -1,14 +1,15 @@
 import React from 'react';
 import { BottomSheet } from './BottomSheet';
-import { ABOUT_USER_SECTIONS, ABOUT_VERIFIED_FACTS, ABOUT_LIBRARY_LICENSES } from '../data/about';
+import { ABOUT_USER_SECTIONS, ABOUT_VERIFIED_FACTS } from '../data/about';
 
 interface AboutModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenFeedback: () => void;
+  onOpenLicenses: () => void;
 }
 
-export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onOpenFeedback }) => {
+export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onOpenFeedback, onOpenLicenses }) => {
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Hakkında">
       <div className="space-y-4 pb-2 text-sm text-ink">
@@ -35,14 +36,12 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onOpenF
         </div>
 
         <div className="pt-3 border-t border-hairline">
-          <h3 className="text-xs font-bold text-ink mb-1">Açık Kaynak Kütüphaneler</h3>
-          <ul className="text-[11px] text-mist space-y-0.5">
-            {ABOUT_LIBRARY_LICENSES.map((lib) => (
-              <li key={lib.name}>
-                {lib.name} — {lib.license}
-              </li>
-            ))}
-          </ul>
+          <button
+            onClick={onOpenLicenses}
+            className="min-h-[44px] flex items-center text-xs font-semibold text-gold-ink cursor-pointer hover:underline"
+          >
+            Lisanslar (tam metin) →
+          </button>
         </div>
 
         <div className="pt-3 border-t border-hairline">

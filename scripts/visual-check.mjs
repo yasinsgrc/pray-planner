@@ -1774,6 +1774,17 @@ async function main() {
         await page.getByRole('button', { name: 'Hakkında sayfasını aç →' }).click();
         await page.waitForTimeout(500);
         await checkScreen(page, scenario, 'hakkinda');
+
+        // Lisanslar sheet: design-refresh-v3 Faz 21 madde 3, Hakkında
+        // içinden hâlâ açık olan sheet üzerinden — kendi entry point'i
+        // Ayarlar seviyesinde yok, sadece Hakkında'dan.
+        await page.getByRole('button', { name: 'Lisanslar (tam metin) →' }).click();
+        await page.waitForTimeout(500);
+        // Expand one license row first — the collapsed list alone wouldn't
+        // exercise the long, pre-formatted MIT text most likely to overflow.
+        await page.getByRole('button', { name: /^react\s/ }).first().click();
+        await page.waitForTimeout(300);
+        await checkScreen(page, scenario, 'lisanslar');
         await page.keyboard.press('Escape');
         await page.waitForTimeout(300);
 
@@ -1814,6 +1825,9 @@ async function main() {
         await page.getByRole('button', { name: 'Hakkında sayfasını aç →' }).click();
         await page.waitForTimeout(400);
         await checkTouchTargets(page, scenario, 'hakkinda-320px');
+        await page.getByRole('button', { name: 'Lisanslar (tam metin) →' }).click();
+        await page.waitForTimeout(400);
+        await checkTouchTargets(page, scenario, 'lisanslar-320px');
         await page.keyboard.press('Escape');
         await page.waitForTimeout(300);
         await page.getByRole('button', { name: 'Geri bildirim gönder →' }).click();

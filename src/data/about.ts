@@ -22,11 +22,6 @@ export interface AboutFact {
   body: string;
 }
 
-export interface LibraryLicense {
-  name: string;
-  license: string;
-}
-
 /**
  * Aşağıdaki gerçekler kodda doğrulanabilir olduğu için burada dolduruldu
  * (kullanıcının "ama şu teknik kısımları sen doldur" isteği) — hiçbiri
@@ -53,17 +48,6 @@ export const ABOUT_VERIFIED_FACTS: AboutFact[] = [
   },
   {
     title: 'Ezan Sesi Lisansı',
-    body:
-      'Kaynak: Wikimedia Commons, dosya "The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3", yükleyen: Atcovi. Lisans: CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0/). Dosya değiştirilmeden kullanılmaktadır. commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3',
+    body: 'Wikimedia Commons, CC BY-SA 4.0 (Atcovi). Tam atıf (eser adı, kaynak, lisans, değişiklik beyanı) ve kullanılan açık kaynak kütüphanelerin tam lisans metni "Lisanslar" ekranında.',
   },
-];
-
-/** Yalnızca istemci paketine gerçekten giren, çalışan çalışma-zamanı kütüphaneleri — derleme/geliştirme araçları (Vite, TypeScript, Tailwind vb.) hariç. */
-export const ABOUT_LIBRARY_LICENSES: LibraryLicense[] = [
-  { name: 'React', license: 'MIT' },
-  { name: 'React DOM', license: 'MIT' },
-  { name: 'adhan', license: 'MIT' },
-  { name: 'hijri-converter', license: 'MIT' },
-  { name: 'motion', license: 'MIT' },
-  { name: '@phosphor-icons/react', license: 'MIT' },
 ];
