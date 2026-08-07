@@ -30,6 +30,15 @@ import {
 } from './utils/pushClient';
 import { shouldShowPushHint } from './utils/pushHint';
 import { isNativePlatform } from './utils/platform';
+import {
+  ensureNotificationChannels,
+  requestNativeNotificationPermission,
+  checkNativeNotificationPermissionGranted,
+  scheduleNativeNotifications,
+  cancelAllNativeNotifications,
+  getNativeNotificationPermissionState,
+  hasScheduledNativeNotifications,
+} from './utils/nativeNotifications';
 import { useApiAvailable } from './hooks/useApiAvailable';
 
 import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
@@ -167,11 +176,17 @@ export default function App() {
   }, []);
 
   // Service worker'ı kaydet ve daha önce izin verilmişse aboneliği tespit et
+  // (native'de registerServiceWorker zaten no-op — bkz. pushClient.ts).
   useEffect(() => {
     registerServiceWorker(() => setIsUpdateAvailable(true)).then((registration) => {
       if (registration) setSwRegistration(registration);
     });
     (async () => {
+      if (isNativePlatform()) {
+        const granted = await checkNativeNotificationPermissionGranted();
+        if (granted) setPushStatus('granted');
+        return;
+      }
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         const existing = await getExistingPushSubscription();
         if (existing) {
@@ -185,21 +200,35 @@ export default function App() {
   // kullanıcı bunu fark etmeyebilir (design-refresh-v3 Faz 22 Commit 4).
   // apiAvailable henüz belirlenmeden (null) gösterilmez; koşulun geri kalanı
   // shouldShowPushHint'te (birim testli, saf).
+  // pushStatus da bağımlılıkta: bildirimler etkinleştirildiğinde ("Bildirimler
+  // etkin" durumuna geçtiğinde) ipucu hemen kaybolmalı, bir sonraki alakasız
+  // yeniden render'ı beklememeli — elle test sırasında yakalanan gerçek bir
+  // hata (design-refresh-v3 Faz 23 Commit 2).
   const [pushHintVisible, setPushHintVisible] = useState(false);
   useEffect(() => {
-    if (apiAvailable === null) return;
+    // Native local bildirimler sunucuya hiç ihtiyaç duymaz — apiAvailable
+    // web push için anlamlı, native'de bu ipucunu apiAvailable'ın henüz
+    // çözülmemiş olması (null) yüzünden geciktirmenin bir anlamı yok.
+    if (!isNativePlatform() && apiAvailable === null) return;
     let cancelled = false;
     (async () => {
-      const notificationPermission: NotificationPermission | 'unsupported' =
-        typeof Notification === 'undefined' ? 'unsupported' : Notification.permission;
+      const notificationPermission: NotificationPermission | 'unsupported' = isNativePlatform()
+        ? await getNativeNotificationPermissionState()
+        : typeof Notification === 'undefined'
+          ? 'unsupported'
+          : Notification.permission;
       const hasExistingSubscription =
-        notificationPermission === 'default' ? !!(await getExistingPushSubscription()) : false;
+        notificationPermission === 'default'
+          ? isNativePlatform()
+            ? await hasScheduledNativeNotifications()
+            : !!(await getExistingPushSubscription())
+          : false;
       if (cancelled) return;
       setPushHintVisible(
         shouldShowPushHint({
           notificationPermission,
           hasExistingSubscription,
-          apiAvailable,
+          apiAvailable: isNativePlatform() ? true : apiAvailable,
           pushHintDismissedAt: settings.pushHintDismissedAt,
         })
       );
@@ -207,7 +236,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [apiAvailable, settings.pushHintDismissedAt]);
+  }, [apiAvailable, settings.pushHintDismissedAt, pushStatus]);
 
   const handleDismissPushHint = () => {
     setSettings((prev) => ({ ...prev, pushHintDismissedAt: Date.now() }));
@@ -318,6 +347,12 @@ export default function App() {
   // 30 günü aşmasını da böylece önler.
   useEffect(() => {
     if (pushStatus !== 'granted') return;
+    if (isNativePlatform()) {
+      scheduleNativeNotifications(settings).then((result) => {
+        if (result.ok) recordPushSync();
+      });
+      return;
+    }
     refreshPushSchedule(settings).then((result) => {
       if (result.ok) recordPushSync();
     });
@@ -414,9 +449,34 @@ export default function App() {
     }));
   };
 
+  // Native'de web push yerine yerel bildirime geçilir (design-refresh-v3
+  // Faz 23 Commit 2) — SpiritualSettings'in görünümü aynı kalır, kullanıcı
+  // için "bildirimler açık/kapalı" aynı şeydir, yalnızca altındaki mekanizma
+  // farklıdır. Vakitler zaten cihazda hesaplandığı için sunucuya hiç
+  // ihtiyaç yok; bu yüzden native'de Railway'e hiçbir abonelik kaydı gitmez.
   const handleEnablePush = async () => {
     setPushStatus('loading');
     setPushError(null);
+
+    if (isNativePlatform()) {
+      await ensureNotificationChannels();
+      const permResult = await requestNativeNotificationPermission();
+      if ('reason' in permResult) {
+        setPushStatus(permResult.reason === 'Bildirim izni verilmedi.' ? 'denied' : 'error');
+        setPushError(permResult.reason);
+        return;
+      }
+      const scheduleResult = await scheduleNativeNotifications(settings);
+      if ('reason' in scheduleResult) {
+        setPushStatus('error');
+        setPushError(scheduleResult.reason);
+        return;
+      }
+      setPushStatus('granted');
+      recordPushSync();
+      return;
+    }
+
     const result = await subscribeToPush(settings);
     if ('reason' in result) {
       setPushStatus(result.reason === 'Bildirim izni verilmedi.' ? 'denied' : 'error');
@@ -435,6 +495,12 @@ export default function App() {
   // çağrısını atlıyor, tanımsız bir true/false yerine güvenli bir varsayılan.
   const handleDisablePush = async () => {
     setPushStatus('loading');
+    if (isNativePlatform()) {
+      await cancelAllNativeNotifications();
+      setPushStatus('idle');
+      clearPushSync();
+      return;
+    }
     await unsubscribeFromPush(apiAvailable === true);
     setPushStatus('idle');
     clearPushSync();

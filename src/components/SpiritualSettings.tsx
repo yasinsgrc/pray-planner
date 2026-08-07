@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BellIcon,
   ClockIcon,
@@ -28,13 +28,16 @@ import { PRAYER_LABELS } from '../data/strings';
 import { PRIVACY_SUMMARY } from '../data/privacy';
 import {
   PUSH_CONSENT_TITLE,
-  PUSH_CONSENT_TEXT,
+  PUSH_CONSENT_TEXT_WEB,
+  PUSH_CONSENT_TEXT_NATIVE,
   PUSH_CONSENT_CONFIRM_LABEL,
   PUSH_CONSENT_DECLINE_LABEL,
 } from '../data/pushConsent';
 import { useApiAvailable } from '../hooks/useApiAvailable';
 import { isIOSStandaloneNoticeNeeded } from '../utils/pushClient';
 import type { PushStatus } from '../utils/pushClient';
+import { isNativePlatform } from '../utils/platform';
+import { checkExactAlarmGranted, openExactAlarmSettings } from '../utils/nativeNotifications';
 
 interface SpiritualSettingsProps {
   settings: AppSettings;
@@ -83,6 +86,32 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   // (design-refresh-v3 Faz 16).
   const [isPushConsentSheetOpen, setIsPushConsentSheetOpen] = useState(false);
   const apiAvailable = useApiAvailable();
+  // Native yerel bildirimler sunucuya hiç ihtiyaç duymaz — bildirim bölümü
+  // web'de yalnızca apiAvailable === true iken görünür, native'de her zaman
+  // (design-refresh-v3 Faz 23 Commit 2). Görünüm aynı kalır; yalnızca
+  // "sunucu yok" ölü ucu native'de asla anlamlı olmadığı için hiç sorulmaz.
+  const notificationsUiAvailable = isNativePlatform() || apiAvailable === true;
+  const showApiCheckSkeleton = !isNativePlatform() && apiAvailable === null;
+  const showApiUnavailableNotice = !isNativePlatform() && apiAvailable === false;
+
+  // SCHEDULE_EXACT_ALARM sistem ayarlarından her an kapatılabilir —
+  // yalnızca native'de ve bildirimler açıkken kontrol edilir, otomatik izin
+  // isteği yok (design-refresh-v3 Faz 23 Commit 2).
+  const [exactAlarmGranted, setExactAlarmGranted] = useState(true);
+  useEffect(() => {
+    if (!isNativePlatform() || pushStatus !== 'granted') return;
+    let cancelled = false;
+    checkExactAlarmGranted().then((granted) => {
+      if (!cancelled) setExactAlarmGranted(granted);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pushStatus]);
+
+  const handleOpenExactAlarmSettings = () => {
+    openExactAlarmSettings().then((granted) => setExactAlarmGranted(granted));
+  };
 
   const handleConfirmPushConsent = () => {
     setIsPushConsentSheetOpen(false);
@@ -117,20 +146,20 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             hiç ulaşılamaz (design-refresh-v3 Faz 9 M2). apiAvailable === null
             iken (kontrol sürüyor) kartlar bir görünüp bir kaybolmasın diye
             aynı yükseklikte bir iskelet gösterilir. */}
-        {apiAvailable === null && (
+        {showApiCheckSkeleton && (
           <div className="space-y-3" aria-hidden="true">
             <div className="h-[92px] rounded-2xl bg-card border border-hairline animate-pulse" />
             <div className="h-[220px] rounded-2xl bg-card border border-hairline animate-pulse" />
           </div>
         )}
 
-        {apiAvailable === false && (
+        {showApiUnavailableNotice && (
           <FadeIn delay={0} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm">
             <p className="text-xs text-mist text-center">Vakit bildirimleri bu sürümde kullanılamıyor.</p>
           </FadeIn>
         )}
 
-        {apiAvailable === true && (
+        {notificationsUiAvailable && (
           <>
             <FadeIn delay={0} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
               <div className="flex items-center gap-2">
@@ -140,7 +169,9 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                     Bildirimleri Etkinleştir
                   </div>
                   <div className="text-[11px] text-mist">
-                    Vakit girdiğinde tarayıcı bildirimi alabilmek için izin verin
+                    {isNativePlatform()
+                      ? 'Vakit girdiğinde bildirim alabilmek için izin verin'
+                      : 'Vakit girdiğinde tarayıcı bildirimi alabilmek için izin verin'}
                   </div>
                 </div>
               </div>
@@ -184,7 +215,9 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
               {pushStatus === 'denied' && (
                 <p className="text-[11px] text-danger-ink">
-                  Bildirim izni reddedildi. Tarayıcı ayarlarından bu site için bildirimlere izin verip tekrar deneyin.
+                  {isNativePlatform()
+                    ? 'Bildirim izni reddedildi. Sistem ayarlarından bu uygulama için bildirimlere izin verip tekrar deneyin.'
+                    : 'Bildirim izni reddedildi. Tarayıcı ayarlarından bu site için bildirimlere izin verip tekrar deneyin.'}
                 </p>
               )}
               {pushStatus === 'error' && pushError && (
@@ -197,6 +230,28 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   <span>
                     iPhone'da bildirim alabilmek için Safari'de Paylaş → Ana Ekrana Ekle ile uygulamayı yükleyin.
                   </span>
+                </div>
+              )}
+
+              {/* Tam alarm izni kapatılmışsa sakin bir bilgi — kesin alarma
+                  düşme, çökme veya kullanıcıyı zorlama yok (design-refresh-v3
+                  Faz 23 Commit 2). Otomatik izin isteme; buton yalnızca
+                  sistem ayarına götürür. */}
+              {isNativePlatform() && pushStatus === 'granted' && !exactAlarmGranted && (
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-gold/10 text-[11px] text-mist">
+                  <DeviceMobileIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span>
+                      Bildirimler birkaç dakika gecikebilir. Tam zamanlı bildirim için sistem ayarlarından izin
+                      verebilirsiniz.
+                    </span>
+                    <button
+                      onClick={handleOpenExactAlarmSettings}
+                      className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"
+                    >
+                      Sistem ayarını aç →
+                    </button>
+                  </div>
                 </div>
               )}
             </FadeIn>
@@ -298,7 +353,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           </p>
         </FadeIn>
 
-        {apiAvailable === true && (
+        {notificationsUiAvailable && (
           <>
             <FadeIn delay={0.12} className="p-4 rounded-2xl bg-card border border-hairline shadow-sm space-y-3">
               <div className="flex items-center gap-2">
@@ -486,14 +541,19 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
 
       {/* Bildirim izni açık rıza sheet'i — onEnablePush yalnızca burada
           "Onaylıyorum, Devam Et" tıklanınca çağrılır (design-refresh-v3
-          Faz 16). Metin şu an yer tutucu (bkz. src/data/pushConsent.ts). */}
+          Faz 16). Metin şu an yer tutucu (bkz. src/data/pushConsent.ts) —
+          web ve native veri akışı gerçekten farklı olduğu için (native
+          hiçbir şeyi sunucuya göndermez), ikisi ayrı metin kullanır
+          (design-refresh-v3 Faz 23 Commit 2). */}
       <BottomSheet
         isOpen={isPushConsentSheetOpen}
         onClose={() => setIsPushConsentSheetOpen(false)}
         title={PUSH_CONSENT_TITLE}
       >
         <div className="space-y-4 pb-2">
-          <p className="text-xs text-ink leading-relaxed">{PUSH_CONSENT_TEXT}</p>
+          <p className="text-xs text-ink leading-relaxed">
+            {isNativePlatform() ? PUSH_CONSENT_TEXT_NATIVE : PUSH_CONSENT_TEXT_WEB}
+          </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsPushConsentSheetOpen(false)}

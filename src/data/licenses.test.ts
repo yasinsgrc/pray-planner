@@ -50,3 +50,19 @@ test('EZAN_ATTRIBUTION\'s cited SHA1 matches the actual shipped audio file', () 
   const actualSha1 = createHash('sha1').update(readFileSync(audioPath)).digest('hex');
   assert.match(EZAN_ATTRIBUTION.modificationStatement, new RegExp(actualSha1));
 });
+
+// design-refresh-v3 Faz 23 Commit 2 — Android notification channel sounds
+// are locked in at creation time, so the ezan recording also has to live
+// as a native resource (android/app/src/main/res/raw/ezan.mp3), a second
+// physical copy of the same file. A future re-encode/trim of ONE copy
+// without the other would either silently diverge the native sound from
+// the CC BY-SA "unmodified" claim above, or leave the two platforms
+// playing audibly different recordings — this catches either byte-for-byte
+// the moment they diverge.
+test('the native (Android res/raw) copy of ezan.mp3 is byte-for-byte identical to public/sounds/ezan.mp3', () => {
+  const webAudioPath = path.join(PROJECT_ROOT, 'public', 'sounds', 'ezan.mp3');
+  const nativeAudioPath = path.join(PROJECT_ROOT, 'android', 'app', 'src', 'main', 'res', 'raw', 'ezan.mp3');
+  const webSha1 = createHash('sha1').update(readFileSync(webAudioPath)).digest('hex');
+  const nativeSha1 = createHash('sha1').update(readFileSync(nativeAudioPath)).digest('hex');
+  assert.equal(nativeSha1, webSha1);
+});
