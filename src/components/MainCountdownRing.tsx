@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ClockIcon, CalendarDotsIcon } from './icons';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { SunArcDial } from './SunArcDial';
 import { DialLegend } from './DialLegend';
@@ -9,13 +8,11 @@ import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 
 interface MainCountdownRingProps {
   schedule: DayPrayerSchedule;
-  onScrollToFlow: () => void;
   onOpenKerahetInfo: () => void;
 }
 
 export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
   schedule,
-  onScrollToFlow,
   onOpenKerahetInfo,
 }) => {
   const {
@@ -43,9 +40,9 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
         <div className="relative flex flex-col items-center justify-center animate-blur-up">
           {/* Glow effect behind golden ring */}
-          <div className="absolute w-[260px] h-[260px] rounded-full bg-gold/5 blur-2xl pointer-events-none" />
+          <div className="absolute w-[min(300px,71vw)] h-[min(300px,71vw)] rounded-full bg-gold/5 blur-2xl pointer-events-none" />
 
-          <div className="relative w-[288px] h-[288px] flex items-center justify-center">
+          <div className="relative w-[min(340px,78vw)] h-[min(340px,78vw)] flex items-center justify-center">
             <SunArcDial schedule={schedule} />
 
             {/* Sayacın İçi */}
@@ -89,62 +86,6 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
 
         {/* Kerahet şeridi: kadranın altında kalıcı, layout'u kaydırmayan */}
         <KerahetStrip kerahetTimes={kerahetTimes} timeZone={schedule.resolvedTimeZone} onOpenInfo={onOpenKerahetInfo} />
-      </div>
-
-      {/* Alt Alan: Bento Grid (Sıradaki Vakit + Kısayollar) */}
-      <div className="w-full grid grid-cols-2 gap-3 mt-4 shrink-0">
-        {/* Sıradaki Vakit Kartı (geniş) */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          className="col-span-2 p-3.5 rounded-2xl glass-panel border border-hairline shadow-sm flex items-center justify-between px-5 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center">
-              <ClockIcon className="w-4 h-4" />
-            </div>
-            <div className="text-left">
-              <div className="text-label text-mist font-semibold">
-                Sıradaki Vakit
-              </div>
-              <div className="text-sm font-bold text-ink">
-                {nextPrayer.label}
-              </div>
-            </div>
-          </div>
-
-          <div className="text-right">
-            <div className="font-numbers text-lg font-bold text-gold-ink">
-              {nextPrayer.timeString}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Tüm Vakitler Kısayolu — "Kilit Ekranı Görünümü" (iOS Live
-            Activity / Android widget önizlemesi) kaldırıldı (design-refresh-v3
-            Faz 19): PWA bunu gerçekten sunamıyor, olmayan bir yetenek vaat
-            ediyordu. Tasarım git geçmişinde kalıyor, native widget
-            yapılırken şartname olarak kullanılabilir. col-span-2: artık bu
-            ızgara satırındaki tek öğe. */}
-        <motion.button
-          onClick={onScrollToFlow}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.97 }}
-          className="col-span-2 p-3.5 rounded-2xl bg-card/70 border border-hairline/50 flex flex-col items-start gap-2 text-left cursor-pointer transition-colors hover:border-gold/40"
-        >
-          <div className="w-8 h-8 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center">
-            <CalendarDotsIcon className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-semibold text-ink leading-tight">
-            Tüm Vakitler
-          </span>
-        </motion.button>
       </div>
     </div>
   );

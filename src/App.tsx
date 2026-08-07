@@ -510,7 +510,6 @@ export default function App() {
                 <RamadanModeCard schedule={schedule} now={now} />
                 <MainCountdownRing
                   schedule={schedule}
-                  onScrollToFlow={() => setActiveTab('flow')}
                   onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
                 />
               </>
