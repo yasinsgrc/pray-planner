@@ -39,13 +39,36 @@ function warnMissingPrivacyEnv(env: Record<string, string>): Plugin {
   };
 }
 
+// Native (Capacitor) origin is `https://localhost` — a relative /api/*
+// path silently resolves to a request against that same fake local origin,
+// which nothing answers (design-refresh-v3 Faz 23 Commit 1). Web builds
+// are unaffected: the relative-path fallback is exactly what single-origin
+// Node hosting needs, and VAKIT_TARGET is only ever set by android:sync.
+// Unlike warnMissingPrivacyEnv (a warning — a placeholder text is merely
+// ugly), a missing base URL here means every /api/* and /health call fails
+// outright, so this must fail the build, not just warn.
+function requireApiBaseUrlForNativeBuild(env: Record<string, string>): Plugin {
+  return {
+    name: 'require-api-base-url-for-native-build',
+    apply: 'build',
+    buildStart() {
+      if (process.env.VAKIT_TARGET === 'native' && !env.VITE_API_BASE_URL) {
+        this.error(
+          'VAKIT_TARGET=native ile build alınıyor ama VITE_API_BASE_URL tanımlı değil — native origin ' +
+            "https://localhost olduğundan göreli /api/* ve /health çağrıları sessizce başarısız olur."
+        );
+      }
+    },
+  };
+}
+
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   return {
     define: {
       __APP_VERSION__: JSON.stringify(packageVersion),
     },
-    plugins: [react(), tailwindcss(), warnMissingPrivacyEnv(env)],
+    plugins: [react(), tailwindcss(), warnMissingPrivacyEnv(env), requireApiBaseUrlForNativeBuild(env)],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

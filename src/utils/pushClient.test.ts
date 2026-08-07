@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { unsubscribeFromPush } from './pushClient';
+import { unsubscribeFromPush, registerServiceWorker } from './pushClient';
 
 interface FakeSubscription {
   endpoint: string;
@@ -135,6 +135,69 @@ test('unsubscribeFromPush is a no-op when there is no existing subscription', as
     const result = await unsubscribeFromPush(true);
     assert.deepEqual(result, { ok: true });
     assert.equal(fetchCalls.length, 0);
+  } finally {
+    restore();
+  }
+});
+
+/**
+ * design-refresh-v3 Faz 23 Commit 1 — native (Capacitor) mode serves assets
+ * from disk, not through a service worker; registering one there is not
+ * just useless but actively harmful (a stale SW could keep serving assets
+ * from a previous Play Store version after an update). `isNative` mirrors
+ * unsubscribeFromPush's existing `apiAvailable` pattern: the caller-known
+ * fact is passed in explicitly rather than read from a global inside the
+ * function, which is what makes this directly testable without needing to
+ * fake Capacitor's own native-bridge detection (a module-load-time
+ * singleton that can't be swapped after import).
+ */
+function installFakeServiceWorkerRegistry() {
+  const registerCalls: string[] = [];
+  const fakeRegistration = {
+    waiting: null,
+    addEventListener: () => {},
+  };
+  const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', {
+    value: {
+      serviceWorker: {
+        register: async (url: string) => {
+          registerCalls.push(url);
+          return fakeRegistration;
+        },
+        controller: null,
+      },
+    },
+    configurable: true,
+    writable: true,
+  });
+  return {
+    registerCalls,
+    restore: () => {
+      if (originalNavigatorDescriptor) {
+        Object.defineProperty(globalThis, 'navigator', originalNavigatorDescriptor);
+      }
+    },
+  };
+}
+
+test('registerServiceWorker returns null and never calls navigator.serviceWorker.register in native mode', async () => {
+  const { registerCalls, restore } = installFakeServiceWorkerRegistry();
+  try {
+    const result = await registerServiceWorker(undefined, true);
+    assert.equal(result, null);
+    assert.equal(registerCalls.length, 0);
+  } finally {
+    restore();
+  }
+});
+
+test('registerServiceWorker registers the service worker as before when not native (web behavior unchanged)', async () => {
+  const { registerCalls, restore } = installFakeServiceWorkerRegistry();
+  try {
+    const result = await registerServiceWorker(undefined, false);
+    assert.ok(result);
+    assert.deepEqual(registerCalls, ['/sw.js']);
   } finally {
     restore();
   }

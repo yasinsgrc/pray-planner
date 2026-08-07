@@ -3,5 +3,6 @@
  * apiBaseUrl.ts (which DOES read import.meta.env at module load) can't be
  * imported there at all, since the whole module body runs on import. */
 export function joinApiUrl(base: string, path: string): string {
-  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  const normalizedBase = base.replace(/\/$/, '');
+  return `${normalizedBase}${path.startsWith('/') ? path : `/${path}`}`;
 }

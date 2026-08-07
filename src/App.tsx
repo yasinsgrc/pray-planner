@@ -29,6 +29,7 @@ import {
   PushStatus,
 } from './utils/pushClient';
 import { shouldShowPushHint } from './utils/pushHint';
+import { isNativePlatform } from './utils/platform';
 import { useApiAvailable } from './hooks/useApiAvailable';
 
 import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
@@ -466,8 +467,12 @@ export default function App() {
         </div>
       )}
 
-      {/* Yeni sürüm hazır satırı — kullanıcı onayı olmadan sayfa yenilenmez. */}
-      {isUpdateAvailable && (
+      {/* Yeni sürüm hazır satırı — kullanıcı onayı olmadan sayfa yenilenmez.
+          Native'de güncelleme Play Store'dan gelir; registerServiceWorker
+          zaten native'de null dönüp bu akışı hiç tetiklemiyor, ama yanlışlıkla
+          çalışmayan bir buton göstermeyi imkansız kılmak için burada da açıkça
+          gate ediliyor (design-refresh-v3 Faz 23 Commit 1). */}
+      {isUpdateAvailable && !isNativePlatform() && (
         <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-2">
           <button
             onClick={handleApplyUpdate}

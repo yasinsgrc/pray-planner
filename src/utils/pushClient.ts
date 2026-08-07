@@ -1,6 +1,7 @@
 import { AppSettings } from '../types';
 import { apiUrl } from './apiBaseUrl';
 import { buildPushSchedule, PushScheduleEntry } from './pushSchedule';
+import { isNativePlatform } from './platform';
 
 const SERVICE_WORKER_URL = '/sw.js';
 
@@ -24,10 +25,19 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * waiting to take over (design-refresh-v3 Faz 4 F1). It never activates
  * itself — see applyServiceWorkerUpdate, called only from the user's own
  * "Yenile" tap, so a page never gets pulled out from under someone mid-use.
+ *
+ * `isNative` defaults to the real platform check but can be overridden by
+ * the caller for testing (mirrors unsubscribeFromPush's `apiAvailable`
+ * param) — in native mode this is a no-op returning null: Capacitor serves
+ * assets from disk, not through a service worker, and registering one
+ * there risks silently keeping a stale, pre-update SW alive after a Play
+ * Store update (design-refresh-v3 Faz 23 Commit 1).
  */
 export async function registerServiceWorker(
-  onUpdateAvailable?: () => void
+  onUpdateAvailable?: () => void,
+  isNative: boolean = isNativePlatform()
 ): Promise<ServiceWorkerRegistration | null> {
+  if (isNative) return null;
   if (!('serviceWorker' in navigator)) return null;
   const registration = await navigator.serviceWorker.register(SERVICE_WORKER_URL);
 
