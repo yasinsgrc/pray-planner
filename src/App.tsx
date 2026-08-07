@@ -510,6 +510,7 @@ export default function App() {
                 <RamadanModeCard schedule={schedule} now={now} />
                 <MainCountdownRing
                   schedule={schedule}
+                  now={now}
                   onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
                 />
               </>

@@ -4,15 +4,18 @@ import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { SunArcDial } from './SunArcDial';
 import { DialLegend } from './DialLegend';
 import { KerahetStrip } from './KerahetStrip';
+import { PrayerWindowBar } from './PrayerWindowBar';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 
 interface MainCountdownRingProps {
   schedule: DayPrayerSchedule;
+  now: Date;
   onOpenKerahetInfo: () => void;
 }
 
 export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
   schedule,
+  now,
   onOpenKerahetInfo,
 }) => {
   const {
@@ -87,6 +90,11 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
         {/* Kerahet şeridi: kadranın altında kalıcı, layout'u kaydırmayan */}
         <KerahetStrip kerahetTimes={kerahetTimes} timeZone={schedule.resolvedTimeZone} onOpenInfo={onOpenKerahetInfo} />
       </div>
+
+      {/* Vakit penceresi göstergesi: "bu namazı kılmak için ne kadar vaktim
+          kaldı" — kadranın cevapladığı "bir sonraki vakte ne kadar var"
+          sorusundan farklı bir soru. Eski bento grid'in yerinde. */}
+      <PrayerWindowBar schedule={schedule} now={now} />
     </div>
   );
 };
