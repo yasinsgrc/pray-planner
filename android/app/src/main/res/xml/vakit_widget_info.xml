@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- design-refresh-v3 Faz 23 Commit 4 — updatePeriodMillis=0: sistemin
+     periyodik güncellemesi (30 dk alt sınır) kullanılmıyor, yenileme
+     kendi AlarmManager.setWindow zincirimizle ve
+     DATE_CHANGED/TIMEZONE_CHANGED/BOOT_COMPLETED/WidgetBridgePlugin
+     tetikleyicileriyle yapılıyor. widgetCategory'ye keyguard eklenmesi,
+     kilit ekranı widget paneli destekleyen cihazlarda (bkz. görev
+     tanımındaki Android 16 QPR2/One UI/HyperOS notu) aynı widget'ın orada
+     da sunulmasını sağlar — ayrı bir kilit ekranı implementasyonu yok. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/vakit_widget"
+    android:previewLayout="@layout/vakit_widget"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen|keyguard"
+    android:description="@string/widget_description" />

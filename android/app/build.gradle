@@ -1,4 +1,7 @@
 apply plugin: 'com.android.application'
+// VakitWidgetProvider + WidgetBridgePlugin Kotlin ile yazıldı (design-refresh-v3
+// Faz 23 Commit 4) — taze Capacitor şablonu Kotlin desteği içermiyordu.
+apply plugin: 'kotlin-android'
 
 // İmzalama tamamen geliştiricinin elinde: gerçek keystore.properties depoya
 // asla girmez (kök .gitignore, design-refresh-v3 Faz 23 Commit 1). Dosya
@@ -45,6 +48,17 @@ android {
                 signingConfig signingConfigs.release
             }
         }
+    }
+    // capacitor-android modülü JDK 21 kaynak uyumluluğu zorunlu kılıyor
+    // (node_modules/@capacitor/android/capacitor/build.gradle) — app
+    // modülünü de aynı hedefe getirerek Java/Kotlin arası JVM hedef
+    // uyuşmazlığını önlüyoruz.
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = '21'
     }
 }
 

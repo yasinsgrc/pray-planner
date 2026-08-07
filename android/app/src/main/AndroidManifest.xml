@@ -33,6 +33,25 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Kilit ekranı widget desteği mevcut AppWidget API'sini kullanır
+             (design-refresh-v3 Faz 23 Commit 4) — ayrı bir bildirim/servis
+             tabanlı kilit ekranı implementasyonu yok. -->
+        <receiver
+            android:name=".widget.VakitWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.vakit.widget.ACTION_REFRESH_BOUNDARY" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vakit_widget_info" />
+        </receiver>
     </application>
 
     <!-- Permissions -->

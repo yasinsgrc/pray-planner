@@ -4,4 +4,12 @@
     <string name="title_activity_main">VAKİT</string>
     <string name="package_name">com.vakit</string>
     <string name="custom_url_scheme">com.vakit</string>
+
+    <!-- VakitWidgetProvider (design-refresh-v3 Faz 23 Commit 4). Metinler
+         web tarafındaki eşdeğerleriyle (src/data/strings.ts,
+         PrayerWindowBar.tsx) aynı dili konuşur — yeni dinî/fıkhî içerik
+         değil, salt operasyonel arayüz metni. -->
+    <string name="widget_countdown_label">Vaktin çıkmasına</string>
+    <string name="widget_empty_state">Vakitleri yüklemek için uygulamayı açın.</string>
+    <string name="widget_description">Gün içindeki vaktin ilerleyişini ve namaz vakitlerini gösterir.</string>
 </resources>

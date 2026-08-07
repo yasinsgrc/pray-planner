@@ -1,7 +1,21 @@
 import { Preferences } from '@capacitor/preferences';
+import { registerPlugin } from '@capacitor/core';
 import { AppSettings } from '../types';
 import { buildWidgetPayload } from './widgetBridge';
 import { isNativePlatform } from './platform';
+
+/**
+ * App-local Capacitor eklentisi (ayrı bir npm paketi değil —
+ * android/app/src/main/java/com/vakit/widget/WidgetBridgePlugin.kt).
+ * Yeni yük yazıldıktan hemen sonra widget'ı yeniden çizdirir; aksi halde
+ * yeni veri ancak bir sonraki vakit sınırı alarmına kadar (saatler
+ * sürebilir) görünmezdi (design-refresh-v3 Faz 23 Commit 4).
+ */
+interface WidgetBridgePlugin {
+  refresh(): Promise<void>;
+}
+
+const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge');
 
 /**
  * Preferences' default group ("CapacitorStorage") backs a real Android
@@ -22,4 +36,5 @@ export async function writeWidgetPayload(settings: AppSettings, now: Date = new 
   if (!isNativePlatform()) return;
   const payload = buildWidgetPayload(settings.location, settings.calculationMethod, now);
   await Preferences.set({ key: WIDGET_PAYLOAD_KEY, value: JSON.stringify(payload) });
+  await WidgetBridge.refresh();
 }
