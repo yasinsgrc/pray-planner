@@ -155,6 +155,89 @@ Sunucu `0.0.0.0`'a bağlanır ve `PORT` (veya `SERVER_PORT`) değişkenini okur
 `immutable, max-age=31536000` cache header'ı ile servis edilir. `GET
 /health` bir sağlık kontrolü ucu olarak kullanılabilir.
 
+## Native (Android)
+
+VAKİT, [Capacitor](https://capacitorjs.com) ile aynı web kod tabanından bir
+native Android kabuğuna da paketlenir (design-refresh-v3 Faz 23) —
+`android/` klasörü depoya commit edilmiştir. **Web varlıkları APK'ya
+gömülüdür**, `capacitor.config.ts`'te `server.url` kullanılmaz: uygulama
+ilk kurulumda internetsiz açılabilmeli, native widget kodu ile JS veri
+sözleşmesi aynı sürümde birlikte çıkmalı.
+
+Native ile web arasındaki davranış farkları çalışma anında
+`Capacitor.isNativePlatform()` (`src/utils/platform.ts`) ile ayrılır — ayrı
+bir dal veya giriş noktası yoktur:
+
+| Davranış | Web (PWA) | Native (Android) |
+| --- | --- | --- |
+| Varlık kaynağı | Ağ + service worker önbelleği | APK'ya gömülü, tamamen çevrimdışı ilk açılış |
+| Güncelleme | Service worker + "Yeni sürüm hazır" şeridi | Play Store |
+| Bildirimler | Web Push (`src/utils/pushClient.ts`, sunucuya abonelik kaydı) | Yerel bildirim (`src/utils/nativeNotifications.ts`, `@capacitor/local-notifications`) — **sunucuya hiçbir kayıt gitmez** |
+| Ana ekran/kilit ekranı widget'ı | Yok (web'de mümkün değil) | `VakitWidgetProvider.kt` — 7 günlük vakit verisi `@capacitor/preferences` ile cihaz `SharedPreferences`'ına yazılır |
+| API taban adresi | Göreli yol (`VITE_API_BASE_URL` boş) | **Zorunlu mutlak URL** — native origin `https://localhost` olduğundan göreli `/api/*` sessizce başarısız olurdu; build zamanında `vite.config.ts` bunu kontrol eder |
+
+### Gereksinimler
+
+Resmi [Capacitor Android dokümantasyonuna](https://capacitorjs.com/docs/android)
+göre doğrulanmıştır (tahmin edilmemiştir):
+
+- **Node.js 22+**
+- **JDK 21** — `capacitor-android` modülünün kendisi bunu zorunlu kılar
+  (`node_modules/@capacitor/android/capacitor/build.gradle`). Android
+  Studio kurulacaksa kendi JBR'ı (JetBrains Runtime) bunu zaten sağlar;
+  Android Studio kurulu değilse `JAVA_HOME`'u JDK 21'e işaret eden bir
+  ortam değişkeni olarak ayarlamak gerekir.
+- **Android SDK** — platform 36, build-tools 36.x
+- Capacitor 8, AGP 8.13.0, Gradle wrapper 8.14.3, Kotlin 2.2.20 (hepsi
+  `android/variables.gradle`, `android/build.gradle`, `android/gradle/wrapper/gradle-wrapper.properties`'te sabitlenmiştir)
+
+### Build akışı
+
+```bash
+npm run android:sync   # web build (VAKIT_TARGET=native ile) + versionCode/versionName senkronu + npx cap sync android
+cd android
+./gradlew assembleDebug   # veya lint, veya Android Studio'dan Run
+```
+
+`android:sync`, `package.json`'daki `version` alanından
+`android/app/build.gradle`'ın `versionCode`/`versionName`'ini
+**otomatik türetir** (`scripts/sync-android-version.mjs` +
+`src/utils/androidVersionCode.ts`) — elle senkronize edilen ikinci bir
+sürüm sabiti yoktur. `versionCode`, semver'den `major*10000 + minor*100 +
+patch` formülüyle üretilir ve her zaman artandır (Google Play'in zorunlu
+kıldığı gibi).
+
+**Native build için `VITE_API_BASE_URL` zorunludur** — Railway/sunucunuzun
+gerçek origin'ini işaret etmeli (native `/api/daily-verse`, `/api/geocode`
+gibi push-dışı uçları hâlâ kullanır; yalnızca bildirim aboneliği hiç
+sunucuya gitmez). Boş bırakılırsa `android:sync` içindeki `npm run build`
+adımı build'i **durdurur** (uyarı değil, hata — bkz.
+`vite.config.ts`'teki `requireApiBaseUrlForNativeBuild`).
+
+### İmzalama
+
+İmzalama tamamen geliştiricinin elinde — bu depo hiçbir keystore, parola
+veya imzalama kimlik bilgisi içermez ve içermeyecektir.
+`android/app/build.gradle`'ın `signingConfigs.release`'i,
+`android/keystore.properties` (depoya **girmez**, `.gitignore`'da) adlı
+bir dosyadan okur; şablon için `android/keystore.properties.example`'a
+bakın. Dosya yoksa `assembleDebug` etkilenmez, `assembleRelease` bilerek
+imzasız/dağıtılamaz kalır.
+
+### Widget
+
+`VakitWidgetProvider.kt` (`android/app/src/main/java/com/vakit/widget/`),
+JS tarafının ürettiği epoch-ms cinsinden vakit verisini (`widgetBridge.ts`)
+okuyup yalnızca aritmetik yapar — **adhan Kotlin'e port edilmemiştir**.
+Geri sayım `Chronometer` + `setChronometerCountDown` ile sistem
+tarafından tiklenir (sıfır pil maliyeti, izin gerekmez). Ayrıntılar için
+Faz 23 Commit 4'ün commit mesajına ve `docs/play-data-safety.md`'ye bakın.
+
+### Play Console
+
+Yayın öncesi doldurulacak Data Safety formu için `docs/play-data-safety.md`
+— her kalemin kod içindeki kaynağıyla eşlemesini içerir.
+
 ## Test ve Doğrulama
 
 ```bash

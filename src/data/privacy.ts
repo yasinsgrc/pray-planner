@@ -118,3 +118,76 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
 export const PRIVACY_SUMMARY =
   'VAKİT hesap açmanızı istemez, reklam göstermez ve sizi takip etmez. Namaz vakitleri telefonunuzda hesaplanır; bunun için hiçbir sunucuya bağlanılmaz. ' +
   'Sunucumuza yalnızca vakit bildirimlerini açarsanız veri gönderilir. Bildirimleri kapattığınızda bu kayıt silinir.';
+
+const SUMMARY_SUBSCRIPTION_SENTENCE =
+  ' Sunucumuza yalnızca vakit bildirimlerini açarsanız veri gönderilir. Bildirimleri kapattığınızda bu kayıt silinir.';
+
+/** getPrivacySections'la aynı gerekçe: native'de bildirim için sunucuya hiçbir veri gitmez, bu yüzden özet cümlesi de o iddiayı taşıyamaz. */
+export function getPrivacySummary(isNative: boolean): string {
+  if (!isNative) return PRIVACY_SUMMARY;
+  return PRIVACY_SUMMARY.replace(SUMMARY_SUBSCRIPTION_SENTENCE, '');
+}
+
+const SUBSCRIPTION_ONLY_SECTION_TITLE = '4. Bildirim Özelliğini Açtığınızda İşlenen Veriler';
+const DEVICE_DATA_SECTION_TITLE = '3. Cihazınızda Saklanan, Bize Gönderilmeyen Veriler';
+
+/**
+ * Section 4 tamamen abonelik hakkında olduğu için native'de bütünüyle
+ * düşer, ama aynı iddia (push abonelik adresi/şifreleme anahtarları
+ * sunucuda saklanır) tek tek satırlar olarak 6. ve 7. bölümlerin içine de
+ * serpiştirilmiş — bunları da bırakmak aynı yanlış iddiayı başka bir
+ * yerden tekrar etmek olurdu. Yalnızca bu satırlar (mevcut metinden
+ * birebir, yeni ifade yok) native'de elenir; her iki bölümün geri kalanı
+ * (OpenStreetMap, ummahapi, hosting sağlayıcı, sunucu erişim kaydı
+ * saklama süresi — hepsi native'de de gerçekleşen, sunucu tabanlı akışlar)
+ * olduğu gibi kalır.
+ */
+const NATIVE_LINE_EXCLUSIONS: Record<string, RegExp[]> = {
+  '6. Üçüncü Taraf Hizmetler': [/^- Tarayıcı push servisi/],
+  '7. Saklama Süresi': [
+    /^- Bildirim abonelik kaydınız/,
+    /^- Bildirimleri kapattığınızda kayıt sunucudan silinir\.$/,
+    /^- Tarayıcınızın push aboneliği geçersiz hale gelirse/,
+  ],
+};
+
+/**
+ * Native bir sunucu abonelik kaydı asla oluşturmaz (design-refresh-v3 Faz
+ * 23 Commit 2 — nativeNotifications.ts hiçbir /api/* isteği yapmaz, yerel
+ * bildirimler tamamen cihazda zamanlanır); PRIVACY_SECTIONS'ın web için
+ * yazılmış abonelik iddiaları native'de olduğu gibi gösterilirse doğrudan
+ * yanlış olur. PRIVACY_SECTIONS'ın kendisi (web'in okuduğu kaynak) burada
+ * asla değiştirilmez — yalnızca filtrelenip yeniden numaralandırılmış bir
+ * KOPYASI döner. Widget verisinin cihazda kaldığına dair tek cümle
+ * (widgetStorage.ts + gerçek cihazda doğrulandı: SharedPreferences'a
+ * yazar, hiçbir ağ isteği yapmaz) mevcut "cihazda saklanan" bölümüne
+ * eklenir.
+ */
+export function getPrivacySections(isNative: boolean): PrivacySection[] {
+  if (!isNative) return PRIVACY_SECTIONS;
+
+  return PRIVACY_SECTIONS.filter((section) => section.title !== SUBSCRIPTION_ONLY_SECTION_TITLE)
+    .map((section) => {
+      if (section.title === DEVICE_DATA_SECTION_TITLE) {
+        return {
+          ...section,
+          body:
+            section.body +
+            "\n- Kilit ekranı/ana ekran widget'ı için üretilen 7 günlük vakit verisi (cihazınızdaki SharedPreferences) — yalnızca cihazınızda tutulur, hiçbir sunucuya gönderilmez.",
+        };
+      }
+      const exclusions = NATIVE_LINE_EXCLUSIONS[section.title];
+      if (!exclusions) return section;
+      return {
+        ...section,
+        body: section.body
+          .split('\n')
+          .filter((line) => !exclusions.some((pattern) => pattern.test(line)))
+          .join('\n'),
+      };
+    })
+    .map((section, i) => ({
+      ...section,
+      title: section.title.replace(/^\d+\./, `${i + 1}.`),
+    }));
+}

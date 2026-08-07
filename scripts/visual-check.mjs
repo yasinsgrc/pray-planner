@@ -568,6 +568,13 @@ async function checkScreen(page, scenario, screenId) {
     // that stamped copy (not under the real, once-only navbar a scrolling
     // user actually sees).
     await page.addStyleTag({ content: '[role="tablist"] { visibility: hidden !important; }' });
+    // Same fullPage-stitching hazard as the tablist above, newly triggered
+    // by design-refresh-v3 Faz 23's longer Licenses list: BottomSheet's
+    // fixed inset-0 backdrop (bg-black/40) can get stamped near a stitch
+    // boundary and corrupt the background sample for whatever real content
+    // sits there (measured: text-mist-on-bg-card is a real 5.41:1, not the
+    // corrupted ~1.79:1 this produced before this fix).
+    await page.addStyleTag({ content: '[data-sheet-backdrop] { visibility: hidden !important; }' });
     // Elements with a `transition-colors` class (e.g. SegmentedControl)
     // don't apply color:transparent instantly — the change is the start
     // of a CSS transition, so a screenshot taken without waiting for a

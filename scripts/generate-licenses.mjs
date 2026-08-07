@@ -22,6 +22,15 @@ const PROJECT_ROOT = path.join(__dirname, '..');
 // (vite, typescript, tailwindcss, tsx, playwright-core, sharp) tools never
 // ship to an end user's device, so they don't belong on an in-app licenses
 // screen — a deliberate, documented choice, not an oversight.
+// @capacitor/core, @capacitor/local-notifications, @capacitor/preferences
+// added design-refresh-v3 Faz 23 — all three are `import`ed directly by
+// client TS (platform.ts, nativeNotifications.ts, widgetStorage.ts) and
+// genuinely ship in the web/webview bundle (confirmed: adding platform.ts's
+// @capacitor/core import measurably grew dist/assets/index-*.js, and
+// installing @capacitor/local-notifications produced its own web.ts
+// chunk). @capacitor/android is deliberately NOT here — it's a native
+// Java/Kotlin AAR referenced only from Gradle, never imported into any .ts
+// file, so it doesn't meet this list's own "client-bundled" criterion.
 const CLIENT_BUNDLED_PACKAGE_NAMES = [
   'react',
   'react-dom',
@@ -29,6 +38,9 @@ const CLIENT_BUNDLED_PACKAGE_NAMES = [
   'hijri-converter',
   'motion',
   '@phosphor-icons/react',
+  '@capacitor/core',
+  '@capacitor/local-notifications',
+  '@capacitor/preferences',
 ];
 
 function initLicenseChecker() {

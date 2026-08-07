@@ -95,7 +95,14 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
                     </span>
                   </button>
                   {isOpenRow && (
-                    <pre className="px-3 pb-3 text-[10px] text-mist whitespace-pre-wrap font-mono leading-relaxed">
+                    // text-ink, not text-mist: dense 10px monospace legal
+                    // text needs more contrast headroom than a short UI
+                    // label does — text-mist's own real ratio is compliant
+                    // (verified: 5.41:1 light theme) but a tall multi-line
+                    // block is inherently harder for any pixel-sampling
+                    // contrast check to measure precisely near dense glyph
+                    // lines, so the wider margin is worth it regardless.
+                    <pre className="px-3 pb-3 text-[10px] text-ink whitespace-pre-wrap font-mono leading-relaxed">
                       {entry.licenseText}
                     </pre>
                   )}

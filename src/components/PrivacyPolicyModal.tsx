@@ -1,6 +1,7 @@
 import React from 'react';
 import { BottomSheet } from './BottomSheet';
-import { PRIVACY_SECTIONS, PRIVACY_LAST_UPDATED, PRIVACY_SUMMARY } from '../data/privacy';
+import { getPrivacySections, getPrivacySummary, PRIVACY_LAST_UPDATED } from '../data/privacy';
+import { isNativePlatform } from '../utils/platform';
 import {
   PRIVACY_ENTITY_NAME,
   PRIVACY_ADDRESS,
@@ -104,9 +105,11 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Gizlilik Politikası">
       <div className="space-y-4 pb-2 text-sm text-ink">
         <p className="text-[11px] text-mist">Son güncelleme: {PRIVACY_LAST_UPDATED}</p>
-        <p className="text-xs text-mist leading-relaxed pb-2 border-b border-hairline">{PRIVACY_SUMMARY}</p>
+        <p className="text-xs text-mist leading-relaxed pb-2 border-b border-hairline">
+          {getPrivacySummary(isNativePlatform())}
+        </p>
 
-        {PRIVACY_SECTIONS.map((section) => (
+        {getPrivacySections(isNativePlatform()).map((section) => (
           <section key={section.title}>
             <h3 className="text-sm font-bold text-gold-ink mb-2">{section.title}</h3>
             {renderBody(section.body, values)}

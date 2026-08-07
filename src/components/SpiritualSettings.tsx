@@ -25,7 +25,7 @@ import { AppSettings, PrayerName, SoundMode } from '../types';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { playEzanAudio } from '../utils/audio';
 import { PRAYER_LABELS } from '../data/strings';
-import { PRIVACY_SUMMARY } from '../data/privacy';
+import { getPrivacySummary } from '../data/privacy';
 import {
   PUSH_CONSENT_TITLE,
   PUSH_CONSENT_TEXT_WEB,
@@ -509,7 +509,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             <LockIcon className="w-4 h-4 text-gold-ink" />
             <div className="text-sm font-bold text-ink">Gizlilik ve Kişisel Veriler</div>
           </div>
-          <p className="text-[11px] text-mist leading-relaxed">{PRIVACY_SUMMARY}</p>
+          <p className="text-[11px] text-mist leading-relaxed">{getPrivacySummary(isNativePlatform())}</p>
           <button
             onClick={() => setIsPrivacySheetOpen(true)}
             className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"

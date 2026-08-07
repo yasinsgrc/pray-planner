@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PRIVACY_SECTIONS } from './privacy';
+import { PRIVACY_SECTIONS, getPrivacySections, PRIVACY_SUMMARY, getPrivacySummary } from './privacy';
 
 // Bekçi testi: bu metin sağlanan nihai gizlilik/KVKK metninin kendisidir,
 // placeholder değil — bir sonraki tur farkında olmadan yeniden yazar veya
@@ -68,4 +68,60 @@ test('the new Geri Bildirim section truthfully describes the mailto-only feedbac
   const body = sectionBody('10. Geri Bildirim (Hata Bildirimi)');
   assert.match(body, /mailto/i);
   assert.doesNotMatch(body, /sunucu(muz|ya)?.{0,40}(kaydedil|sakla|gönderil)/i);
+});
+
+// design-refresh-v3 Faz 23 Commit 6 — native local bildirimler
+// (nativeNotifications.ts) hiçbir abonelik kaydını sunucuya göndermez;
+// web'in "4. Bildirim Özelliğini Açtığınızda İşlenen Veriler" bölümü
+// (push endpoint + şifreleme anahtarları sunucuda saklanır) native'de
+// birebir aktarılırsa doğrudan yanlış bir iddia olur. getPrivacySections
+// bunu platforma göre ayırır; PRIVACY_SECTIONS'ın kendisi (web'in okuduğu
+// kaynak) hiç değişmeden kalır — yukarıdaki "tam 11 bölüm" bekçi testi bunu
+// zaten garanti ediyor.
+test('getPrivacySections(false) (web) returns the unmodified 11-section PRIVACY_SECTIONS verbatim', () => {
+  assert.deepEqual(getPrivacySections(false), PRIVACY_SECTIONS);
+});
+
+test('getPrivacySections(true) (native) does not include a section claiming push subscription data is stored server-side', () => {
+  const sections = getPrivacySections(true);
+  const fullText = sections.map((s) => `${s.title}\n${s.body}`).join('\n');
+  assert.doesNotMatch(fullText, /push abonelik adresi/i);
+  assert.doesNotMatch(fullText, /p256dh/);
+  assert.doesNotMatch(fullText, /şifreleme anahtarları/i);
+});
+
+test('getPrivacySections(true) (native) mentions that widget data stays on-device in SharedPreferences and is never sent anywhere', () => {
+  const sections = getPrivacySections(true);
+  const fullText = sections.map((s) => s.body).join('\n');
+  assert.match(fullText, /widget/i);
+  assert.match(fullText, /SharedPreferences/i);
+  assert.match(fullText, /(cihazınızda|hiçbir sunucuya gönderilmez)/i);
+});
+
+test('getPrivacySections(true) (native) keeps section titles sequentially renumbered with no gap', () => {
+  const sections = getPrivacySections(true);
+  const numbers = sections.map((s) => Number(s.title.match(/^(\d+)\./)?.[1]));
+  assert.deepEqual(
+    numbers,
+    Array.from({ length: numbers.length }, (_, i) => i + 1)
+  );
+});
+
+test('getPrivacySections(true) (native) drops exactly one section (the subscription-only one) relative to web', () => {
+  const nativeSections = getPrivacySections(true);
+  assert.equal(nativeSections.length, PRIVACY_SECTIONS.length - 1);
+});
+
+// SpiritualSettings'in "Gizlilik ve Kişisel Veriler" kartında ve
+// PrivacyPolicyModal'ın üstünde gösterilen kısa özet — tam metnin ayrı bir
+// kopyası, aynı abonelik yanlışlığını taşıyordu (design-refresh-v3 Faz 23
+// Commit 6).
+test('getPrivacySummary(false) (web) returns PRIVACY_SUMMARY verbatim', () => {
+  assert.equal(getPrivacySummary(false), PRIVACY_SUMMARY);
+});
+
+test('getPrivacySummary(true) (native) does not claim server data is sent/stored for notifications', () => {
+  const summary = getPrivacySummary(true);
+  assert.doesNotMatch(summary, /sunucumuza.{0,40}bildirim/i);
+  assert.doesNotMatch(summary, /kayıt silinir/i);
 });

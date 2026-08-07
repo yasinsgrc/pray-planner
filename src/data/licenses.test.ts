@@ -10,8 +10,30 @@ const PROJECT_ROOT = path.join(import.meta.dirname, '..', '..');
 
 test('GENERATED_LICENSES has an entry for every client-bundled runtime library', () => {
   const names = GENERATED_LICENSES.map((e) => e.name);
-  for (const expected of ['react', 'react-dom', 'adhan', 'hijri-converter', 'motion', '@phosphor-icons/react']) {
+  for (const expected of [
+    'react',
+    'react-dom',
+    'adhan',
+    'hijri-converter',
+    'motion',
+    '@phosphor-icons/react',
+    // design-refresh-v3 Faz 23 — genuinely imported into client TS
+    // (platform.ts, nativeNotifications.ts, widgetStorage.ts), unlike
+    // @capacitor/android which is a native-only AAR and deliberately
+    // excluded from this JS-bundle list.
+    '@capacitor/core',
+    '@capacitor/local-notifications',
+    '@capacitor/preferences',
+  ]) {
     assert.ok(names.includes(expected), `expected an entry for "${expected}"`);
+  }
+});
+
+test('GENERATED_LICENSES marks every Capacitor package as MIT-licensed', () => {
+  for (const name of ['@capacitor/core', '@capacitor/local-notifications', '@capacitor/preferences']) {
+    const entry = GENERATED_LICENSES.find((e) => e.name === name);
+    assert.ok(entry, `expected an entry for "${name}"`);
+    assert.equal(entry?.license, 'MIT');
   }
 });
 
