@@ -39,6 +39,7 @@ import {
   getNativeNotificationPermissionState,
   hasScheduledNativeNotifications,
 } from './utils/nativeNotifications';
+import { writeWidgetPayload } from './utils/widgetStorage';
 import { useApiAvailable } from './hooks/useApiAvailable';
 
 import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
@@ -358,6 +359,13 @@ export default function App() {
     });
   }, [settings, pushStatus]);
 
+  // Widget veri köprüsü: yalnızca native'de yazar (writeWidgetPayload kendi
+  // içinde no-op). Açılışta ve konum/hesaplama yöntemi değiştiğinde yazar
+  // (design-refresh-v3 Faz 23 Commit 3).
+  useEffect(() => {
+    writeWidgetPayload(settings);
+  }, [settings.location, settings.calculationMethod]);
+
   // Expensive adhan computation: only re-runs when location, method, or the
   // calendar day changes — not on every one-second tick (see B4 in the
   // design-refresh-v2 spec).
@@ -372,6 +380,25 @@ export default function App() {
   // Cheap per-tick derivation (active/next prayer, countdown, ring
   // progress, kerahet activity) from the memoized day schedule.
   const schedule = useMemo(() => deriveLiveSchedule(daySchedule, now), [daySchedule, now]);
+
+  // Widget verisi: uygulama ön plana geldiğinde takvim günü değiştiyse
+  // yeniden yazar — 7 günlük veri birkaç gün açılmadan bayatlamasın diye
+  // bir güvenlik payı olsa da, widget'ın en azından gün geçişini kaçırmadan
+  // tazelenmesini garanti eder (design-refresh-v3 Faz 23 Commit 3).
+  const lastWidgetWriteDateKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      const todayKey = dateKeyInZone(new Date(), schedule.resolvedTimeZone);
+      if (lastWidgetWriteDateKeyRef.current !== todayKey) {
+        lastWidgetWriteDateKeyRef.current = todayKey;
+        writeWidgetPayload(settings);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [settings, schedule.resolvedTimeZone]);
 
   // Uygulama açıkken vakit değişince ezan sesi çal — bu app'in gerçekten
   // tutabildiği tek ses vaadi (design-refresh-v3 Faz 7 F1): push bildirimi
