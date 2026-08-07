@@ -84,3 +84,22 @@ test('parseStoredAppSettings defaults to Diyanet when calculationMethod is absen
   assert.equal(parseStoredAppSettings(JSON.stringify({})).calculationMethod, 'Diyanet');
   assert.equal(parseStoredAppSettings(JSON.stringify({ calculationMethod: 12345 })).calculationMethod, 'Diyanet');
 });
+
+// design-refresh-v3 Faz 22 Commit 4: the "bildirimler kapalı" home-screen
+// hint must not reappear once dismissed, even across a reload — but an
+// older build's saved settings never had this field at all, and it must
+// not crash or silently re-show the hint from a corrupted value either.
+test('parseStoredAppSettings defaults pushHintDismissedAt to null when the field is absent (legacy record)', () => {
+  const result = parseStoredAppSettings(JSON.stringify({ themeMode: 'auto' }));
+  assert.equal(result.pushHintDismissedAt, null);
+});
+
+test('parseStoredAppSettings falls back to null when pushHintDismissedAt is a corrupted type', () => {
+  assert.equal(parseStoredAppSettings(JSON.stringify({ pushHintDismissedAt: 'evet' })).pushHintDismissedAt, null);
+  assert.equal(parseStoredAppSettings(JSON.stringify({ pushHintDismissedAt: {} })).pushHintDismissedAt, null);
+});
+
+test('parseStoredAppSettings preserves a valid pushHintDismissedAt value', () => {
+  const result = parseStoredAppSettings(JSON.stringify({ pushHintDismissedAt: 1754500000000 }));
+  assert.equal(result.pushHintDismissedAt, 1754500000000);
+});

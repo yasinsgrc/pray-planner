@@ -98,6 +98,8 @@ export interface AppSettings {
   notifications: NotificationSettings;
   /** Plays the real ezan recording out loud when the active prayer changes while the app is open in a tab — the one sound behavior this app can actually promise (design-refresh-v3 Faz 7 F1). */
   playEzanInForeground: boolean;
+  /** Epoch ms of when the user dismissed the "bildirimler kapalı" home-screen hint, or null if never dismissed (design-refresh-v3 Faz 22 Commit 4) — the hint must not reappear once dismissed, even across reloads. */
+  pushHintDismissedAt: number | null;
 }
 
 export interface DailyInspiration {

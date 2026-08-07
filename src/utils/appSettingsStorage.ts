@@ -28,6 +28,7 @@ export function defaultAppSettings(): AppSettings {
       earlyWarningSound: 'bildirim',
     },
     playEzanInForeground: true,
+    pushHintDismissedAt: null,
   };
 }
 
@@ -78,6 +79,8 @@ export function parseStoredAppSettings(raw: string | null): AppSettings {
         earlyWarningSound: migrateSoundMode(parsed?.notifications?.earlyWarningSound),
       },
       playEzanInForeground: typeof parsed?.playEzanInForeground === 'boolean' ? parsed.playEzanInForeground : true,
+      pushHintDismissedAt:
+        typeof parsed?.pushHintDismissedAt === 'number' ? parsed.pushHintDismissedAt : null,
     };
     delete (migrated as unknown as Record<string, unknown>).prayerAdjustments;
     return migrated;

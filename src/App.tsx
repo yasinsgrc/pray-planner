@@ -17,6 +17,7 @@ import { LocationModal } from './components/LocationModal';
 import { QiblaCompassModal } from './components/QiblaCompassModal';
 import { ZikirmatikModal } from './components/ZikirmatikModal';
 import { KnowledgeSheet } from './components/KnowledgeSheet';
+import { PushNotificationHint } from './components/PushNotificationHint';
 import { KERAHET_KNOWLEDGE } from './data/knowledge';
 import {
   registerServiceWorker,
@@ -27,6 +28,7 @@ import {
   unsubscribeFromPush,
   PushStatus,
 } from './utils/pushClient';
+import { shouldShowPushHint } from './utils/pushHint';
 import { useApiAvailable } from './hooks/useApiAvailable';
 
 import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
@@ -177,6 +179,39 @@ export default function App() {
       }
     })();
   }, []);
+
+  // "Bildirimler kapalı" ana ekran ipucu — bildirim izni hiç sorulmadıysa
+  // kullanıcı bunu fark etmeyebilir (design-refresh-v3 Faz 22 Commit 4).
+  // apiAvailable henüz belirlenmeden (null) gösterilmez; koşulun geri kalanı
+  // shouldShowPushHint'te (birim testli, saf).
+  const [pushHintVisible, setPushHintVisible] = useState(false);
+  useEffect(() => {
+    if (apiAvailable === null) return;
+    let cancelled = false;
+    (async () => {
+      const notificationPermission: NotificationPermission | 'unsupported' =
+        typeof Notification === 'undefined' ? 'unsupported' : Notification.permission;
+      const hasExistingSubscription =
+        notificationPermission === 'default' ? !!(await getExistingPushSubscription()) : false;
+      if (cancelled) return;
+      setPushHintVisible(
+        shouldShowPushHint({
+          notificationPermission,
+          hasExistingSubscription,
+          apiAvailable,
+          pushHintDismissedAt: settings.pushHintDismissedAt,
+        })
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiAvailable, settings.pushHintDismissedAt]);
+
+  const handleDismissPushHint = () => {
+    setSettings((prev) => ({ ...prev, pushHintDismissedAt: Date.now() }));
+    setPushHintVisible(false);
+  };
 
   // A new service worker only takes over once the user taps "Yenile" (see
   // handleApplyUpdate) — this reload picks up the version it just
@@ -473,6 +508,16 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bildirim izni hiç sorulmadıysa tek seferlik, kapatılabilir ipucu —
+          eksik bir kurulum adımını bildirir, ısrar etmez (design-refresh-v3
+          Faz 22 Commit 4). */}
+      {pushHintVisible && (
+        <PushNotificationHint
+          onOpenSettings={() => setActiveTab('settings')}
+          onDismiss={handleDismissPushHint}
+        />
       )}
 
       {/* Ana İçerik Alanı */}
