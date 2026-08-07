@@ -5,6 +5,7 @@ import { SunArcDial } from './SunArcDial';
 import { DialLegend } from './DialLegend';
 import { KerahetStrip } from './KerahetStrip';
 import { PrayerWindowBar } from './PrayerWindowBar';
+import { HomeContextSlot } from './HomeContextSlot';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 
 interface MainCountdownRingProps {
@@ -95,6 +96,10 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
           kaldı" — kadranın cevapladığı "bir sonraki vakte ne kadar var"
           sorusundan farklı bir soru. Eski bento grid'in yerinde. */}
       <PrayerWindowBar schedule={schedule} now={now} />
+
+      {/* Bağlamsal tek slot: kerahet içindeysek veya 7 gün içinde bir dinî
+          gün varsa gösterir, aksi halde hiç yer kaplamaz. */}
+      <HomeContextSlot schedule={schedule} now={now} onOpenKerahetInfo={onOpenKerahetInfo} />
     </div>
   );
 };
