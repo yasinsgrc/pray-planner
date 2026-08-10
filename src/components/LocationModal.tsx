@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon, NavigationArrowIcon, CheckIcon, WarningCircleIcon 
 import { LocationItem } from '../types';
 import { POPULAR_LOCATIONS, ALL_LOCATIONS } from '../data/locations';
 import { findNearestLocation } from '../utils/geo';
+import { resolveGpsDistrictLabel } from '../utils/gpsAccuracy';
 import { guessTimeZone } from '../utils/timezone';
 import { normalizeTurkish } from '../utils/turkishText';
 import { useApiAvailable } from '../hooks/useApiAvailable';
@@ -141,7 +142,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude, longitude } = pos.coords;
+        const { latitude, longitude, accuracy } = pos.coords;
         // Never sent to any server — reverse-geocoding was removed
         // entirely (design-refresh-v3 Faz 16): it silently sent the
         // user's exact GPS coordinate to the backend on every tap of this
@@ -154,6 +155,10 @@ export const LocationModal: React.FC<LocationModalProps> = ({
         const nearest = findNearestLocation(latitude, longitude);
         const resolvedLoc: LocationItem = {
           ...nearest,
+          // Faz 24 Commit 3 — a specific district guess is even less
+          // trustworthy than usual when the GPS fix itself is poor;
+          // resolveGpsDistrictLabel drops to the province name past 1000m.
+          districtName: resolveGpsDistrictLabel(nearest, accuracy),
           id: `gps-${Date.now()}`,
           lat: latitude,
           lng: longitude,
@@ -174,7 +179,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
           setGpsError('Konum alınamadı. Aşağıdaki listeden şehir seçebilirsiniz.');
         }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
 
