@@ -16,7 +16,7 @@ interface PushNotificationHintProps {
  */
 export const PushNotificationHint: React.FC<PushNotificationHintProps> = ({ onOpenSettings, onDismiss }) => {
   return (
-    <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-2">
+    <div className="w-full shrink-0 max-w-[var(--shell-w)] mx-auto px-4 mt-2">
       <div className="p-3 rounded-xl bg-card border border-hairline">
         <div className="flex items-start gap-2">
           <BellIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />

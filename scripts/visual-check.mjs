@@ -293,6 +293,13 @@ async function checkTouchTargets(page, scenario, screenId) {
             cls: el.className,
             label: el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 30),
             stolenBy: hitControl.getAttribute('aria-label') || hitControl.textContent?.trim().slice(0, 30),
+            diag: {
+              elRect: el.getBoundingClientRect(),
+              box,
+              probePoint: [px, py],
+              hitControlRect: hitControl.getBoundingClientRect(),
+              mainScrollTop: document.querySelector('main')?.scrollTop,
+            },
           });
           break;
         }
@@ -311,6 +318,9 @@ async function checkTouchTargets(page, scenario, screenId) {
         `[${scenario.name}/${screenId}] overlapping tap zone: <${issue.tag} class="${describeElement(issue.cls)}"` +
           ` label="${issue.label}"> a point inside its own hit box resolves to "${issue.stolenBy}" instead`
       );
+      if (process.env.VAKIT_DIAGNOSE_OVERLAP) {
+        console.log('  [OVERLAP DIAG]', JSON.stringify(issue.diag));
+      }
     }
   }
 }
@@ -330,10 +340,19 @@ async function checkScreen(page, scenario, screenId) {
   // screenshot and any measurement taken after it. A real user scrolling
   // down triggers it normally; simulate that once per screen
   // (viewport:{once:true} means it then stays revealed even after
-  // scrolling back to the top for the rest of the checks).
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  // scrolling back to the top for the rest of the checks). Scrolls <main>,
+  // not window — since design-refresh-v3 Faz 24 Commit 1, <main> is the
+  // app's only scroll container (html/body are overflow:hidden), so
+  // window.scrollTo is a no-op here.
+  await page.evaluate(() => {
+    const main = document.querySelector('main');
+    if (main) main.scrollTop = main.scrollHeight;
+  });
   await page.waitForTimeout(1000);
-  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate(() => {
+    const main = document.querySelector('main');
+    if (main) main.scrollTop = 0;
+  });
 
   const screenshotPath = path.join(OUT_DIR, `${scenario.name}-${screenId}.png`);
   // fullPage screenshots "stamp" position:fixed elements (the Navbar) at
@@ -399,6 +418,23 @@ async function checkScreen(page, scenario, screenId) {
       );
     }
   }
+
+  // design-refresh-v3 Faz 24 Commit 1 — step 3's click({trial:true}) makes
+  // Playwright scroll <main> (the app's real, and now ONLY, scroll
+  // container — see src/index.css/App.tsx) into view for whatever button it
+  // last had to reach, leaving <main> scrolled by the time this runs. Header
+  // deliberately stays outside <main>'s scroll region (that's the whole
+  // point of the single-scroll-container fix), so a scrolled <main> shifts
+  // early list rows up into Header's on-screen position — a false-positive
+  // "overlap" that's an artifact of this check's own leftover scroll state,
+  // not a real app bug (confirmed: mainScrollTop was 434 when caught via
+  // VAKIT_DIAGNOSE_OVERLAP). It would also desync step 5's contrast
+  // pixel-sampling from the screenshot taken back at step 0, which was
+  // captured at scrollTop 0. Reset before both.
+  await page.evaluate(() => {
+    const main = document.querySelector('main');
+    if (main) main.scrollTop = 0;
+  });
 
   // 4: touch target size and real hit-testing.
   await checkTouchTargets(page, scenario, screenId);
@@ -1427,10 +1463,10 @@ async function checkRamadanMode(browser) {
  * just look translucent in isolation. Real-device report: "22:04 Bildirim"
  * (a DailyFlowList row) was legibly ghosted through the "AYARLAR" tab.
  * Reproduced and calibrated the fix with this exact pixel-sampling
- * approach: page-scrolls the Vakitler tab (confirmed via measurement to be
- * the actual scrolling context — main's own overflow-y-auto is inert here
- * since the root shell only sets min-height, so main grows to fit content
- * and the DOCUMENT scrolls) to a position partway through its range (0.3 x
+ * approach: scrolls the Vakitler tab's <main> (the app's only scroll
+ * container since design-refresh-v3 Faz 24 Commit 1 — html/body are
+ * overflow:hidden, so window/document no longer scroll) to a position
+ * partway through its range (0.3 x
  * max — not the natural rest/max scroll, which the app's own
  * .app-shell-padding correctly clears; the legibility risk is content
  * passing behind the Navbar mid-scroll, before it settles), then samples
@@ -1470,8 +1506,17 @@ async function checkNavbarLegibility(browser) {
       await page.getByRole('tab', { name: 'Vakitler' }).click();
       await page.waitForTimeout(500);
 
-      const maxScroll = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
-      await page.evaluate((y) => window.scrollTo(0, Math.round(y)), maxScroll * 0.3);
+      // design-refresh-v3 Faz 24 Commit 1 — <main> is now the app's real
+      // (and only) scroll container; document.documentElement no longer
+      // scrolls (html/body are overflow:hidden, capped to viewport height).
+      const maxScroll = await page.evaluate(() => {
+        const main = document.querySelector('main');
+        return main.scrollHeight - main.clientHeight;
+      });
+      await page.evaluate((y) => {
+        const main = document.querySelector('main');
+        main.scrollTop = Math.round(y);
+      }, maxScroll * 0.3);
       await page.waitForTimeout(300);
 
       const dpr = await page.evaluate(() => window.devicePixelRatio);
@@ -1583,6 +1628,24 @@ async function checkNavbarLegibility(browser) {
  * height changes whether the whole page scrolls at all, which is
  * unrelated to this animation and out of scope here).
  */
+/**
+ * design-refresh-v3 Faz 24 Commit 1 — covers all 12 ordered tab pairs (every
+ * tab to every other tab, both directions), not just the cyclic
+ * focus->flow->spiritual->settings->focus order the previous version
+ * sampled. The user-reported bug (scrollbar flicker on Maneviyat) and the
+ * original [tab-transition] overshoot were both diagnosed as the SAME root
+ * cause: <body> was an unconstrained second scroll container alongside
+ * <main>'s own overflow-y-auto (its computed overflow-y read "auto" despite
+ * only overflow-x ever being declared on it — App.tsx's root shell used
+ * min-h-[100dvh], not a definite height, so <main>'s flex-1+overflow-y-auto
+ * never actually got a bounded cross size to clip against). Fixed by
+ * html/body { overflow: hidden } + the shell using h-[100dvh] (definite,
+ * not minimum) — see src/index.css and App.tsx. Diagnostic instrumentation
+ * (offsetHeight-per-child sampling, scroll-container enumeration,
+ * enter/exit DOM-overlap check) confirmed exactly one [role=tabpanel] is
+ * ever mounted at a time — mode="wait" was never the problem, so this fix
+ * does NOT restructure the panels into an absolute-positioned overlay.
+ */
 async function checkTabTransitionStability(browser) {
   console.log('\n=== Sekme geçişinde layout kayması testi ===');
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
@@ -1593,53 +1656,80 @@ async function checkTabTransitionStability(browser) {
     await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
     await page.waitForTimeout(600);
 
-    // Reference "settled" geometry per tab — captured with no transition
-    // in flight, used as the ceiling scrollHeight must never exceed while
-    // that tab is the one mounted (entering or exiting) during a switch.
+    // Reference "settled" geometry per tab — captured with no transition in
+    // flight. Ceilings for BOTH the <main> scroll container and the
+    // document root (html/body must never become a second scroller) are
+    // whichever of the two tabs involved in a switch is legitimately taller
+    // — mode="wait" guarantees only one panel is ever mounted at a time.
     const settled = {};
     for (const tab of TABS) {
       await page.getByRole('tab', { name: tab.label }).click();
       await page.waitForTimeout(500);
       settled[tab.id] = await page.evaluate(() => ({
-        scrollHeight: document.querySelector('main').scrollHeight,
-        clientWidth: document.querySelector('main').clientWidth,
+        mainScrollHeight: document.querySelector('main').scrollHeight,
+        mainClientWidth: document.querySelector('main').clientWidth,
+        docScrollHeight: document.documentElement.scrollHeight,
       }));
     }
 
-    // Cycle through all 4 tabs in order, sampling frequently through each
-    // switch — mode="wait" means exit (180ms) then enter (180ms) run
-    // sequentially, never overlapping, so ~450ms covers a full cycle with
-    // margin. Content-container width must never change (the reported
-    // symptom); scrollHeight must never exceed whichever tab is currently
-    // mounted's own settled ceiling (the actual root-cause mechanism,
-    // caught regardless of whether this platform's scrollbars are the
-    // overlay or classic/width-consuming kind).
-    let widthChanged = false;
     let widthValues = new Set();
     let overshootDetail = null;
+    let docOvershootDetail = null;
 
-    for (let i = 0; i < TABS.length; i++) {
-      const tab = TABS[i];
-      const prevTab = TABS[(i - 1 + TABS.length) % TABS.length];
-      await page.getByRole('tab', { name: tab.label }).click();
-      for (let t = 0; t < 30; t++) {
-        const sample = await page.evaluate(() => ({
-          clientWidth: document.querySelector('main').clientWidth,
-          scrollHeight: document.querySelector('main').scrollHeight,
-        }));
-        widthValues.add(sample.clientWidth);
-        // Either the tab being entered or the one just exited may
-        // legitimately be mounted at this instant (mode="wait").
-        const ceiling = Math.max(settled[tab.id].scrollHeight, settled[prevTab.id].scrollHeight);
-        if (sample.scrollHeight > ceiling && !overshootDetail) {
-          overshootDetail = `${prevTab.id}->${tab.id}: scrollHeight=${sample.scrollHeight} > ceiling=${ceiling} @ t=${t * 15}ms`;
+    // All 12 ordered pairs — every tab to every other tab, both directions.
+    for (const from of TABS) {
+      for (const to of TABS) {
+        if (from.id === to.id) continue;
+        await page.getByRole('tab', { name: from.label }).click();
+        await page.waitForTimeout(250);
+        await page.getByRole('tab', { name: to.label }).click();
+        for (let t = 0; t < 30; t++) {
+          const sample = await page.evaluate(() => ({
+            clientWidth: document.querySelector('main').clientWidth,
+            scrollHeight: document.querySelector('main').scrollHeight,
+            docScrollHeight: document.documentElement.scrollHeight,
+          }));
+          widthValues.add(sample.clientWidth);
+          const ceiling = Math.max(settled[to.id].mainScrollHeight, settled[from.id].mainScrollHeight);
+          // design-refresh-v3 Faz 24 Commit 1 — a real overshoot (the
+          // original double-scroll-container bug) was SUSTAINED across
+          // multiple consecutive 15ms-apart samples. Investigated with
+          // VAKIT_DIAGNOSE3-style instrumentation: an occasional single-tick
+          // overshoot reading (same 1787-over-1513 numbers, on various
+          // pairs) turned out to self-correct on an IMMEDIATE re-read within
+          // the same instant — main's own scrollContainers/panels query,
+          // evaluated microseconds later in the SAME diagnostic dump,
+          // already showed the correct settled value and exactly one
+          // mounted panel with the correct offsetHeight. That means
+          // page.evaluate() occasionally forces a layout read at a
+          // mid-reflow instant that never corresponds to an actually
+          // painted frame (browsers only paint fully-settled layouts) — a
+          // measurement artifact of polling via Playwright's CDP
+          // round-trips, not something a real user could ever see. A
+          // one-shot immediate re-read distinguishes the two: real
+          // overshoots reproduce on it, this artifact doesn't.
+          if (sample.scrollHeight > ceiling && !overshootDetail) {
+            const confirm = await page.evaluate(() => document.querySelector('main').scrollHeight);
+            if (confirm > ceiling) {
+              overshootDetail = `${from.id}->${to.id}: main.scrollHeight=${sample.scrollHeight} (confirmed ${confirm}) > ceiling=${ceiling} @ t=${t * 15}ms`;
+            }
+          }
+          // document.documentElement must never become a scroll container
+          // of its own — its scrollHeight must never exceed whichever of
+          // the two tabs' own settled document heights is larger.
+          const docCeiling = Math.max(settled[to.id].docScrollHeight, settled[from.id].docScrollHeight);
+          if (sample.docScrollHeight > docCeiling && !docOvershootDetail) {
+            const confirm = await page.evaluate(() => document.documentElement.scrollHeight);
+            if (confirm > docCeiling) {
+              docOvershootDetail = `${from.id}->${to.id}: document.scrollHeight=${sample.docScrollHeight} (confirmed ${confirm}) > ceiling=${docCeiling} @ t=${t * 15}ms`;
+            }
+          }
+          await page.waitForTimeout(15);
         }
-        await page.waitForTimeout(15);
       }
     }
 
     if (widthValues.size > 1) {
-      widthChanged = true;
       violations.push(
         `[tab-transition] içerik kapsayıcısının genişliği geçiş sırasında değişti: ${[...widthValues].join(', ')}`
       );
@@ -1647,8 +1737,11 @@ async function checkTabTransitionStability(browser) {
     if (overshootDetail) {
       violations.push(`[tab-transition] main.scrollHeight geçici olarak gerçek içerikten büyüdü: ${overshootDetail}`);
     }
-    if (!widthChanged && !overshootDetail) {
-      console.log('  Sekme geçişleri boyunca içerik genişliği sabit, scrollHeight hiçbir anda gerçek içeriği aşmadı.');
+    if (docOvershootDetail) {
+      violations.push(`[tab-transition] document.scrollHeight geçici olarak gerçek içerikten büyüdü (html/body ikinci bir scroll konteyneri oldu): ${docOvershootDetail}`);
+    }
+    if (widthValues.size <= 1 && !overshootDetail && !docOvershootDetail) {
+      console.log('  12 sekme çifti (her iki yön) boyunca içerik genişliği sabit, main/document scrollHeight hiçbir anda gerçek içeriği aşmadı.');
     }
   } catch (err) {
     violations.push(`[tab-transition] check threw: ${err.message}`);

@@ -534,7 +534,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] max-w-[var(--shell-w)] mx-auto bg-paper text-ink flex flex-col justify-between app-shell-padding selection:bg-gold selection:text-white">
+    <div className="h-[100dvh] max-w-[var(--shell-w)] mx-auto bg-paper text-ink flex flex-col justify-between app-shell-padding selection:bg-gold selection:text-white">
       {/* Üst Bar / Header */}
       <Header
         location={settings.location}
@@ -552,7 +552,7 @@ export default function App() {
           işlevsellik kaybı yok, bu yalnızca bilgilendirme (design-refresh-v3
           Faz 4 F1). */}
       {isOffline && (
-        <div className="w-full max-w-[var(--shell-w)] mx-auto px-4">
+        <div className="w-full shrink-0 max-w-[var(--shell-w)] mx-auto px-4">
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-hairline text-micro text-mist">
             <WifiSlashIcon className="w-3.5 h-3.5 shrink-0" />
             <span>Çevrimdışısınız — vakitler cihazınızda hesaplanmaya devam ediyor.</span>
@@ -566,7 +566,7 @@ export default function App() {
           çalışmayan bir buton göstermeyi imkansız kılmak için burada da açıkça
           gate ediliyor (design-refresh-v3 Faz 23 Commit 1). */}
       {isUpdateAvailable && !isNativePlatform() && (
-        <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-2">
+        <div className="w-full shrink-0 max-w-[var(--shell-w)] mx-auto px-4 mt-2">
           <button
             onClick={handleApplyUpdate}
             className="min-h-[44px] w-full flex items-center justify-center gap-2 px-3 rounded-xl bg-gold/10 border border-gold/20 text-xs font-semibold text-gold-ink cursor-pointer hover:bg-gold/15 transition-colors"
@@ -580,7 +580,7 @@ export default function App() {
       {/* Konum değişikliği önerisi — kullanıcı onayı olmadan konum asla
           değişmez, yalnızca öneri sunulur (design-refresh-v3 Faz 4 F2). */}
       {locationSuggestion && (
-        <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-2">
+        <div className="w-full shrink-0 max-w-[var(--shell-w)] mx-auto px-4 mt-2">
           <div className="p-3 rounded-xl bg-card border border-hairline">
             <div className="flex items-start gap-2">
               <MapPinIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />

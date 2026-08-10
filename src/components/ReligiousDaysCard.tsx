@@ -37,8 +37,8 @@ export const ReligiousDaysCard: React.FC<ReligiousDaysCardProps> = ({ location }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ delay: 0.145, duration: 0.5, ease: EASE }}
       className="w-full max-w-[var(--shell-w)] mx-auto px-4 mt-3"
     >

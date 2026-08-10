@@ -79,8 +79,8 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
               {/* Vakit Satırı / Kartı */}
               <motion.div
                 layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.05 }}
                 className="flex items-stretch gap-3"
               >

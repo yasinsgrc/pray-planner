@@ -48,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
   }, [timeZone]);
   return (
-    <header className="w-full transition-colors">
+    <header className="w-full shrink-0 transition-colors">
       <div className="px-5 py-4 flex items-center justify-between">
         {/* Sol: Konum */}
         <button

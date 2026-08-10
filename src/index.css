@@ -233,13 +233,31 @@
     --danger-ink: #F2857D;
   }
 
+  /* design-refresh-v3 Faz 24 Commit 1 — html/body must NOT be their own
+   * scroll container. The app shell (App.tsx's root div) is a fixed
+   * `h-[100dvh]` flex column with <main> as the only `overflow-y: auto`
+   * region; without this, body silently becomes a second, unconstrained
+   * scrolling root (its computed overflow-y reads "auto" even though only
+   * overflow-x was ever declared here) that reflows independently of
+   * <main> whenever tab content height changes — the mechanism behind both
+   * the intermittent scrollHeight overshoot in [tab-transition] and the
+   * user-visible scrollbar flicker on tab switch. Measured via
+   * scripts/visual-check.mjs's VAKIT_DIAGNOSE_TAB_TRANSITION dump: exactly
+   * one [role=tabpanel] is ever mounted (no enter/exit overlap), but body
+   * and <main> both independently qualified as scroll containers.
+   */
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     background-color: var(--bg-current);
     color: var(--text-current);
     font-family: 'Plus Jakarta Sans', sans-serif;
     line-height: 1.45;
     transition: background-color 0.4s ease, color 0.4s ease;
-    overflow-x: hidden;
   }
 }
 
