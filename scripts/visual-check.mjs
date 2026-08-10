@@ -207,6 +207,27 @@ async function scanForbiddenColors(dir) {
 }
 
 /**
+ * design-refresh-v3 Faz 24 Commit 2 — a fixed `waitForTimeout(300)` after
+ * Escape-closing a BottomSheet is racy: BottomSheet's exit uses a spring
+ * transition (damping 32, stiffness 320, no fixed duration), and
+ * AnimatePresence only unmounts the sheet once that spring settles. Caught
+ * via a real failure: querying `document.querySelectorAll('button')`
+ * mid-spring returned still-attached-but-about-to-unmount elements from the
+ * closing sheet, which then detached from the DOM while the subsequent
+ * trial-click loop was still iterating over them ("Element is not attached
+ * to the DOM"). Poll for the sheet's [role="dialog"] to actually leave the
+ * DOM instead of guessing a fixed delay.
+ */
+async function waitForDialogClosed(page, timeoutMs = 2000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (!(await page.evaluate(() => !!document.querySelector('[role="dialog"]')))) return true;
+    await page.waitForTimeout(50);
+  }
+  return false;
+}
+
+/**
  * Touch target size AND real hit-testing — every visible, enabled
  * clickable control must measure >=44x44 (its own box, or a ::before
  * expansion, read per-side since some expansions are asymmetric — e.g.
@@ -340,18 +361,21 @@ async function checkScreen(page, scenario, screenId) {
   // screenshot and any measurement taken after it. A real user scrolling
   // down triggers it normally; simulate that once per screen
   // (viewport:{once:true} means it then stays revealed even after
-  // scrolling back to the top for the rest of the checks). Scrolls <main>,
-  // not window — since design-refresh-v3 Faz 24 Commit 1, <main> is the
-  // app's only scroll container (html/body are overflow:hidden), so
-  // window.scrollTo is a no-op here.
+  // scrolling back to the top for the rest of the checks). Scrolls the
+  // currently relevant scroll container, not window — since design-refresh-v3
+  // Faz 24 Commit 1, html/body are overflow:hidden, so window.scrollTo is a
+  // no-op. When a BottomSheet is open (screens like hakkinda/lisanslar/
+  // destek/geri-bildirim), <main> sits inert behind it and isn't what the
+  // user is actually looking at — the sheet's own [role="dialog"] .overflow-y-auto
+  // div is the real scroll container for that screen's FadeIn content.
   await page.evaluate(() => {
-    const main = document.querySelector('main');
-    if (main) main.scrollTop = main.scrollHeight;
+    const el = document.querySelector('[role="dialog"] .overflow-y-auto') ?? document.querySelector('main');
+    if (el) el.scrollTop = el.scrollHeight;
   });
   await page.waitForTimeout(1000);
   await page.evaluate(() => {
-    const main = document.querySelector('main');
-    if (main) main.scrollTop = 0;
+    const el = document.querySelector('[role="dialog"] .overflow-y-auto') ?? document.querySelector('main');
+    if (el) el.scrollTop = 0;
   });
 
   const screenshotPath = path.join(OUT_DIR, `${scenario.name}-${screenId}.png`);
@@ -420,20 +444,20 @@ async function checkScreen(page, scenario, screenId) {
   }
 
   // design-refresh-v3 Faz 24 Commit 1 — step 3's click({trial:true}) makes
-  // Playwright scroll <main> (the app's real, and now ONLY, scroll
-  // container — see src/index.css/App.tsx) into view for whatever button it
-  // last had to reach, leaving <main> scrolled by the time this runs. Header
-  // deliberately stays outside <main>'s scroll region (that's the whole
-  // point of the single-scroll-container fix), so a scrolled <main> shifts
-  // early list rows up into Header's on-screen position — a false-positive
-  // "overlap" that's an artifact of this check's own leftover scroll state,
-  // not a real app bug (confirmed: mainScrollTop was 434 when caught via
-  // VAKIT_DIAGNOSE_OVERLAP). It would also desync step 5's contrast
-  // pixel-sampling from the screenshot taken back at step 0, which was
-  // captured at scrollTop 0. Reset before both.
+  // Playwright scroll the real scroll container (<main>, or a BottomSheet's
+  // own overflow-y-auto div when one is open — see src/index.css/App.tsx)
+  // into view for whatever button it last had to reach, leaving it scrolled
+  // by the time this runs. Header deliberately stays outside <main>'s
+  // scroll region (that's the whole point of the single-scroll-container
+  // fix), so a scrolled <main> shifts early list rows up into Header's
+  // on-screen position — a false-positive "overlap" that's an artifact of
+  // this check's own leftover scroll state, not a real app bug (confirmed:
+  // mainScrollTop was 434 when caught via VAKIT_DIAGNOSE_OVERLAP). It would
+  // also desync step 5's contrast pixel-sampling from the screenshot taken
+  // back at step 0, which was captured at scrollTop 0. Reset before both.
   await page.evaluate(() => {
-    const main = document.querySelector('main');
-    if (main) main.scrollTop = 0;
+    const el = document.querySelector('[role="dialog"] .overflow-y-auto') ?? document.querySelector('main');
+    if (el) el.scrollTop = 0;
   });
 
   // 4: touch target size and real hit-testing.
@@ -885,7 +909,7 @@ async function checkServerlessScenario(browser) {
       violations.push('[serverless] apiAvailable false olmasına rağmen "İnternette Ara" butonu görünüyor');
     }
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
+    await waitForDialogClosed(page);
 
     // Gizlilik sheet'i açılıyor, taşma ve kontrast ihlali yok.
     await page.getByRole('tab', { name: 'Ayarlar' }).click();
@@ -896,7 +920,7 @@ async function checkServerlessScenario(browser) {
     await page.waitForTimeout(500);
     await checkScreen(page, { name: 'serverless' }, 'privacy-sheet');
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
+    await waitForDialogClosed(page);
 
     if (dailyVerseRequests.length > 0) {
       violations.push(
@@ -1119,26 +1143,17 @@ async function checkInteractionSweep(browser) {
     // suite). A fixed 300ms sleep here produced a false "didn't close"
     // under that load even though the close genuinely happened, just a
     // bit later.
-    const waitForDialogClosed = async (timeoutMs = 2000) => {
-      const start = Date.now();
-      while (Date.now() - start < timeoutMs) {
-        if (!(await page.evaluate(() => !!document.querySelector('[role="dialog"]')))) return true;
-        await page.waitForTimeout(100);
-      }
-      return false;
-    };
-
     // --- LocationModal: Escape and backdrop close ---
     await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
     await page.waitForTimeout(400);
     await page.keyboard.press('Escape');
-    if (!(await waitForDialogClosed())) {
+    if (!(await waitForDialogClosed(page))) {
       violations.push('[sweep] LocationModal Escape ile kapanmadı');
     }
     await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
     await page.waitForTimeout(400);
     await page.mouse.click(10, 10); // backdrop corner, outside the sheet
-    if (!(await waitForDialogClosed())) {
+    if (!(await waitForDialogClosed(page))) {
       violations.push('[sweep] LocationModal backdrop tıklamasıyla kapanmadı');
     }
 
@@ -1149,13 +1164,13 @@ async function checkInteractionSweep(browser) {
       violations.push('[sweep] Kıble Pusulası sheet\'i açılmadı');
     }
     await page.keyboard.press('Escape');
-    if (!(await waitForDialogClosed())) {
+    if (!(await waitForDialogClosed(page))) {
       violations.push('[sweep] Kıble Pusulası Escape ile kapanmadı');
     }
     await page.getByRole('button', { name: 'Kıble Pusulası' }).click();
     await page.waitForTimeout(400);
     await page.mouse.click(10, 10);
-    if (!(await waitForDialogClosed())) {
+    if (!(await waitForDialogClosed(page))) {
       violations.push('[sweep] Kıble Pusulası backdrop tıklamasıyla kapanmadı');
     }
 
@@ -1190,7 +1205,7 @@ async function checkInteractionSweep(browser) {
       violations.push(`[sweep] Zikirmatik sıfırlama onaylandıktan sonra sayaç 0 değil: ${countAfterConfirm}`);
     }
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
+    await waitForDialogClosed(page);
 
     // --- Ayarlar: every toggle switch's thumb sits in the correct HALF of
     // its track, not just "somewhere inside its bounds". A geometric
@@ -1845,7 +1860,7 @@ async function main() {
         await page.waitForTimeout(500);
         await checkScreen(page, scenario, 'zikirmatik');
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await waitForDialogClosed(page);
 
         // Destek Ol sheet: reached from Ayarlar > Hakkında, also not a tab.
         // The build below sets VITE_SUPPORT_* so this button is in its
@@ -1862,7 +1877,7 @@ async function main() {
         await page.waitForTimeout(500);
         await checkScreen(page, scenario, 'destek');
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await waitForDialogClosed(page);
 
         // Hakkında sheet: design-refresh-v3 Faz 20 madde 4, Ayarlar >
         // Hakkında bölümünden, tab değil — kendi checkScreen'i olmadan bu
@@ -1886,7 +1901,7 @@ async function main() {
         await page.waitForTimeout(300);
         await checkScreen(page, scenario, 'lisanslar');
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await waitForDialogClosed(page);
 
         // Geri Bildirim sheet: design-refresh-v3 Faz 20 madde 5, aynı
         // şekilde Ayarlar > Hakkında bölümünden, tab değil.
@@ -1894,7 +1909,7 @@ async function main() {
         await page.waitForTimeout(500);
         await checkScreen(page, scenario, 'geri-bildirim');
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await waitForDialogClosed(page);
 
         // 320px pass: touch-target/overlap only (design-refresh-v3 Faz 3 F4)
         // — controls that clear 44px with room to spare at 390px can end up
@@ -1912,7 +1927,7 @@ async function main() {
         await page.waitForTimeout(400);
         await checkTouchTargets(page, scenario, 'zikirmatik-320px');
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await waitForDialogClosed(page);
         await page.getByRole('tab', { name: 'Ayarlar' }).click();
         await page.waitForTimeout(400);
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -1921,7 +1936,7 @@ async function main() {
         await page.waitForTimeout(400);
         await checkTouchTargets(page, scenario, 'destek-320px');
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await waitForDialogClosed(page);
         await page.getByRole('button', { name: 'Hakkında sayfasını aç →' }).click();
         await page.waitForTimeout(400);
         await checkTouchTargets(page, scenario, 'hakkinda-320px');
@@ -1929,12 +1944,12 @@ async function main() {
         await page.waitForTimeout(400);
         await checkTouchTargets(page, scenario, 'lisanslar-320px');
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await waitForDialogClosed(page);
         await page.getByRole('button', { name: 'Geri bildirim gönder →' }).click();
         await page.waitForTimeout(400);
         await checkTouchTargets(page, scenario, 'geri-bildirim-320px');
         await page.keyboard.press('Escape');
-        await page.waitForTimeout(300);
+        await waitForDialogClosed(page);
 
         await context.close();
       }

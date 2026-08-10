@@ -46,7 +46,8 @@ import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
 import { getHijriDate } from './utils/hijri';
 import { calculateDaySchedule, deriveLiveSchedule } from './utils/prayerCalculator';
 import { playEzanAudio } from './utils/audio';
-import { findNearestLocation, haversineDistanceKm } from './utils/geo';
+import { findNearestLocation } from './utils/geo';
+import { shouldSuggestLocationChange, isLocationDriftCheckAllowed, LocationDriftPoint } from './utils/locationDrift';
 import {
   ZikirmatikState,
   loadZikirmatikState,
@@ -290,33 +291,54 @@ export default function App() {
 
   // "Başka bir şehirdesiniz gibi görünüyor" önerisi — sessizce hiçbir
   // zaman otomatik değiştirmez, yalnızca öneride bulunur (design-refresh-v3
-  // Faz 4 F2). watchPosition bilerek kullanılmıyor: sürekli GPS dinlemek
-  // pili gereksiz tüketir, namaz vakti bu kadar sık takip gerektirmez.
-  // Yalnızca uygulama öne geldiğinde ve konum izni zaten verilmişse tek
-  // seferlik sessiz bir kontrol yapılır.
+  // Faz 4 F2, karar mantığı Faz 24 Commit 2'de src/utils/locationDrift.ts'e
+  // taşındı — bkz. şouldSuggestLocationChange'in doc yorumu: eski mantık
+  // soğuk açılışta hiç tetiklenmiyordu, doğruluk hiç kontrol edilmiyordu,
+  // reddedilen bir öneri hatırlanmıyordu). watchPosition bilerek
+  // kullanılmıyor: sürekli GPS dinlemek pili gereksiz tüketir, namaz vakti
+  // bu kadar sık takip gerektirmez. Tetikleyici TEK yerde toplanır: soğuk
+  // açılış (mount) + visibilitychange (yalnızca son kontrolden 15+ dk
+  // geçmişse) — başka hiçbir yerden çağrılmaz.
   const [locationSuggestion, setLocationSuggestion] = useState<LocationItem | null>(null);
+  const settingsLocationRef = useRef(settings.location);
+  useEffect(() => {
+    settingsLocationRef.current = settings.location;
+  }, [settings.location]);
+  const dismissedLocationRef = useRef<LocationDriftPoint | null>(null);
+  const lastLocationDriftCheckRef = useRef(0);
+  const LOCATION_DRIFT_CHECK_COOLDOWN_MS = 15 * 60 * 1000;
+
   useEffect(() => {
     if (!('geolocation' in navigator) || !('permissions' in navigator)) return;
 
     const checkLocationDrift = async () => {
+      let permissionState: 'granted' | 'denied' | 'prompt' | 'unsupported';
       try {
         const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-        if (status.state !== 'granted') return;
+        permissionState = status.state;
       } catch {
-        return; // Permissions API desteklenmiyor — sessizce yok say, alert yok
+        permissionState = 'unsupported'; // Permissions API desteklenmiyor
       }
+      if (!isLocationDriftCheckAllowed(permissionState)) return;
 
+      lastLocationDriftCheckRef.current = Date.now();
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const { latitude, longitude } = pos.coords;
-          const distanceKm = haversineDistanceKm(
-            settings.location.lat,
-            settings.location.lng,
-            latitude,
-            longitude
-          );
-          if (distanceKm > 25) {
-            const nearest = findNearestLocation(latitude, longitude);
+          const { latitude, longitude, accuracy } = pos.coords;
+          const nearest = findNearestLocation(latitude, longitude);
+          const current = settingsLocationRef.current;
+          const shouldSuggest = shouldSuggestLocationChange({
+            current: {
+              lat: current.lat,
+              lng: current.lng,
+              label: current.districtName,
+              source: current.isGpsDerived ? 'gps' : 'manual',
+            },
+            detected: { lat: latitude, lng: longitude, label: nearest.districtName, accuracy },
+            dismissed: dismissedLocationRef.current,
+            now: Date.now(),
+          });
+          if (shouldSuggest) {
             setLocationSuggestion({ ...nearest, id: `gps-${Date.now()}`, lat: latitude, lng: longitude });
           }
         },
@@ -327,16 +349,27 @@ export default function App() {
       );
     };
 
+    checkLocationDrift(); // soğuk açılış
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') checkLocationDrift();
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastLocationDriftCheckRef.current < LOCATION_DRIFT_CHECK_COOLDOWN_MS) return;
+      checkLocationDrift();
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [settings.location]);
+  }, []);
 
   const handleAcceptLocationSuggestion = () => {
     if (!locationSuggestion) return;
     setSettings((prev) => ({ ...prev, location: locationSuggestion }));
+    setLocationSuggestion(null);
+  };
+
+  const handleDismissLocationSuggestion = () => {
+    if (locationSuggestion) {
+      dismissedLocationRef.current = { lat: locationSuggestion.lat, lng: locationSuggestion.lng, ts: Date.now() };
+    }
     setLocationSuggestion(null);
   };
 
@@ -592,7 +625,7 @@ export default function App() {
             </div>
             <div className="flex items-center justify-end gap-4 mt-2">
               <button
-                onClick={() => setLocationSuggestion(null)}
+                onClick={handleDismissLocationSuggestion}
                 className="min-h-[44px] px-3 text-xs font-semibold text-mist hover:text-ink transition-colors cursor-pointer"
               >
                 Kal
