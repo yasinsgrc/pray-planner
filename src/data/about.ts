@@ -10,11 +10,17 @@ export interface AboutUserSection {
 
 /**
  * Design-refresh-v3 Faz 20 madde 4 — bu bölümlerin metnini kullanıcı
- * kendisi dolduracak ("İÇERİĞİ SEN YAZMA"). Yapı burada, içerik boş.
+ * kendisi doldurdu (design-refresh-v3 Faz 24 Commit 1).
  */
 export const ABOUT_USER_SECTIONS: AboutUserSection[] = [
-  { title: 'VAKİT Nedir?', body: null },
-  { title: 'İletişim', body: null },
+  {
+    title: 'VAKİT Nedir?',
+    body: "VAKİT, namaz vakitlerini cihazınızda hesaplayan bir uygulamadır. Vakitler Diyanet İşleri Başkanlığı'nın hesaplama yöntemiyle, internet bağlantısı olmadan da hesaplanabilir. Uygulama reklam içermez, hesap açmanızı istemez ve konum koordinatlarınızı sunucuya göndermez. Kullanılan açık kaynak kütüphanelerin lisansları \"Lisanslar\" ekranında listelenmiştir.",
+  },
+  {
+    title: 'İletişim',
+    body: 'Uygulamayla ilgili sorularınız, hata bildirimleriniz ve gizlilikle ilgili talepleriniz için: yyasinsgrc@gmail.com\n\nAyarlar ekranındaki "Geri Bildirim" bağlantısı da aynı adrese yazmanızı sağlar.',
+  },
 ];
 
 export interface AboutFact {
