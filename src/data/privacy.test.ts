@@ -125,3 +125,26 @@ test('getPrivacySummary(true) (native) does not claim server data is sent/stored
   assert.doesNotMatch(summary, /sunucumuza.{0,40}bildirim/i);
   assert.doesNotMatch(summary, /kayıt silinir/i);
 });
+
+// design-refresh-v3 Faz 24 Commit 2 — the policy used to promise access
+// logs are kept for exactly {{LOG_RETENTION_DAYS}} days, a number nothing
+// in server/ actually enforces (no access-log table, no retention job);
+// the real, verifiable fact is that we don't keep them ourselves at all —
+// only the hosting providers do, per their own policies.
+test('no section claims a specific server access-log retention period', () => {
+  const fullText = PRIVACY_SECTIONS.map((s) => s.body).join('\n');
+  assert.doesNotMatch(fullText, /LOG_RETENTION_DAYS/);
+});
+
+// Guards the {{TOKEN}} contract itself: PrivacyPolicyModal.tsx only knows
+// how to fill these five tokens (renderWithFields' `values` map) — an
+// unexpected token would silently render as a raw "[TOKEN — .env dosyasında
+// tanımlanmadı]" placeholder in production with no test ever catching it.
+test('only the five known {{TOKEN}} placeholders appear anywhere in PRIVACY_SECTIONS', () => {
+  const fullText = PRIVACY_SECTIONS.map((s) => s.body).join('\n');
+  const knownTokens = new Set(['ENTITY_NAME', 'ADDRESS', 'CONTACT_EMAIL', 'HOSTING_PROVIDER', 'APP_URL']);
+  const found = new Set([...fullText.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]));
+  for (const token of found) {
+    assert.ok(knownTokens.has(token), `unexpected {{${token}}} placeholder with no known filler`);
+  }
+});

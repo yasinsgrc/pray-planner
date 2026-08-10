@@ -59,7 +59,7 @@ Bu doküman, Play Console'un "Data Safety" (Veri Güvenliği) formunda işaretle
 | Toplanıyor mu? | Evet — her HTTP isteğinde standart web sunucu davranışı |
 | Kaynak | `src/hooks/useApiAvailable.ts:31` (`/health`, her açılışta bir kez), yukarıdaki 2 ve 4. maddelerdeki istekler |
 | İçerik | IP adresi, zaman damgası, istek yolu — uygulama kodu tarafından okunmaz/işlenmez, yalnızca standart sunucu/hosting sağlayıcısı log altyapısı |
-| Saklama süresi | `{{LOG_RETENTION_DAYS}}` — dağıtıma özgü, `.env`'de tanımlanır (bkz. `src/utils/privacyConfig.ts`); bu doküman bir sayı iddia etmez, gerçek değeri dağıtımı yapan kişi bilir |
+| Saklama süresi | Biz tutmuyoruz — barındırma sağlayıcılarımız (Netlify, Railway) bu kayıtları kendi politikaları uyarınca geçici olarak saklar; bu doküman bir sayı iddia etmez |
 
 ## 6. Cihazda kalan, hiç toplanmayan veriler
 

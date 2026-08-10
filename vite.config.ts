@@ -14,7 +14,6 @@ const REQUIRED_PRIVACY_ENV_KEYS = [
   'VITE_PRIVACY_ADDRESS',
   'VITE_PRIVACY_CONTACT_EMAIL',
   'VITE_PRIVACY_HOSTING_PROVIDER',
-  'VITE_PRIVACY_LOG_RETENTION_DAYS',
 ] as const;
 
 // Bu alanlar Netlify'ın ortam değişkenleri ekranında ilk dağıtımdan önce

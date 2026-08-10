@@ -85,7 +85,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       '- Bildirim abonelik kaydınız, siz bildirimleri kapatana kadar saklanır.\n' +
       '- Bildirimleri kapattığınızda kayıt sunucudan silinir.\n' +
       '- Tarayıcınızın push aboneliği geçersiz hale gelirse (uygulamayı kaldırma, site verilerini silme vb.) kayıt ilk başarısız gönderimde otomatik olarak silinir.\n' +
-      '- Sunucu erişim kayıtları {{LOG_RETENTION_DAYS}} gün boyunca tutulur.',
+      '- Sunucu erişim kayıtlarını biz tutmuyoruz; barındırma sağlayıcılarımız bu kayıtları kendi politikaları uyarınca geçici olarak saklar.',
   },
   {
     title: '8. Haklarınız',

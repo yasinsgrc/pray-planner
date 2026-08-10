@@ -7,7 +7,6 @@ import {
   PRIVACY_ADDRESS,
   PRIVACY_CONTACT_EMAIL,
   PRIVACY_HOSTING_PROVIDER,
-  PRIVACY_LOG_RETENTION_DAYS,
 } from '../utils/privacyConfig';
 
 interface PrivacyPolicyModalProps {
@@ -17,7 +16,7 @@ interface PrivacyPolicyModalProps {
 
 // src/data/privacy.ts'teki metin {{ENTITY_NAME}} gibi belirteçler taşır —
 // bunlar dağıtıma özgü, yalnızca deployer'ın bildiği alanlardır (unvan,
-// adres, e-posta, hosting sağlayıcı, log saklama süresi). Hiçbiri sır
+// adres, e-posta, hosting sağlayıcı). Hiçbiri sır
 // değil ama hiçbirinin de güvenli bir varsayılanı yok; tanımsız bırakılan
 // her alan burada gözden kaçması imkansız kırmızı bir uyarıya dönüşür
 // (design-refresh-v3 Faz 9 M4) — sessizce eksik/yanlış içerikle yayına
@@ -27,7 +26,6 @@ const PLACEHOLDER_LABELS: Record<string, string> = {
   ADDRESS: 'ADRES',
   CONTACT_EMAIL: 'İLETİŞİM E-POSTASI',
   HOSTING_PROVIDER: 'HOSTING SAĞLAYICI',
-  LOG_RETENTION_DAYS: 'SÜRE, ör. 30',
 };
 
 const TOKEN_PATTERN = /\{\{(\w+)\}\}/g;
@@ -98,7 +96,6 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
     CONTACT_EMAIL: PRIVACY_CONTACT_EMAIL,
     APP_URL: appUrl,
     HOSTING_PROVIDER: PRIVACY_HOSTING_PROVIDER,
-    LOG_RETENTION_DAYS: PRIVACY_LOG_RETENTION_DAYS,
   };
 
   return (
