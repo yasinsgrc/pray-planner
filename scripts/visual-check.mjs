@@ -1811,6 +1811,81 @@ async function checkFocusScreenFitsWithoutScroll(browser) {
   }
 }
 
+/**
+ * design-refresh-v3 Faz 24 Commit 6 (B) — the active/upcoming kerahet arc
+ * must be at full opacity and pulse (motion.path animating opacity in a
+ * loop), and that pulse must NOT run under prefers-reduced-motion: reduce
+ * (opacity stays static instead). Measures actual computed opacity at two
+ * points in time to detect oscillation, rather than trusting that the
+ * animate prop was written correctly.
+ */
+async function checkKerahetDialArcPulse(browser) {
+  console.log('\n=== Halkadaki kerahet yayı: aktif nabız + prefers-reduced-motion ===');
+  // İstivâ kerahet (12:30-13:15 per SCENARIOS[0]/ogle's location+date) — mid-window.
+  const duringIstiva = new Date('2026-08-01T12:45:00');
+
+  for (const reducedMotion of [false, true]) {
+    const label = reducedMotion ? 'prefers-reduced-motion: reduce' : 'normal';
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'tr-TR',
+      timezoneId: 'Europe/Istanbul',
+      reducedMotion: reducedMotion ? 'reduce' : 'no-preference',
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    try {
+      await page.clock.install({ time: duringIstiva.getTime() });
+      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(600);
+
+      const readOpacity = () =>
+        page.evaluate(() => {
+          // İstivâ = 'ogle_oncesi' — the window active at 12:45. Selected by
+          // its own data-kerahet-type attribute (SunArcDial.tsx), not by
+          // guessing which arc is "currently high opacity" — that would be
+          // circular during the low point of the very pulse being measured.
+          const el = document.querySelector('svg path[data-kerahet-type="ogle_oncesi"]');
+          return el ? parseFloat(getComputedStyle(el).opacity) : null;
+        });
+
+      const first = await readOpacity();
+      // The pulse is a native CSS @keyframes animation (index.css,
+      // .animate-kerahet-pulse), not a Motion/JS-driven one — an earlier
+      // attempt using Motion's `animate` array + `repeat: Infinity` never
+      // actually attached a running animation in a real browser
+      // (el.getAnimations() stayed empty; opacity froze at 1). CSS
+      // animations run on the compositor's own timeline, independent of
+      // page.clock's faked Date/rAF, so a REAL wait is required here (a
+      // page.clock.runFor tick does not advance it).
+      await page.waitForTimeout(900);
+      const second = await readOpacity();
+
+      if (first === null || second === null) {
+        violations.push(`[kerahet-pulse/${label}] aktif kerahet yayı bulunamadı (İstivâ 12:45'te aktif olmalı)`);
+        continue;
+      }
+
+      const changed = Math.abs(first - second) > 0.05;
+      if (reducedMotion && changed) {
+        violations.push(
+          `[kerahet-pulse/${label}] prefers-reduced-motion altında opaklık hâlâ değişiyor: ${first.toFixed(2)} -> ${second.toFixed(2)}`
+        );
+      } else if (!reducedMotion && !changed) {
+        violations.push(
+          `[kerahet-pulse/${label}] nabız animasyonu gözlenmedi: opaklık sabit kaldı (${first.toFixed(2)})`
+        );
+      } else {
+        console.log(`  [${label}] beklenen davranış: opaklık ${changed ? 'değişti (nabız çalışıyor)' : 'sabit (animasyon kapalı)'}.`);
+      }
+    } catch (err) {
+      violations.push(`[kerahet-pulse/${label}] check threw: ${err.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 async function checkTabTransitionStability(browser) {
   console.log('\n=== Sekme geçişinde layout kayması testi ===');
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
@@ -2115,6 +2190,7 @@ async function main() {
       await checkTabTransitionStability(browser);
       await checkLocationSheetKeyboardStability(browser);
       await checkFocusScreenFitsWithoutScroll(browser);
+      await checkKerahetDialArcPulse(browser);
     } finally {
       await browser.close();
     }

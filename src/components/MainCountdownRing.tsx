@@ -66,7 +66,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
               sığması için 34'ten 24'e düşürüldü — ölçülerek ayarlandı
               (npm run visual'daki "scroll'suz sığma" testi). */}
           <div className="relative w-[min(48vw,16dvh)] h-[min(48vw,16dvh)] flex items-center justify-center">
-            <SunArcDial schedule={schedule} />
+            <SunArcDial schedule={schedule} now={now} />
 
             {/* Sayacın İçi */}
             <div className="absolute inset-0 flex flex-col items-center justify-center px-4">

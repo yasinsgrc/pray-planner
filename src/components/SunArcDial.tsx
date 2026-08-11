@@ -2,9 +2,11 @@ import React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { polarPoint, arcPath } from '../utils/dialGeometry';
+import { computeKerahetDialArcs } from '../utils/kerahetDialArcs';
 
 interface SunArcDialProps {
   schedule: DayPrayerSchedule;
+  now: Date;
   size?: number;
 }
 
@@ -23,7 +25,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
  * Faz 1: "tam etiket modu" / next-prayer chip removed for exactly this
  * reason).
  */
-export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) => {
+export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, now, size = 288 }) => {
   const prefersReducedMotion = useReducedMotion();
   const { dayCycleStart, dayCycleEnd, dayCyclePrayers, dayProgress, activePrayer, nextPrayer, kerahetTimes } =
     schedule;
@@ -59,14 +61,8 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
   // Kerahet windows are always computed against "today" (see
   // prayerCalculator's kerahetWindows), so during the pre-fajr wrap case
   // (dayCycleStart = yesterday's fajr) they fall outside this cycle's
-  // [0,1] range and are naturally filtered out below.
-  const kerahetArcs = kerahetTimes
-    .map((k) => ({
-      type: k.type,
-      startFrac: (k.startTime.getTime() - dayCycleStart.getTime()) / totalMs,
-      endFrac: (k.endTime.getTime() - dayCycleStart.getTime()) / totalMs,
-    }))
-    .filter((k) => k.endFrac > 0 && k.startFrac < 1);
+  // [0,1] range and are naturally filtered out inside computeKerahetDialArcs.
+  const kerahetArcs = computeKerahetDialArcs(kerahetTimes, dayCycleStart, totalMs, now);
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -109,23 +105,35 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
         )}
 
         {/*
-          Kerahet pencereleri: halkanın içinde ince bir yay (radius - 7),
-          renkli yayı örtmeden yanında durur. Önceki <pattern> tabanlı
-          tarama denemesi büyütülmüş ekranda bulanık gri bir leke gibi
-          çıkıyordu (gerçek tarayıcıda ölçüldü) — düz, ince, yarı saydam
-          bir yayla değiştirildi (design-refresh-v3 Faz 1).
+          Kerahet pencereleri: çember izinin DIŞINDA, kısa ve kesiksiz yay
+          parçaları (design-refresh-v3 Faz 24 Commit 6, A) — önceki
+          halkanın İÇİNDEKİ, birbirinden kopuk üç kısa yaydan oluşan grup
+          koyu zeminde artefakt gibi duruyordu (gerçek cihaz raporu). Kerahet
+          token rengi (--gold): pasifken %55 opaklık, aktifken veya
+          başlamasına <=15 dk kalaysa (computeKerahetDialArcs) %100 opaklık +
+          yumuşak nabız (B), native CSS @keyframes ile (index.css'teki
+          .animate-kerahet-pulse) — Motion'ın `animate` dizi + `repeat:
+          Infinity` + `initial={false}` kombinasyonu gerçek tarayıcıda hiç
+          animasyon başlatmıyordu (getAnimations() boş kalıyordu, opaklık
+          sabit 1'de donuyordu). prefers-reduced-motion altında yalnızca
+          opaklık farkı kalır, hareket yok — CSS media query üzerinden.
         */}
-        {kerahetArcs.map((k) => (
-          <path
-            key={`kerahet-${k.type}`}
-            d={arcPath(cx, cy, radius - 7, Math.max(0, k.startFrac), Math.min(1, k.endFrac))}
-            stroke="var(--mist)"
-            strokeOpacity={0.45}
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-          />
-        ))}
+        {kerahetArcs.map((k) => {
+          const isUrgent = k.isActiveOrUpcoming;
+          return (
+            <path
+              key={`kerahet-${k.type}`}
+              data-kerahet-type={k.type}
+              d={arcPath(cx, cy, radius + 8, Math.max(0, k.startFrac), Math.min(1, k.endFrac))}
+              stroke="var(--gold)"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              fill="none"
+              className={isUrgent ? 'animate-kerahet-pulse' : undefined}
+              style={isUrgent ? undefined : { opacity: 0.55 }}
+            />
+          );
+        })}
 
         {/* Her vaktin açısında küçük bir nokta; sıradaki vakit vurgulu */}
         {segments.map((seg) => {
