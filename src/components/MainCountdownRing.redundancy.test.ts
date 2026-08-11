@@ -23,3 +23,16 @@ test('MainCountdownRing no longer renders the "Tüm Vakitler" shortcut (duplicat
 test('MainCountdownRing no longer accepts an onScrollToFlow prop', () => {
   assert.doesNotMatch(source, /onScrollToFlow/);
 });
+
+// Faz 24 Commit 5'in Kıble/Tesbih/İmsakiye/Bildirim çipleri, aynı hedeflere
+// zaten var olan ikinci giriş noktalarıydı (Kıble/Tesbih Maneviyat
+// sekmesinde, İmsakiye Vakitler sekmesinde, Bildirim Ayarlar sekmesinde) —
+// "Tüm Vakitler" ile birebir aynı hata deseni. Bu test o çip bloğunun geri
+// gelmediğini garanti eder.
+test('MainCountdownRing no longer imports or renders QuickAccessChips', () => {
+  assert.doesNotMatch(source, /QuickAccessChips/);
+});
+
+test('MainCountdownRing still renders the contextual HomeContextSlot', () => {
+  assert.match(source, /HomeContextSlot/);
+});

@@ -6,7 +6,6 @@ import { DialLegend } from './DialLegend';
 import { KerahetStrip } from './KerahetStrip';
 import { PrayerWindowBar } from './PrayerWindowBar';
 import { HomeContextSlot } from './HomeContextSlot';
-import { QuickAccessChips } from './QuickAccessChips';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 
 interface MainCountdownRingProps {
@@ -16,9 +15,6 @@ interface MainCountdownRingProps {
   isPushHintVisible: boolean;
   onOpenPushSettings: () => void;
   onDismissPushHint: () => void;
-  onOpenQiblaModal: () => void;
-  onOpenZikirmatikModal: () => void;
-  onOpenMonthlySchedule: () => void;
 }
 
 export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
@@ -28,9 +24,6 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
   isPushHintVisible,
   onOpenPushSettings,
   onDismissPushHint,
-  onOpenQiblaModal,
-  onOpenZikirmatikModal,
-  onOpenMonthlySchedule,
 }) => {
   const {
     activePrayer,
@@ -125,13 +118,6 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
         isPushHintVisible={isPushHintVisible}
         onOpenPushSettings={onOpenPushSettings}
         onDismissPushHint={onDismissPushHint}
-      />
-
-      <QuickAccessChips
-        onOpenQiblaModal={onOpenQiblaModal}
-        onOpenZikirmatikModal={onOpenZikirmatikModal}
-        onOpenMonthlySchedule={onOpenMonthlySchedule}
-        onOpenPushSettings={onOpenPushSettings}
       />
     </div>
   );

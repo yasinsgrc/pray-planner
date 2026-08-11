@@ -680,9 +680,6 @@ export default function App() {
                   isPushHintVisible={pushHintVisible}
                   onOpenPushSettings={() => setActiveTab('settings')}
                   onDismissPushHint={handleDismissPushHint}
-                  onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
-                  onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
-                  onOpenMonthlySchedule={() => setActiveTab('flow')}
                 />
               </>
             )}
