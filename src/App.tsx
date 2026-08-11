@@ -17,7 +17,6 @@ import { LocationModal } from './components/LocationModal';
 import { QiblaCompassModal } from './components/QiblaCompassModal';
 import { ZikirmatikModal } from './components/ZikirmatikModal';
 import { KnowledgeSheet } from './components/KnowledgeSheet';
-import { PushNotificationHint } from './components/PushNotificationHint';
 import { KERAHET_KNOWLEDGE } from './data/knowledge';
 import {
   registerServiceWorker,
@@ -641,16 +640,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Bildirim izni hiç sorulmadıysa tek seferlik, kapatılabilir ipucu —
-          eksik bir kurulum adımını bildirir, ısrar etmez (design-refresh-v3
-          Faz 22 Commit 4). */}
-      {pushHintVisible && (
-        <PushNotificationHint
-          onOpenSettings={() => setActiveTab('settings')}
-          onDismiss={handleDismissPushHint}
-        />
-      )}
-
       {/* Ana İçerik Alanı */}
       {/* [scrollbar-gutter:stable]: kalıcı genel çözüm — dikey kaydırma
           çubuğu HANGİ sebeple belirip kaybolursa kaybolsun (bu geçiş,
@@ -688,6 +677,12 @@ export default function App() {
                   schedule={schedule}
                   now={now}
                   onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
+                  isPushHintVisible={pushHintVisible}
+                  onOpenPushSettings={() => setActiveTab('settings')}
+                  onDismissPushHint={handleDismissPushHint}
+                  onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
+                  onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
+                  onOpenMonthlySchedule={() => setActiveTab('flow')}
                 />
               </>
             )}

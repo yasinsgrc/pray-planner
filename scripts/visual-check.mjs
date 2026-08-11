@@ -1769,6 +1769,48 @@ async function checkLocationSheetKeyboardStability(browser) {
   }
 }
 
+/**
+ * design-refresh-v3 Faz 24 Commit 5 — hedef: 360x640'ta (en küçük hedef
+ * viewport) ana ekran hiç scroll gerektirmeden sığsın. main artık (Faz 24
+ * Commit 1) tek scroll konteyneri olduğu için document.documentElement
+ * zaten scroll etmiyor — asıl ölçüm main.scrollHeight <= main.clientHeight.
+ */
+async function checkFocusScreenFitsWithoutScroll(browser) {
+  console.log('\n=== Ana ekran: 3 viewport\'ta scroll\'suz sığma testi ===');
+  const viewports = [
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+  ];
+  for (const viewport of viewports) {
+    const label = `${viewport.width}x${viewport.height}`;
+    const context = await browser.newContext({ viewport, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    try {
+      await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(600);
+
+      const { scrollHeight, clientHeight } = await page.evaluate(() => {
+        const main = document.querySelector('main');
+        return { scrollHeight: main.scrollHeight, clientHeight: main.clientHeight };
+      });
+      if (scrollHeight > clientHeight) {
+        violations.push(
+          `[${label}] ana ekran scroll gerektiriyor: main.scrollHeight=${scrollHeight} > clientHeight=${clientHeight}`
+        );
+      } else {
+        console.log(`  [${label}] ana ekran scroll'suz sığıyor (scrollHeight=${scrollHeight} <= clientHeight=${clientHeight}).`);
+      }
+    } catch (err) {
+      violations.push(`[focus-fit/${label}] check threw: ${err.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 async function checkTabTransitionStability(browser) {
   console.log('\n=== Sekme geçişinde layout kayması testi ===');
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
@@ -2072,6 +2114,7 @@ async function main() {
       await checkNavbarLegibility(browser);
       await checkTabTransitionStability(browser);
       await checkLocationSheetKeyboardStability(browser);
+      await checkFocusScreenFitsWithoutScroll(browser);
     } finally {
       await browser.close();
     }

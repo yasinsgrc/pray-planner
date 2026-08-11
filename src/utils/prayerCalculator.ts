@@ -44,6 +44,10 @@ export interface DayPrayerSchedule {
   /** "Yarın" summary for the Vakitler screen. */
   tomorrowImsakTime: string; // HH:mm
   tomorrowAksamTime: string; // HH:mm
+  /** Raw Date behind tomorrowImsakTime — needed to compute a minute-level
+   * diff against today's own imsak (design-refresh-v3 Faz 24 Commit 5,
+   * HomeContextSlot's "Yarın imsak X dk erken/geç" fallback). */
+  tomorrowImsakDate: Date;
 }
 
 /**
@@ -301,6 +305,7 @@ function deriveFromDay(day: RawDaySchedule, now: Date): DayPrayerSchedule {
     dayProgress,
     tomorrowImsakTime: formatTime(day.tomorrowFajr, resolvedTimeZone),
     tomorrowAksamTime: formatTime(day.tomorrowMaghrib, resolvedTimeZone),
+    tomorrowImsakDate: day.tomorrowFajr,
   };
 }
 

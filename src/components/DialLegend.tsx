@@ -18,7 +18,7 @@ export const DialLegend: React.FC<DialLegendProps> = ({ schedule }) => {
   const { dayCyclePrayers, nextPrayer, resolvedTimeZone } = schedule;
 
   return (
-    <div className="grid grid-cols-6 gap-1 w-full mt-3">
+    <div className="grid grid-cols-6 gap-1 w-full mt-3 relative z-10">
       {dayCyclePrayers.map((p) => {
         const isNext = p.name === nextPrayer.name;
         const Icon = PRAYER_ICON_COMPONENTS[p.name];

@@ -5,8 +5,11 @@ import { calculateDaySchedule, deriveLiveSchedule, DayPrayerSchedule } from './p
 import { DEFAULT_LOCATION } from '../data/locations';
 
 // Faz 22 Commit 3 — ana ekranda ne kerahet ne dinî gün göstergesi vardı.
-// Öncelik: (1) şu an kerahet içindeysek onu göster, (2) değilse ve 7 gün
-// içinde bir dinî gün varsa onu göster, (3) aksi halde hiçbir şey.
+// Faz 24 Commit 5 — fallback zinciri genişletildi: (1) aktif VEYA 15 dk
+// içinde başlayacak kerahet, (2) 7 gün içinde dinî gün, (3) yarınki imsak
+// farkı, (4) hiçbiri yoksa null (bildirim ipucu, saf bir schedule
+// fonksiyonunun bilemeyeceği React state'ine bağlı olduğu için burada değil,
+// çağıran component'te ele alınır).
 //
 // `schedule` (kerahet durumu) ve `now` (dinî gün geri sayımı) bilerek ayrı
 // parametreler — prayerWindow.ts'teki aynı ayrımın devamı: schedule'ın
@@ -34,6 +37,9 @@ test('kerahet penceresi içindeyken, yakında bir dini gün olsa bile öncelik k
 
   assert.ok(result);
   assert.equal(result?.kind, 'kerahet');
+  if (result?.kind === 'kerahet') {
+    assert.equal(result.isUpcoming, false);
+  }
 });
 
 test('kerahet dışında, 5 gün sonra bir dini gün varsa onu gösterir', () => {
@@ -52,24 +58,26 @@ test('kerahet dışında, 5 gün sonra bir dini gün varsa onu gösterir', () =>
   }
 });
 
-test('kerahet dışında, 8 gün sonra bir dini gün varsa 7 günlük eşiği aşar ve null döner', () => {
+test('kerahet ve yakın dini gün yokken, 8 gün sonraki dini gün 7 günlük eşiği aşınca yarınki imsak farkına düşer', () => {
   const outsideKerahet = new Date(day.dhuhr.getTime() + 2 * 60 * 60 * 1000);
   const schedule = scheduleAt(outsideKerahet);
 
   const now = daysBefore(MEVLID_KANDILI, 8);
   const result = resolveHomeContextSlot(schedule, now);
 
-  assert.equal(result, null);
+  assert.ok(result);
+  assert.equal(result?.kind, 'tomorrowImsakDiff');
 });
 
-test('kerahet dışında ve takvim tükenmişse null döner', () => {
+test('kerahet, dini gün ve takvim de tükenmişse yarınki imsak farkına düşer (hâlâ null değil)', () => {
   const outsideKerahet = new Date(day.dhuhr.getTime() + 2 * 60 * 60 * 1000);
   const schedule = scheduleAt(outsideKerahet);
 
   const now = new Date('2028-01-01T12:00:00+03:00'); // RELIGIOUS_DAYS son tarihi 2027-12-24
   const result = resolveHomeContextSlot(schedule, now);
 
-  assert.equal(result, null);
+  assert.ok(result);
+  assert.equal(result?.kind, 'tomorrowImsakDiff');
 });
 
 test('dini gün bugünse daysUntil 0 döner', () => {
@@ -115,5 +123,54 @@ test('dini gün mesafesi schedule\'ın kendi zaman diliminde hesaplanır, cihaz 
   assert.equal(result?.kind, 'religiousDay');
   if (result?.kind === 'religiousDay') {
     assert.equal(result.daysUntil, 0);
+  }
+});
+
+// Faz 24 Commit 5 — kerahet BAŞLAMADAN önce de uyarmalı, yalnızca aktifken değil.
+const referenceKerahetTimes = scheduleAt(day.dhuhr).kerahetTimes;
+
+test('bir kerahet penceresi 10 dakika içinde başlayacaksa "yaklaşan kerahet" olarak döner', () => {
+  const firstKerahet = referenceKerahetTimes[0];
+  const tenMinBefore = new Date(firstKerahet.startTime.getTime() - 10 * 60 * 1000);
+  const schedule = scheduleAt(tenMinBefore);
+  assert.equal(schedule.currentKerahet, null);
+
+  // `now` bilerek `tenMinBefore` ile aynı an — "yaklaşan kerahet" testi,
+  // schedule'ın türetildiği tick ile sorgulanan anın uyumlu olmasını
+  // gerektirir (dosyanın tepesindeki genel ayrımın aksine, kasıtlı burada).
+  const result = resolveHomeContextSlot(schedule, tenMinBefore);
+
+  assert.ok(result);
+  assert.equal(result?.kind, 'kerahet');
+  if (result?.kind === 'kerahet') {
+    assert.equal(result.isUpcoming, true);
+    assert.equal(result.kerahetType, firstKerahet.type);
+  }
+});
+
+test('bir kerahet penceresi 20 dakika sonra başlayacaksa (15 dk penceresinin dışında) tetiklenmez', () => {
+  const firstKerahet = referenceKerahetTimes[0];
+  const twentyMinBefore = new Date(firstKerahet.startTime.getTime() - 20 * 60 * 1000);
+  const schedule = scheduleAt(twentyMinBefore);
+
+  const result = resolveHomeContextSlot(schedule, twentyMinBefore);
+
+  assert.notEqual(result?.kind, 'kerahet');
+});
+
+test('yarınki imsak farkı, bugünün imsakıyla yarının imsakı arasındaki dakika farkını doğru işaretle döndürür', () => {
+  const outsideKerahet = new Date(day.dhuhr.getTime() + 2 * 60 * 60 * 1000);
+  const schedule = scheduleAt(outsideKerahet);
+  const todayImsak = schedule.prayers.find((p) => p.name === 'imsak')!.dateObj;
+  const expectedDiff =
+    Math.round((schedule.tomorrowImsakDate.getTime() - todayImsak.getTime()) / 60000) - 24 * 60;
+
+  const now = new Date('2028-01-01T12:00:00+03:00');
+  const result = resolveHomeContextSlot(schedule, now);
+
+  assert.ok(result);
+  assert.equal(result?.kind, 'tomorrowImsakDiff');
+  if (result?.kind === 'tomorrowImsakDiff') {
+    assert.equal(result.diffMinutes, expectedDiff);
   }
 });

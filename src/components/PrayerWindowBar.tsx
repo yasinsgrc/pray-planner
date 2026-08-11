@@ -34,7 +34,7 @@ export const PrayerWindowBar: React.FC<PrayerWindowBarProps> = ({ schedule, now 
   const fillColor = isClosingSoon ? 'var(--gold)' : 'var(--accent)';
 
   return (
-    <div className="w-full mt-4 shrink-0">
+    <div className="w-full mt-1 shrink-0">
       <div className="flex items-center justify-between">
         <span className="text-label text-ink font-semibold">{schedule.activePrayer.label}</span>
         <span className="font-numbers text-label text-mist">
