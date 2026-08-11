@@ -65,8 +65,24 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, now, size = 28
   const kerahetArcs = computeKerahetDialArcs(kerahetTimes, dayCycleStart, totalMs, now);
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ overflow: 'visible' }} className="drop-shadow-sm">
+    <div className="relative w-full h-full">
+      {/* Faz 25 Commit 2 — `size` (default 288) is only the internal SVG
+          coordinate space now (radius/cx/cy/stroke math below), not the
+          rendered pixel footprint. The old width/height={size} attributes
+          rendered a literal 288px SVG regardless of the parent's actual
+          CSS size, so when Faz 24 Commit 5 shrank the ring shell to
+          min(48vw,16dvh) (well under 288px on real phones) the ring
+          overflowed its shell while the countdown text stayed correctly
+          scoped to it. viewBox + percentage width/height makes the SVG
+          fill whatever box its parent (MainCountdownRing's ring-shell div)
+          provides, matching it exactly at every viewport. */}
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        width="100%"
+        height="100%"
+        style={{ overflow: 'visible' }}
+        className="drop-shadow-sm"
+      >
         <defs>
           <mask id="dial-crescent-mask">
             <circle cx={markerPoint.x} cy={markerPoint.y} r={8} fill="white" />

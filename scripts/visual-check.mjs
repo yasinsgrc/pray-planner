@@ -1812,6 +1812,86 @@ async function checkFocusScreenFitsWithoutScroll(browser) {
 }
 
 /**
+ * Faz 25 Commit 2 — Faz 24 Commit 5 shrank the ring shell to
+ * min(48vw,16dvh) but SunArcDial's <svg> still renders at its hardcoded
+ * default size=288, since no caller ever passes a `size` prop. On real
+ * phone viewports min(48vw,16dvh) is far below 288px, so the visible ring
+ * overflows its shell while the countdown text (absolute inset-0, scoped
+ * to the shell) stays correctly small — the two visually disagree ("taşmış
+ * / bozuk"). This check catches both symptoms directly: the <svg>'s
+ * rendered box must not exceed its shell, and the countdown text box must
+ * not overflow itself (scrollWidth/Height <= clientWidth/Height) with its
+ * full HH:mm:ss text intact.
+ */
+async function checkRingContentFitsRing(browser) {
+  console.log('\n=== Halka: SVG kapsayıcısını aşmıyor, vakit metni kırpılmıyor (3 viewport) ===');
+  const viewports = [
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+  ];
+  for (const viewport of viewports) {
+    const label = `${viewport.width}x${viewport.height}`;
+    const context = await browser.newContext({ viewport, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    try {
+      await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(600);
+
+      const result = await page.evaluate(() => {
+        const shell = document.querySelector('[data-testid="ring-shell"]');
+        const svg = shell?.querySelector('svg');
+        const countdown = document.querySelector('[data-testid="countdown"]');
+        const shellRect = shell.getBoundingClientRect();
+        const svgRect = svg.getBoundingClientRect();
+        return {
+          shellWidth: shellRect.width,
+          shellHeight: shellRect.height,
+          svgWidth: svgRect.width,
+          svgHeight: svgRect.height,
+          countdownScrollWidth: countdown.scrollWidth,
+          countdownClientWidth: countdown.clientWidth,
+          countdownScrollHeight: countdown.scrollHeight,
+          countdownClientHeight: countdown.clientHeight,
+          countdownText: countdown.textContent ?? '',
+        };
+      });
+
+      const TOLERANCE_PX = 1;
+      if (result.svgWidth > result.shellWidth + TOLERANCE_PX || result.svgHeight > result.shellHeight + TOLERANCE_PX) {
+        violations.push(
+          `[ring-fit/${label}] SVG (${result.svgWidth.toFixed(1)}x${result.svgHeight.toFixed(1)}) halka kapsayıcısını (${result.shellWidth.toFixed(1)}x${result.shellHeight.toFixed(1)}) aşıyor`
+        );
+      }
+      if (result.countdownScrollWidth > result.countdownClientWidth + TOLERANCE_PX) {
+        violations.push(
+          `[ring-fit/${label}] vakit metni yatayda taşıyor: scrollWidth=${result.countdownScrollWidth} > clientWidth=${result.countdownClientWidth}`
+        );
+      }
+      if (result.countdownScrollHeight > result.countdownClientHeight + TOLERANCE_PX) {
+        violations.push(
+          `[ring-fit/${label}] vakit metni dikeyde taşıyor: scrollHeight=${result.countdownScrollHeight} > clientHeight=${result.countdownClientHeight}`
+        );
+      }
+      if (!/^\d{2}:\d{2}:\d{2}$/.test(result.countdownText.trim())) {
+        violations.push(`[ring-fit/${label}] vakit metni kırpılmış/beklenmedik: "${result.countdownText}"`);
+      }
+      if (violations.length === 0 || !violations[violations.length - 1].startsWith(`[ring-fit/${label}]`)) {
+        console.log(
+          `  [${label}] halka (${result.svgWidth.toFixed(1)}x${result.svgHeight.toFixed(1)}) kapsayıcısına (${result.shellWidth.toFixed(1)}x${result.shellHeight.toFixed(1)}) sığıyor, metin "${result.countdownText}" kırpılmadan görünüyor.`
+        );
+      }
+    } catch (err) {
+      violations.push(`[ring-fit/${label}] check threw: ${err.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
+/**
  * design-refresh-v3 Faz 24 Commit 6 (B) — the active/upcoming kerahet arc
  * must be at full opacity and pulse (motion.path animating opacity in a
  * loop), and that pulse must NOT run under prefers-reduced-motion: reduce
@@ -2190,6 +2270,7 @@ async function main() {
       await checkTabTransitionStability(browser);
       await checkLocationSheetKeyboardStability(browser);
       await checkFocusScreenFitsWithoutScroll(browser);
+      await checkRingContentFitsRing(browser);
       await checkKerahetDialArcPulse(browser);
     } finally {
       await browser.close();
