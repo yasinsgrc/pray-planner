@@ -1822,7 +1822,24 @@ async function checkFocusScreenFitsWithoutScroll(browser) {
  * rendered box must not exceed its shell, and the countdown text box must
  * not overflow itself (scrollWidth/Height <= clientWidth/Height) with its
  * full HH:mm:ss text intact.
+ *
+ * Faz 25 Commit 2 fix — the checks above never caught the regression a real
+ * screenshot showed (ring ~150px, countdown text ~200px wide, spilling
+ * outside it). Reason: the countdown div has no width constraint of its
+ * own (flex-centered, sized to content), so `scrollWidth > clientWidth`
+ * never fires — an unconstrained element doesn't overflow itself, it just
+ * grows past whatever visually contains it. The missing assertion is the
+ * countdown's rendered box against the *shell's* box, not against its own.
+ * Also adds a floor on the shell itself (>= MIN_RING_WIDTH_PX): without
+ * it, a regression that satisfies "countdown <= shell" by shrinking both
+ * toward zero would still pass. 160, not the originally-proposed 200: a
+ * real production-build measurement at 360x640 (the shortest of the 3
+ * viewports here) showed the ring-vs-scroll-fit tradeoff bottoms out at
+ * 160px — main.scrollHeight matches clientHeight exactly there, and every
+ * px above it turns into page scroll (checkFocusScreenFitsWithoutScroll).
  */
+const MIN_RING_WIDTH_PX = 160;
+
 async function checkRingContentFitsRing(browser) {
   console.log('\n=== Halka: SVG kapsayıcısını aşmıyor, vakit metni kırpılmıyor (3 viewport) ===');
   const viewports = [
@@ -1846,11 +1863,14 @@ async function checkRingContentFitsRing(browser) {
         const countdown = document.querySelector('[data-testid="countdown"]');
         const shellRect = shell.getBoundingClientRect();
         const svgRect = svg.getBoundingClientRect();
+        const countdownRect = countdown.getBoundingClientRect();
         return {
           shellWidth: shellRect.width,
           shellHeight: shellRect.height,
           svgWidth: svgRect.width,
           svgHeight: svgRect.height,
+          countdownRectWidth: countdownRect.width,
+          countdownRectHeight: countdownRect.height,
           countdownScrollWidth: countdown.scrollWidth,
           countdownClientWidth: countdown.clientWidth,
           countdownScrollHeight: countdown.scrollHeight,
@@ -1863,6 +1883,24 @@ async function checkRingContentFitsRing(browser) {
       if (result.svgWidth > result.shellWidth + TOLERANCE_PX || result.svgHeight > result.shellHeight + TOLERANCE_PX) {
         violations.push(
           `[ring-fit/${label}] SVG (${result.svgWidth.toFixed(1)}x${result.svgHeight.toFixed(1)}) halka kapsayıcısını (${result.shellWidth.toFixed(1)}x${result.shellHeight.toFixed(1)}) aşıyor`
+        );
+      }
+      // Countdown metninin kendi kutusuyla karşılaştırması (aşağıda) onu
+      // asla yakalayamaz — kutu içeriğe göre büyüyor. Asıl testin halka
+      // kabuğuna göre yapılması gerekiyor.
+      if (result.countdownRectWidth > result.shellWidth + TOLERANCE_PX) {
+        violations.push(
+          `[ring-fit/${label}] vakit metni (${result.countdownRectWidth.toFixed(1)}px) halka kabuğunu (${result.shellWidth.toFixed(1)}px) yatayda aşıyor`
+        );
+      }
+      if (result.countdownRectHeight > result.shellHeight + TOLERANCE_PX) {
+        violations.push(
+          `[ring-fit/${label}] vakit metni (${result.countdownRectHeight.toFixed(1)}px) halka kabuğunu (${result.shellHeight.toFixed(1)}px) dikeyde aşıyor`
+        );
+      }
+      if (result.shellWidth < MIN_RING_WIDTH_PX - TOLERANCE_PX || result.shellHeight < MIN_RING_WIDTH_PX - TOLERANCE_PX) {
+        violations.push(
+          `[ring-fit/${label}] halka kabuğu (${result.shellWidth.toFixed(1)}x${result.shellHeight.toFixed(1)}) alt sınırın (${MIN_RING_WIDTH_PX}px) altında`
         );
       }
       if (result.countdownScrollWidth > result.countdownClientWidth + TOLERANCE_PX) {

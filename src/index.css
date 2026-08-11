@@ -285,19 +285,6 @@
 
 /* Fluid type scale (design-refresh-v2/v3 spec) — actually applied at each
    call site now, not just defined (see design-refresh-v3 F6.5). */
-/*
- * The v2/F6.5 clamp(1.75rem, 8vw, 3.5rem) measured at 31.2px on a real
- * 390px phone viewport — 8vw never reaches the 3.5rem ceiling on any
- * phone width, so that ceiling was purely decorative and the countdown
- * rendered far smaller than a hero element inside a 288px dial should
- * (design-refresh-v3 Faz 1, measured not assumed). Raised the min/preferred
- * so 8vw actually lands in a reasonable range: ~45px at 390px.
- */
-.text-display-xl {
-  font-size: clamp(2.25rem, 11.5vw, 3rem);
-  letter-spacing: -0.02em;
-  font-weight: 800;
-}
 .text-display-l {
   font-size: clamp(1.5rem, 6vw, 1.875rem);
   line-height: 1.15;

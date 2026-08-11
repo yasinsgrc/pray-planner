@@ -48,36 +48,62 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
       <h1 className="sr-only">Ana Ekran</h1>
       {/* Gün Kavisi Kadranı: ekranın büyük bölümünü kaplar, optik olarak ortalı */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
-        <div className="relative flex flex-col items-center justify-center animate-blur-up">
-          {/* Glow effect behind golden ring */}
-          <div className="absolute w-[min(42vw,14dvh)] h-[min(42vw,14dvh)] rounded-full bg-gold/5 blur-lg pointer-events-none" />
+        <div
+          className="relative flex flex-col items-center justify-center animate-blur-up"
+          style={{ '--ring-size': 'max(160px, min(72vw, 25dvh))' } as React.CSSProperties}
+        >
+          {/* Glow effect behind golden ring — 0.875 oranı halka kabuğuyla
+              aynı (Faz 24 Commit 5'ten beri: glow her zaman kabuktan biraz
+              küçük kalır), artık --ring-size'a bağlı. */}
+          <div className="absolute w-[calc(var(--ring-size)*0.875)] h-[calc(var(--ring-size)*0.875)] rounded-full bg-gold/5 blur-lg pointer-events-none" />
 
-          {/* design-refresh-v3 Faz 24 Commit 5 — sabit piksel tavanı yerine
-              viewport-göreli clamp: daha büyük/yoğun bir ekran daha büyük
-              bir halka gösterir, alttaki boş alanı azaltır. dvh oranı,
-              360x640 gibi kısa viewport'larda tüm ana ekranın scroll'suz
-              sığması için 34'ten 24'e düşürüldü — ölçülerek ayarlandı
-              (npm run visual'daki "scroll'suz sığma" testi). */}
-          <div data-testid="ring-shell" className="relative w-[min(48vw,16dvh)] h-[min(48vw,16dvh)] flex items-center justify-center">
+          {/* Faz 25 Commit 2 fix — halka artık tek bir --ring-size custom
+              property'sinden besleniyor (kabuk + içindeki metinler), bir
+              gerçek cihaz ekran görüntüsünde kabuk ~150px'e küçülüp geri
+              sayım metninin ~200px genişliğiyle dışına taştığı görüldüğü
+              için: eski min(48vw,16dvh) hem çok küçüktü hem de metin ondan
+              bağımsız (salt vw tabanlı) büyüdüğü için ikisi anlaşamıyordu.
+              72vw/25dvh, gerçek prod build'de tek tek ölçülerek seçildi:
+              360x640'ta 34dvh (217.6px) bile main.scrollHeight'i
+              clientHeight'in üstüne taşırıyordu (488 > 435) — flex-1
+              kapsayıcının o viewport'taki gerçek payı yalnızca ~160px'e
+              kadar "boş alanı doldurma" ile karşılanabiliyor, ondan
+              sonrası scroll'a dönüşüyor (npm run visual'daki
+              checkFocusScreenFitsWithoutScroll). 25dvh, 360x640'ta tam o
+              160px sınırına oturuyor; 160px alt sınır da bununla aynı
+              değer (daha kısa/olağandışı viewport'lar için). */}
+          <div data-testid="ring-shell" className="relative w-[var(--ring-size)] h-[var(--ring-size)] flex items-center justify-center">
             <SunArcDial schedule={schedule} now={now} />
 
             {/* Sayacın İçi */}
             <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
               <div aria-hidden="true">
-                {/* Üst Bilgi Etiketi */}
-                <span className="text-label font-medium text-mist mb-1 block text-center">
+                {/* Üst Bilgi Etiketi — punto artık --ring-size'a bağlı,
+                    sabit değil (aşağıdaki geri sayımla aynı ölçek). */}
+                <span
+                  className="font-medium text-mist mb-1 block text-center uppercase tracking-[0.08em]"
+                  style={{ fontSize: 'clamp(0.65rem, calc(var(--ring-size) * 0.043), 0.8125rem)' }}
+                >
                   {nextPrayer.label} vaktine kalan süre
                 </span>
 
                 {/* Geri Sayım Rakamları */}
-                <div data-testid="countdown" className="font-numbers text-display-xl text-ink my-1">
+                <div
+                  data-testid="countdown"
+                  className="font-numbers text-ink my-1"
+                  style={{
+                    fontSize: 'clamp(1.75rem, calc(var(--ring-size) * 0.16), 3.25rem)',
+                    letterSpacing: '-0.02em',
+                    fontWeight: 800,
+                  }}
+                >
                   {timeRemainingFormatted}
                 </div>
               </div>
               <span className="sr-only" aria-live="polite">{srCountdownText}</span>
 
-              {/* Alt Bilgi Etiketi */}
-              <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-accent-ink">
+              {/* Alt Bilgi Etiketi — aynı ölçeğe bağlı */}
+              <div className="mt-1 flex items-center gap-1.5 font-medium text-accent-ink">
                 <motion.span
                   key={activePrayer.name}
                   initial={{ scale: 0 }}
@@ -85,7 +111,9 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   className="w-1.5 h-1.5 rounded-full bg-accent"
                 />
-                <span>{activePrayer.label} vaktindesiniz</span>
+                <span style={{ fontSize: 'clamp(0.65rem, calc(var(--ring-size) * 0.043), 0.8125rem)' }}>
+                  {activePrayer.label} vaktindesiniz
+                </span>
               </div>
             </div>
           </div>
