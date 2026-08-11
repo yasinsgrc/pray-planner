@@ -1661,6 +1661,114 @@ async function checkNavbarLegibility(browser) {
  * ever mounted at a time — mode="wait" was never the problem, so this fix
  * does NOT restructure the panels into an absolute-positioned overlay.
  */
+/**
+ * design-refresh-v3 Faz 24 Commit 4 — measures, not eyeballs, that the
+ * location-search sheet's sticky block (GPS button + search input) does
+ * not visibly move when 3 characters are typed (mounting a results list
+ * below it) at 360x640 / 390x844 / 412x915, and that the same holds when
+ * the viewport height is squeezed 640->320 to simulate reduced available
+ * height. Note: Playwright's setViewportSize() shrinks window.innerHeight
+ * and visualViewport.height together (no real on-screen-keyboard divergence
+ * between them), so this validates the sticky/flex layout's robustness
+ * under a shorter viewport, not BottomSheet.tsx's visualViewport-offset
+ * compensation itself — headless Chromium has no real virtual keyboard to
+ * exercise that path; it can only be confirmed on a real device.
+ */
+async function checkLocationSheetKeyboardStability(browser) {
+  console.log('\n=== Şehir arama sheet\'i: klavye/yazma sırasında sabit blok kararlılığı ===');
+  const viewports = [
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+  ];
+
+  const measure = (page) =>
+    page.evaluate(() => {
+      const title = document.querySelector('[role="dialog"] h3');
+      const input = document.querySelector('[role="dialog"] input[type="text"]');
+      return {
+        titleTop: title?.getBoundingClientRect().top ?? null,
+        inputTop: input?.getBoundingClientRect().top ?? null,
+      };
+    });
+
+  for (const viewport of viewports) {
+    const label = `${viewport.width}x${viewport.height}`;
+    const context = await browser.newContext({ viewport, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    try {
+      await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(600);
+      await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+      await page.waitForTimeout(500);
+
+      const before = await measure(page);
+      if (before.titleTop === null || before.inputTop === null) {
+        violations.push(`[${label}] konum sheet'i açılmadı veya başlık/arama kutusu bulunamadı`);
+        continue;
+      }
+
+      await page.locator('[role="dialog"] input[type="text"]').fill('Ank');
+      await page.waitForTimeout(200);
+      const afterTyping = await measure(page);
+      if (Math.abs(afterTyping.titleTop - before.titleTop) > 1) {
+        violations.push(
+          `[${label}] yazma sırasında başlık kaydı: ${before.titleTop.toFixed(1)} -> ${afterTyping.titleTop.toFixed(1)}`
+        );
+      }
+      if (Math.abs(afterTyping.inputTop - before.inputTop) > 1) {
+        violations.push(
+          `[${label}] yazma sırasında arama kutusu kaydı: ${before.inputTop.toFixed(1)} -> ${afterTyping.inputTop.toFixed(1)}`
+        );
+      }
+
+      // Klavye simülasyonu: viewport yüksekliğini daralt, aynı ölçümü tekrarla.
+      await page.setViewportSize({ width: viewport.width, height: 320 });
+      await page.waitForTimeout(200);
+      const beforeShrink = await measure(page);
+      await page.locator('[role="dialog"] input[type="text"]').fill('Ankara');
+      await page.waitForTimeout(200);
+      const afterShrink = await measure(page);
+      if (beforeShrink.titleTop !== null && afterShrink.titleTop !== null) {
+        if (Math.abs(afterShrink.titleTop - beforeShrink.titleTop) > 1) {
+          violations.push(
+            `[${label}/daraltılmış] yazma sırasında başlık kaydı: ${beforeShrink.titleTop.toFixed(1)} -> ${afterShrink.titleTop.toFixed(1)}`
+          );
+        }
+      }
+      if (beforeShrink.inputTop !== null && afterShrink.inputTop !== null) {
+        if (Math.abs(afterShrink.inputTop - beforeShrink.inputTop) > 1) {
+          violations.push(
+            `[${label}/daraltılmış] yazma sırasında arama kutusu kaydı: ${beforeShrink.inputTop.toFixed(1)} -> ${afterShrink.inputTop.toFixed(1)}`
+          );
+        }
+      }
+
+      // Liste kaydırıldığında sabit bloğun top'u değişmemeli.
+      const scrolled = await page.evaluate(() => {
+        const scrollRegion = document.querySelector('[role="dialog"] .overflow-y-auto');
+        const input = document.querySelector('[role="dialog"] input[type="text"]');
+        if (!scrollRegion || !input) return null;
+        scrollRegion.scrollTop = 200;
+        return input.getBoundingClientRect().top;
+      });
+      if (scrolled !== null && afterShrink.inputTop !== null && Math.abs(scrolled - afterShrink.inputTop) > 1) {
+        violations.push(
+          `[${label}/daraltılmış] liste kaydırıldığında arama kutusu kaydı: ${afterShrink.inputTop.toFixed(1)} -> ${scrolled.toFixed(1)}`
+        );
+      }
+
+      console.log(`  [${label}] sabit blok konumu yazma ve daraltma boyunca sabit kaldı.`);
+    } catch (err) {
+      violations.push(`[location-sheet-keyboard/${label}] check threw: ${err.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 async function checkTabTransitionStability(browser) {
   console.log('\n=== Sekme geçişinde layout kayması testi ===');
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
@@ -1963,6 +2071,7 @@ async function main() {
       await checkRamadanMode(browser);
       await checkNavbarLegibility(browser);
       await checkTabTransitionStability(browser);
+      await checkLocationSheetKeyboardStability(browser);
     } finally {
       await browser.close();
     }

@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, PanInfo, useDragControls } from 'motion/react';
 import { XIcon } from './icons';
@@ -38,6 +38,34 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  // design-refresh-v3 Faz 24 Commit 4 — the virtual keyboard shrinks
+  // `visualViewport`, not the layout viewport; a `bottom-0`-pinned sheet
+  // stays where it is relative to the (now keyboard-obscured) layout
+  // viewport, so the focused input can end up hidden behind the keyboard.
+  // Tracks how far the visual viewport's bottom edge has risen above the
+  // layout viewport's, and feeds that into the sheet's own `animate.y` as a
+  // `transform: translateY(...)` — never touches `bottom`, which wouldn't
+  // react to visualViewport at all.
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  useEffect(() => {
+    if (!isOpen) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const updateOffset = () => {
+      const offset = window.innerHeight - (vv.height + vv.offsetTop);
+      setKeyboardOffset(offset > 0 ? offset : 0);
+    };
+    updateOffset();
+    vv.addEventListener('resize', updateOffset);
+    vv.addEventListener('scroll', updateOffset);
+    return () => {
+      vv.removeEventListener('resize', updateOffset);
+      vv.removeEventListener('scroll', updateOffset);
+      setKeyboardOffset(0);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -110,10 +138,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             dragElastic={{ top: 0, bottom: 0.4 }}
             onDragEnd={handleDragEnd}
             initial={{ y: '100%' }}
-            animate={{ y: 0 }}
+            animate={{ y: -keyboardOffset }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-            className="fixed bottom-0 left-0 right-0 z-50 max-w-[var(--shell-w)] mx-auto bg-card rounded-t-[28px] shadow-2xl max-h-[80vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-50 max-w-[var(--shell-w)] mx-auto bg-card rounded-t-[28px] shadow-2xl max-h-[80dvh] flex flex-col"
           >
             {/* Sürükleme yalnızca bu tutamaçtan başlar; içerik alanı normal kaydırılabilir kalır. */}
             <div
@@ -135,7 +163,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
               </button>
             </div>
             <div
-              className="px-5 overflow-y-auto"
+              className="px-5 flex-1 min-h-0 overflow-y-auto overscroll-contain"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}
             >
               {children}

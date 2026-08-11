@@ -185,40 +185,48 @@ export const LocationModal: React.FC<LocationModalProps> = ({
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Şehir ve Konum Seçimi">
-      <div className="space-y-3 pb-2">
-        <button
-          onClick={handleUseGPS}
-          disabled={isLocating}
-          className="w-full min-h-[48px] px-4 rounded-xl bg-gold hover:bg-gold-hover text-on-gold font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-        >
-          <NavigationArrowIcon className="w-4 h-4 animate-spin-slow" />
-          <span>
-            {isLocating ? 'Konum Alınıyor...' : 'Mevcut Konumumu Otomatik Kullan (GPS)'}
-          </span>
-        </button>
+      <div className="pb-2">
+        {/* Sabit blok: GPS butonu + arama kutusu (design-refresh-v3 Faz 24
+            Commit 4) — sticky, BottomSheet'in kendi overflow-y-auto içerik
+            alanının İÇİNDE (ikinci, iç içe bir scroll konteyneri açmadan;
+            bkz. Faz 24 Commit 1'in tek-scroll-konteyneri kuralı). Klavye
+            açıldığında yalnızca alttaki sonuç listesi kayar, bu blok
+            ekranda sabit kalır. */}
+        <div className="sticky top-0 z-10 bg-card pt-0.5 pb-3 space-y-3">
+          <button
+            onClick={handleUseGPS}
+            disabled={isLocating}
+            className="w-full min-h-[48px] px-4 rounded-xl bg-gold hover:bg-gold-hover text-on-gold font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+          >
+            <NavigationArrowIcon className="w-4 h-4 animate-spin-slow" />
+            <span>
+              {isLocating ? 'Konum Alınıyor...' : 'Mevcut Konumumu Otomatik Kullan (GPS)'}
+            </span>
+          </button>
 
-        {gpsError && (
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-danger/10 border border-danger/20 text-left">
-            <WarningCircleIcon className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
-            <p className="text-[11px] text-danger-ink">{gpsError}</p>
+          {gpsError && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-danger/10 border border-danger/20 text-left">
+              <WarningCircleIcon className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
+              <p className="text-[11px] text-danger-ink">{gpsError}</p>
+            </div>
+          )}
+
+          <div className="relative">
+            <MagnifyingGlassIcon className="w-4 h-4 text-mist absolute left-3 top-3" />
+            <input
+              type="text"
+              placeholder="Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  triggerRemoteSearch();
+                }
+              }}
+              className="w-full min-h-[44px] pl-9 pr-4 py-2.5 bg-paper border border-gold/20 rounded-xl text-xs font-medium text-ink focus:outline-none focus:border-gold"
+            />
           </div>
-        )}
-
-        <div className="relative">
-          <MagnifyingGlassIcon className="w-4 h-4 text-mist absolute left-3 top-3" />
-          <input
-            type="text"
-            placeholder="Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                triggerRemoteSearch();
-              }
-            }}
-            className="w-full min-h-[44px] pl-9 pr-4 py-2.5 bg-paper border border-gold/20 rounded-xl text-xs font-medium text-ink focus:outline-none focus:border-gold"
-          />
         </div>
 
         {normalizedQuery.length >= 2 && (
