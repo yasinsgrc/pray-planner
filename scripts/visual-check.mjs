@@ -2070,6 +2070,78 @@ async function checkTabTransitionStability(browser) {
   }
 }
 
+/**
+ * design-refresh-v3 Faz 25 — regression guard for the risk design-refresh-v3
+ * Faz 24 Commit 1's own commit message flagged but never actually verified:
+ * making <main> the app's only scroll container (html/body set to
+ * overflow:hidden) removed the second-scroll-container bug that
+ * checkTabTransitionStability guards against, but nothing confirmed the
+ * ONE remaining container can still really scroll in every tab. This checks
+ * the opposite failure mode — a real, physical scroll attempt (programmatic
+ * scrollTop, same mechanism a mouse-wheel/trackpad gesture ultimately
+ * drives) on whichever tab currently has content taller than the viewport,
+ * across all 3 required breakpoints and both motion preferences (Faz 24
+ * Commit 1's y:8 mount transform was removed in favor of opacity-only
+ * precisely so reduced-motion users hit the identical layout path — this
+ * confirms that held for scrollability too, not just the width/height
+ * checks checkTabTransitionStability already covers).
+ */
+async function checkMainScrollFunctional(browser) {
+  console.log('\n=== <main> gerçekten kaydırılabiliyor mu testi ===');
+  const viewports = [
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+  ];
+  for (const viewport of viewports) {
+    for (const reducedMotion of [false, true]) {
+      const label = `${viewport.width}x${viewport.height}${reducedMotion ? ' azaltılmış-hareket' : ''}`;
+      const context = await browser.newContext({
+        viewport,
+        locale: 'tr-TR',
+        timezoneId: 'Europe/Istanbul',
+        reducedMotion: reducedMotion ? 'reduce' : 'no-preference',
+      });
+      const page = await context.newPage();
+      page.setDefaultTimeout(10000);
+      try {
+        await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+        await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+        await page.waitForTimeout(600);
+
+        for (const tab of TABS) {
+          await page.getByRole('tab', { name: tab.label }).click();
+          await page.waitForTimeout(500);
+
+          const result = await page.evaluate(() => {
+            const main = document.querySelector('main');
+            const overflows = main.scrollHeight > main.clientHeight;
+            if (!overflows) return { overflows, scrolled: null };
+            main.scrollTop = 999999;
+            const scrolled = main.scrollTop > 0;
+            main.scrollTop = 0;
+            return { overflows, scrolled };
+          });
+
+          if (result.overflows && !result.scrolled) {
+            violations.push(
+              `[main-scroll/${label}] "${tab.label}" sekmesinde içerik taşıyor (scrollHeight>clientHeight) ama main.scrollTop=0'da kilitli kaldı — kaydırma çalışmıyor.`
+            );
+          } else if (result.overflows) {
+            console.log(`  [${label}] "${tab.label}" taşıyor ve gerçekten kaydırılabiliyor.`);
+          } else {
+            console.log(`  [${label}] "${tab.label}" bu viewport'ta taşmıyor (kaydırma test edilemedi, atlandı).`);
+          }
+        }
+      } catch (err) {
+        violations.push(`[main-scroll/${label}] check threw: ${err.message}`);
+      } finally {
+        await context.close();
+      }
+    }
+  }
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
@@ -2268,6 +2340,7 @@ async function main() {
       await checkRamadanMode(browser);
       await checkNavbarLegibility(browser);
       await checkTabTransitionStability(browser);
+      await checkMainScrollFunctional(browser);
       await checkLocationSheetKeyboardStability(browser);
       await checkFocusScreenFitsWithoutScroll(browser);
       await checkRingContentFitsRing(browser);
