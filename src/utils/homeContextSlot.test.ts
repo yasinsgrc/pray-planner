@@ -58,26 +58,24 @@ test('kerahet dışında, 5 gün sonra bir dini gün varsa onu gösterir', () =>
   }
 });
 
-test('kerahet ve yakın dini gün yokken, 8 gün sonraki dini gün 7 günlük eşiği aşınca yarınki imsak farkına düşer', () => {
+test('kerahet ve yakın dini gün yokken, 8 gün sonraki dini gün 7 günlük eşiği aşınca null döner', () => {
   const outsideKerahet = new Date(day.dhuhr.getTime() + 2 * 60 * 60 * 1000);
   const schedule = scheduleAt(outsideKerahet);
 
   const now = daysBefore(MEVLID_KANDILI, 8);
   const result = resolveHomeContextSlot(schedule, now);
 
-  assert.ok(result);
-  assert.equal(result?.kind, 'tomorrowImsakDiff');
+  assert.equal(result, null);
 });
 
-test('kerahet, dini gün ve takvim de tükenmişse yarınki imsak farkına düşer (hâlâ null değil)', () => {
+test('kerahet, dini gün ve takvim de tükenmişse null döner (Faz 25 Commit 2 — yarınki imsak farkı kaldırıldı)', () => {
   const outsideKerahet = new Date(day.dhuhr.getTime() + 2 * 60 * 60 * 1000);
   const schedule = scheduleAt(outsideKerahet);
 
   const now = new Date('2028-01-01T12:00:00+03:00'); // RELIGIOUS_DAYS son tarihi 2027-12-24
   const result = resolveHomeContextSlot(schedule, now);
 
-  assert.ok(result);
-  assert.equal(result?.kind, 'tomorrowImsakDiff');
+  assert.equal(result, null);
 });
 
 test('dini gün bugünse daysUntil 0 döner', () => {
@@ -156,21 +154,4 @@ test('bir kerahet penceresi 20 dakika sonra başlayacaksa (15 dk penceresinin d�
   const result = resolveHomeContextSlot(schedule, twentyMinBefore);
 
   assert.notEqual(result?.kind, 'kerahet');
-});
-
-test('yarınki imsak farkı, bugünün imsakıyla yarının imsakı arasındaki dakika farkını doğru işaretle döndürür', () => {
-  const outsideKerahet = new Date(day.dhuhr.getTime() + 2 * 60 * 60 * 1000);
-  const schedule = scheduleAt(outsideKerahet);
-  const todayImsak = schedule.prayers.find((p) => p.name === 'imsak')!.dateObj;
-  const expectedDiff =
-    Math.round((schedule.tomorrowImsakDate.getTime() - todayImsak.getTime()) / 60000) - 24 * 60;
-
-  const now = new Date('2028-01-01T12:00:00+03:00');
-  const result = resolveHomeContextSlot(schedule, now);
-
-  assert.ok(result);
-  assert.equal(result?.kind, 'tomorrowImsakDiff');
-  if (result?.kind === 'tomorrowImsakDiff') {
-    assert.equal(result.diffMinutes, expectedDiff);
-  }
 });

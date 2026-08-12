@@ -805,7 +805,13 @@ async function checkOfflineSupport(browser) {
     const fontStatuses = await page.evaluate(() =>
       [...document.fonts].map((f) => ({ family: f.family, status: f.status }))
     );
-    const badFonts = fontStatuses.filter((f) => f.status !== 'loaded');
+    // Noto Naskh Arabic (Faz 25 Commit 2, DuaCard) is excluded here: its
+    // unicode-range only covers Arabic-script codepoints, and the dua
+    // content is still a bracketed Latin-text placeholder (dualar.ts) — a
+    // browser correctly never fetches a font whose range no on-screen
+    // character needs, so 'unloaded' is expected, not a cache/offline
+    // failure. Re-include once real Arabic dua text lands.
+    const badFonts = fontStatuses.filter((f) => f.status !== 'loaded' && f.family !== 'Noto Naskh Arabic');
     if (badFonts.length > 0) {
       violations.push(`[offline] font(s) not loaded while offline: ${JSON.stringify(badFonts)}`);
     }

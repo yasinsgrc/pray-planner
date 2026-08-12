@@ -36,3 +36,15 @@ test('MainCountdownRing no longer imports or renders QuickAccessChips', () => {
 test('MainCountdownRing still renders the contextual HomeContextSlot', () => {
   assert.match(source, /HomeContextSlot/);
 });
+
+// Faz 25 Commit 2 — "YARIN İMSAK X DK GEÇ" ve altındaki imsak ilerleme
+// çubuğu (04:25 → 06:03, "1 sa 38 dk sürüyor") düşük değerliydi ve
+// çemberi büyütmek için gereken dikey alanı tüketiyordu; ikisi de sabit
+// bir dua kartıyla değiştirildi.
+test('MainCountdownRing no longer imports or renders PrayerWindowBar', () => {
+  assert.doesNotMatch(source, /PrayerWindowBar/);
+});
+
+test('MainCountdownRing renders the DuaCard in its place', () => {
+  assert.match(source, /DuaCard/);
+});

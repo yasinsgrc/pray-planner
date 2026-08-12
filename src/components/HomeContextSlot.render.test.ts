@@ -10,12 +10,10 @@ import { KERAHET_WINDOW_TITLE, KERAHET_WINDOW_DESCRIPTION } from '../data/string
 const day = calculateDaySchedule(DEFAULT_LOCATION, new Date('2026-08-01T00:00:00'), 'Diyanet');
 const noop = () => {};
 
-// design-refresh-v3 Faz 24 Commit 5 — resolveHomeContextSlot no longer
-// bottoms out at null once kerahet/religiousDay are both exhausted (rule 3,
-// tomorrowImsakDiff, always matches when a schedule has prayers +
-// tomorrowImsakDate). "Renders nothing" now only happens for a
-// pathologically minimal schedule AND no push hint — same edge-case pattern
-// homeContextSlot.test.ts already uses for its own timezone-only fakeSchedule.
+// Faz 25 Commit 2 — resolveHomeContextSlot's rule 3 (tomorrowImsakDiff) was
+// removed, so "renders nothing" is now the common case whenever there's no
+// active/upcoming kerahet and no religious day within the horizon, not just
+// a pathological edge case.
 test('HomeContextSlot renders nothing when the schedule has no imsak data and no push hint is due', () => {
   const fakeSchedule = { currentKerahet: null, resolvedTimeZone: 'Europe/Istanbul' } as DayPrayerSchedule;
   const farFuture = new Date('2028-06-01T12:00:00Z');
@@ -112,23 +110,4 @@ test('HomeContextSlot renders the upcoming religious day when outside kerahet', 
 
   assert.match(html, /Mevlid Kandili/);
   assert.match(html, /5 gün sonra/);
-});
-
-test('HomeContextSlot renders the tomorrow-imsak-diff card when kerahet and religious day both miss', () => {
-  const outsideKerahet = new Date(day.dhuhr.getTime() + 2 * 60 * 60 * 1000);
-  const schedule = deriveLiveSchedule(day, outsideKerahet);
-  const farFuture = new Date('2028-06-01T12:00:00Z'); // RELIGIOUS_DAYS son tarihi 2027-12-24
-
-  const html = renderToStaticMarkup(
-    React.createElement(HomeContextSlot, {
-      schedule,
-      now: farFuture,
-      onOpenKerahetInfo: noop,
-      isPushHintVisible: false,
-      onOpenPushSettings: noop,
-      onDismissPushHint: noop,
-    })
-  );
-
-  assert.match(html, /Yarın imsak/);
 });

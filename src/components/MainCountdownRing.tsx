@@ -4,7 +4,7 @@ import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { SunArcDial } from './SunArcDial';
 import { DialLegend } from './DialLegend';
 import { KerahetStrip } from './KerahetStrip';
-import { PrayerWindowBar } from './PrayerWindowBar';
+import { DuaCard } from './DuaCard';
 import { HomeContextSlot } from './HomeContextSlot';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 
@@ -132,10 +132,10 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
         <KerahetStrip kerahetTimes={kerahetTimes} timeZone={schedule.resolvedTimeZone} onOpenInfo={onOpenKerahetInfo} />
       </div>
 
-      {/* Vakit penceresi göstergesi: "bu namazı kılmak için ne kadar vaktim
-          kaldı" — kadranın cevapladığı "bir sonraki vakte ne kadar var"
-          sorusundan farklı bir soru. Eski bento grid'in yerinde. */}
-      <PrayerWindowBar schedule={schedule} now={now} />
+      {/* Sabit dua kartı: eski imsak ilerleme çubuğunun (04:25→06:03,
+          "1 sa 38 dk sürüyor") yerinde — düşük değerliydi ve çemberi
+          büyütmek için gereken dikey alanı tüketiyordu (Faz 25 Commit 2). */}
+      <DuaCard />
 
       {/* Bağlamsal tek slot: kerahet/dinî gün/yarınki imsak farkı/bildirim
           ipucu — fallback zincirinin hiçbiri eşleşmezse hiç yer kaplamaz. */}

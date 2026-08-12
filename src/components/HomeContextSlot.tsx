@@ -57,24 +57,12 @@ export const HomeContextSlot: React.FC<HomeContextSlotProps> = ({
     );
   }
 
-  if (slot.kind === 'religiousDay') {
-    return (
-      <div className="w-full mt-1 p-2.5 rounded-xl bg-card border border-hairline">
-        <span className="text-label font-semibold text-ink">
-          {slot.name} · {slot.daysUntil === 0 ? 'Bugün' : `${slot.daysUntil} gün sonra`}
-        </span>
-      </div>
-    );
-  }
-
-  // slot.kind === 'tomorrowImsakDiff' — hesaplanan bir gerçek, dinî bir
-  // iddia değil; ek gerektirecek bir cümle kurmadan sabit üç biçimden biri.
-  const abs = Math.abs(slot.diffMinutes);
-  const diffLabel =
-    slot.diffMinutes === 0 ? 'Yarın imsak bugünle aynı saatte' : slot.diffMinutes < 0 ? `Yarın imsak ${abs} dk erken` : `Yarın imsak ${abs} dk geç`;
+  // slot.kind === 'religiousDay' — kalan tek varyant.
   return (
     <div className="w-full mt-1 p-2.5 rounded-xl bg-card border border-hairline">
-      <span className="text-label font-semibold text-ink">{diffLabel}</span>
+      <span className="text-label font-semibold text-ink">
+        {slot.name} · {slot.daysUntil === 0 ? 'Bugün' : `${slot.daysUntil} gün sonra`}
+      </span>
     </div>
   );
 };
