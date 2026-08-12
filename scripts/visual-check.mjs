@@ -2286,6 +2286,107 @@ async function checkMainScrollFunctional(browser) {
   }
 }
 
+/**
+ * Regression guard for the "sekme geçişinde sağda beyaz scrollbar beliriyor"
+ * report. checkMainScrollFunctional (just above) proves <main> stays really
+ * scrollable; this proves the opposite property — its native scrollbar must
+ * never be visually painted, in any tab, settled or mid-transition. Two
+ * independent signals: (1) the static CSS contract (scrollbar-width: none)
+ * on every tab's settled state, and (2) a real pixel sample of the right
+ * edge during the actual ~180ms tab-transition animation for the specific
+ * pair the report named (a short tab -> "Maneviyat", which grows tall
+ * enough to overflow) — proves no browser-painted scrollbar line ever
+ * appears, not just that a CSS property is declared somewhere.
+ */
+async function checkScrollbarInvisible(browser) {
+  console.log('\n=== Scrollbar görsel olarak gizli mi testi ===');
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 3,
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+  try {
+    await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    // 1: static CSS contract on every tab's settled main.
+    for (const tab of TABS) {
+      await page.getByRole('tab', { name: tab.label }).click();
+      await page.waitForTimeout(400);
+      const scrollbarWidth = await page.evaluate(
+        () => getComputedStyle(document.querySelector('main')).scrollbarWidth
+      );
+      if (scrollbarWidth !== 'none') {
+        violations.push(
+          `[scrollbar-hidden/${tab.id}] main'in computed scrollbar-width'i "${scrollbarWidth}" — "none" olmalı.`
+        );
+      }
+    }
+
+    // 2: real pixel sample of the right edge during the actual transition
+    // to "Maneviyat" (the tab the report named — grows tall enough to
+    // overflow from the shorter "Ana Ekran" tab). Tablist is hidden for the
+    // screenshot loop only, AFTER both clicks — hiding it earlier makes the
+    // tab buttons themselves non-actionable (visibility:hidden), which is
+    // exactly what happened on the first run of this check.
+    const from = TABS.find((t) => t.id === 'focus');
+    const to = TABS.find((t) => t.id === 'spiritual');
+    await page.getByRole('tab', { name: from.label }).click();
+    await page.waitForTimeout(300);
+    await page.getByRole('tab', { name: to.label }).click();
+    await page.addStyleTag({ content: '[role="tablist"] { visibility: hidden !important; }' });
+
+    const viewport = page.viewportSize();
+    const dpr = await page.evaluate(() => window.devicePixelRatio);
+    let sawScrollbarPixel = false;
+    let sampleDetail = null;
+    for (let t = 0; t < 15; t++) {
+      const shot = await page.screenshot();
+      const { data, info } = await sharp(shot).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const sampleAt = (px, py) => {
+        const x = Math.min(Math.max(Math.round(px), 0), info.width - 1);
+        const y = Math.min(Math.max(Math.round(py), 0), info.height - 1);
+        const i = (y * info.width + x) * info.channels;
+        return [data[i], data[i + 1], data[i + 2]];
+      };
+      for (const fracY of [0.3, 0.5, 0.7]) {
+        const edge = sampleAt((viewport.width - 2) * dpr, viewport.height * fracY * dpr);
+        const interior = sampleAt((viewport.width - 20) * dpr, viewport.height * fracY * dpr);
+        const diff =
+          Math.abs(edge[0] - interior[0]) + Math.abs(edge[1] - interior[1]) + Math.abs(edge[2] - interior[2]);
+        if (diff > 30) {
+          sawScrollbarPixel = true;
+          sampleDetail = `t=${t * 15}ms y=${(fracY * 100).toFixed(0)}% edge=rgb(${edge.join(',')}) interior=rgb(${interior.join(',')}) diff=${diff}`;
+          break;
+        }
+      }
+      if (sawScrollbarPixel) break;
+      await page.waitForTimeout(15);
+    }
+    await page.evaluate(() => {
+      document.querySelectorAll('style').forEach((el) => {
+        if (el.textContent.includes('role="tablist"')) el.remove();
+      });
+    });
+
+    if (sawScrollbarPixel) {
+      violations.push(
+        `[scrollbar-hidden/transition] "${from.label}"->"${to.label}" geçişi sırasında sağ kenarda scrollbar pikseli belirdi: ${sampleDetail}`
+      );
+    } else {
+      console.log(`  "${from.label}"->"${to.label}" geçişi boyunca sağ kenarda hiç scrollbar pikseli görünmedi.`);
+    }
+  } catch (err) {
+    violations.push(`[scrollbar-hidden] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
@@ -2485,6 +2586,7 @@ async function main() {
       await checkNavbarLegibility(browser);
       await checkTabTransitionStability(browser);
       await checkMainScrollFunctional(browser);
+      await checkScrollbarInvisible(browser);
       await checkLocationSheetKeyboardStability(browser);
       await checkFocusScreenFitsWithoutScroll(browser);
       await checkRingContentFitsRing(browser);

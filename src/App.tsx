@@ -646,7 +646,7 @@ export default function App() {
           gelecekte eklenecek başka bir içerik değişikliği), <main>'in
           genişliği sabit kalır; çubuk için yer her zaman ayrılmış olur
           (design-refresh-v3 Faz 18). */}
-      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
+      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] scrollbar-hide">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

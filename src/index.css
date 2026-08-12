@@ -432,3 +432,20 @@
   opacity: 0.5;
 }
 
+/* Visually hides a scroll container's native scrollbar while leaving real
+   scrolling (touch, keyboard, programmatic scrollTop) fully working —
+   applied to <main> and BottomSheet's content div, the app's two scroll
+   containers. Fixes the scrollbar-thumb flicker on tab switch: with
+   scrollbar-gutter:stable the GUTTER width was already constant, but the
+   thumb itself still painted/unpainted as content height crossed the
+   overflow threshold between tabs (most visible switching into
+   "Maneviyat"). Hiding it removes that paint entirely instead of just
+   keeping its reserved space constant. */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox, and Chrome/Edge 121+ */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chromium/WebKit */
+}
+

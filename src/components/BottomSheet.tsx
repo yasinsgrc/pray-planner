@@ -163,7 +163,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
               </button>
             </div>
             <div
-              className="px-5 flex-1 min-h-0 overflow-y-auto overscroll-contain"
+              className="px-5 flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}
             >
               {children}
