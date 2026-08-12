@@ -14,10 +14,8 @@ const PANEL_ID = 'dua-card-panel';
 
 /**
  * Ana ekrandaki sabit dua kartı — imsak ilerleme çubuğunun yerini aldı
- * (Faz 25 Commit 2). Kapalı: Arapça + meal (Arapçayı okuyabilen okunuşa
- * bakmaz, okuyamayan zaten Arapça satırını atlar). Dokununca: okunuş +
- * kaynak. Dördünü aynı anda göstermek kartı büyütüp çember için ayrılan
- * dikey alanı tüketirdi.
+ * (Faz 25 Commit 2). Kapalı: Arapça + okunuş + meal (üçü de her zaman
+ * görünür, sırasıyla üst üste). Dokununca yalnızca kaynak açılır.
  */
 export const DuaCard: React.FC<DuaCardProps> = ({ dua = DUALAR[0] }) => {
   const [expanded, setExpanded] = useState(false);
@@ -31,14 +29,14 @@ export const DuaCard: React.FC<DuaCardProps> = ({ dua = DUALAR[0] }) => {
         aria-controls={PANEL_ID}
         className="w-full min-h-[44px] flex flex-col gap-1 text-left px-3 py-2 cursor-pointer"
       >
-        <p dir="rtl" lang="ar" className="font-arabic text-ink" style={{ fontSize: '22px', lineHeight: 2 }}>
+        <p dir="rtl" lang="ar" className="font-arabic text-gold" style={{ fontSize: '22px', lineHeight: 2 }}>
           {dua.arabic}
         </p>
-        <p className="text-label text-mist">{dua.meaning}</p>
+        <p className="text-micro text-ink normal-case">{dua.transliteration}</p>
+        <p className="text-micro text-mist normal-case">{dua.meaning}</p>
 
         <div id={PANEL_ID} hidden={!expanded} className="mt-1 pt-1.5 border-t border-hairline/50">
-          <p className="text-label text-ink">{dua.transliteration}</p>
-          <p className="mt-1 text-micro text-gold-ink text-right">{dua.source}</p>
+          <p className="text-micro text-gold-ink normal-case">{dua.source}</p>
         </div>
       </button>
     </div>
