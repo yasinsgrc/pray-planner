@@ -22,6 +22,7 @@
     "test:tz-utc": "cross-env TZ=UTC npm test",
     "test:push": "tsx server/send-test-push.ts",
     "generate:icons": "node scripts/generate-icons.mjs",
+    "generate:icons:android": "node scripts/generate-android-icons.mjs",
     "visual": "node scripts/visual-check.mjs",
     "generate:licenses": "node scripts/generate-licenses.mjs",
     "android:sync": "cross-env VAKIT_TARGET=native npm run build && tsx scripts/sync-android-version.mjs && npx cap sync android"

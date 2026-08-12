@@ -49,8 +49,8 @@
     <linearGradient id="g46" gradientUnits="userSpaceOnUse" x1="226.30" y1="100.82" x2="247.55" y2="98.23"><stop offset="0" stop-color="#39408F"/><stop offset="1" stop-color="#2C3D8D"/></linearGradient>
     <linearGradient id="g47" gradientUnits="userSpaceOnUse" x1="246.58" y1="98.28" x2="267.98" y2="98.46"><stop offset="0" stop-color="#2C3D8D"/><stop offset="1" stop-color="#1E3A8A"/></linearGradient>
   </defs>
-  <rect width="512" height="512" rx="114" fill="#0F1B2E"/>
-  <path d="M 277.99 99.54 A 158.0 158.0 0 0 1 298.93 103.94" fill="none" stroke="url(#g0)" stroke-width="44.0"/>
+  <g transform="translate(20.48 20.48) scale(0.92)">
+<path d="M 277.99 99.54 A 158.0 158.0 0 0 1 298.93 103.94" fill="none" stroke="url(#g0)" stroke-width="44.0"/>
   <path d="M 298.00 103.69 A 158.0 158.0 0 0 1 318.20 110.76" fill="none" stroke="url(#g1)" stroke-width="44.0"/>
   <path d="M 317.31 110.38 A 158.0 158.0 0 0 1 336.43 120.00" fill="none" stroke="url(#g2)" stroke-width="44.0"/>
   <path d="M 335.60 119.51 A 158.0 158.0 0 0 1 353.31 131.52" fill="none" stroke="url(#g3)" stroke-width="44.0"/>
@@ -102,4 +102,5 @@
   <circle cx="406.33" cy="207.39" r="14.96" fill="#FFE9B8"/>
   <path d="M 208 348 L 208 272 C 208 263 202 259 202 250 C 202 216 224 190 256 166 C 288 190 310 216 310 250 C 310 259 304 263 304 272 L 304 348" fill="none" stroke="#F2F4F8" stroke-width="15"
         stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>
