@@ -389,6 +389,25 @@
   padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 24px);
 }
 
+/* Ana ekran geri sayım halkası boyut token'ı. min-height eşiği kısa/boxy
+   telefonlarla (360x640, ratio ~0.56 — kadranın halihazırda scroll-fit
+   sınırında olduğu, MainCountdownRing.tsx'teki Faz 25 notlarında ölçülen
+   viewport) uzun telefonları (360x800/412x915, ratio ~0.45) ayırır: ikisi
+   için ortak tek bir min(vw,dvh) formülü yok, çünkü 800/915 yüksekliğinde
+   %72+ genişlik hedefine ulaşmak için gereken dvh katsayısı, 640
+   yüksekliğinde aynı katsayıyla scroll'u tetikler (matematiksel olarak
+   çelişkili iki kısıt). 640 tarafı bilinçli olarak eskiyle birebir aynı
+   bırakıldı; sadece uzun ekranlar büyüyor. */
+.ring-metrics {
+  --ring-size: clamp(150px, min(60vw, 24dvh), 240px);
+}
+
+@media (min-height: 720px) {
+  .ring-metrics {
+    --ring-size: clamp(220px, min(80vw, 34dvh), 320px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-blur-up {
     animation: none;

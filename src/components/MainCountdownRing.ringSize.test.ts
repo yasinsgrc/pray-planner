@@ -3,31 +3,40 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-// Faz 25 Commit 3 — halka boyutu artık viewport'a bağlı (sabit px değil).
-// min(vw,dvh) kullanır (--ring-font-basis'in kanıtlanmış deseniyle aynı):
-// saf bir vw formülü 360x640'ta (en kısa hedef viewport) main.scrollHeight'i
-// clientHeight'in üstüne taşırıyordu (npm run visual ile ölçüldü — gerçek
-// dua metniyle 55px taşma), dvh terimi kısa/geniş-oranlı viewport'larda
-// devreye girip halkayı küçültüyor. Geri sayım rakamları ve etiketler ise
-// --ring-size'dan AYRI, dondurulmuş bir referansa (--ring-font-basis, eski
-// max(160px, min(72vw, 25dvh)) formülü) bağlı kalmalı — halka büyürken
-// yazı orantılı büyürse ekranı ezer (spesifikasyon: "en fazla +2px").
-const source = readFileSync(path.join(import.meta.dirname, 'MainCountdownRing.tsx'), 'utf8');
+// Faz 26 — halka boyutu artık src/index.css'teki .ring-metrics class'ından
+// geliyor (Faz 25 Commit 3'ün inline stildeki tek --ring-size formülü
+// yerine): kısa/boxy telefonlarda (360x640) eski clamp(150px, min(60vw,
+// 24dvh), 240px) birebir korunuyor, min-height:720px üstü (360x800/412x915
+// gibi uzun telefonlar) için ayrı bir @media bloğu halkayı belirgin
+// şekilde büyütüyor — tek bir sürekli vw/dvh formülü ikisini aynı anda
+// karşılayamıyor (npm run visual ile ölçülmüş çelişki). Geri sayım/etiket
+// fontSize'ları da artık dondurulmuş bir --ring-font-basis yerine
+// doğrudan --ring-size'a oranlı: halka büyüdükçe metin de büyüsün
+// isteniyor (eski "en fazla +2px" kısıtı bilerek kaldırıldı).
+const componentSource = readFileSync(path.join(import.meta.dirname, 'MainCountdownRing.tsx'), 'utf8');
+const cssSource = readFileSync(path.join(import.meta.dirname, '..', 'index.css'), 'utf8');
 
-test('ring-size is viewport-relative (not a fixed px value) and combines vw with dvh', () => {
-  const match = source.match(/--ring-size['"]?\s*:\s*['"]([^'"]+)['"]/);
-  assert.ok(match, '--ring-size değeri bulunamadı');
+test('ring-size token lives in the .ring-metrics CSS class and combines vw with dvh', () => {
+  const match = cssSource.match(/\.ring-metrics\s*{\s*--ring-size:\s*([^;]+);/);
+  assert.ok(match, '.ring-metrics içinde --ring-size değeri bulunamadı');
   assert.match(match![1], /vw/);
   assert.match(match![1], /dvh/);
 });
 
-test('font sizing stays on a frozen --ring-font-basis, not the enlarged --ring-size', () => {
-  assert.match(source, /--ring-font-basis/);
-  // Geri sayım/etiket font-size hesaplamaları --ring-size'ı DEĞİL,
-  // --ring-font-basis'i çarpmalı.
-  const fontSizeLines = source.match(/fontSize:\s*['"][^'"]*var\(--ring-[a-z-]+\)[^'"]*['"]/g) ?? [];
+test('a min-height media query gives tall viewports a larger --ring-size than the base rule', () => {
+  assert.match(cssSource, /@media\s*\(min-height:\s*\d+px\)\s*{\s*\.ring-metrics/);
+});
+
+test('MainCountdownRing applies the ring-metrics class instead of an inline --ring-size', () => {
+  assert.match(componentSource, /className="[^"]*\bring-metrics\b[^"]*"/);
+  assert.doesNotMatch(componentSource, /'--ring-size':/);
+});
+
+test('countdown and label font sizing scales proportionally with --ring-size, not a frozen basis', () => {
+  assert.doesNotMatch(componentSource, /--ring-font-basis/);
+  const fontSizeLines = componentSource.match(/fontSize:\s*'[^']*var\(--ring-[a-z-]+\)[^']*'/g) ?? [];
   assert.ok(fontSizeLines.length > 0, 'fontSize satırı bulunamadı');
   for (const line of fontSizeLines) {
-    assert.doesNotMatch(line, /var\(--ring-size\)/, `${line} hâlâ --ring-size'a bağlı, --ring-font-basis'e taşınmalı`);
+    assert.match(line, /var\(--ring-size\)/, `${line} --ring-size'a oranlı değil`);
   }
 });

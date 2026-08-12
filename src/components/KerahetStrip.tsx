@@ -25,7 +25,7 @@ export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes, timeZo
   const active = kerahetTimes.find((k) => k.isActiveNow) ?? null;
 
   return (
-    <div className="w-full mt-1">
+    <div className="w-full mt-1" data-testid="kerahet-strip">
       <button
         onClick={onOpenInfo}
         className="min-h-[44px] flex items-center text-label text-mist font-semibold cursor-pointer hover:text-gold-ink transition-colors"

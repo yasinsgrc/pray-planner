@@ -22,7 +22,15 @@ const BASE_URL = `http://localhost:${PORT}`;
 const STATIC_PORT = 4175;
 const STATIC_BASE_URL = `http://localhost:${STATIC_PORT}`;
 const OUT_DIR = path.resolve('.visual');
-const COUNTDOWN_MAX_WIDTH = 210;
+// Faz 26 — halka artık min-height:720px üstü viewport'larda belirgin
+// büyüyor (index.css'teki .ring-metrics) ve geri sayım rakamları da
+// --ring-size'a oranlı büyüyor (eski dondurulmuş +2px kısıtı kaldırıldı,
+// spesifikasyon: "halka çapına oranlı olsun"). 390x844'te ölçülen gerçek
+// genişlik artık ~213.7px (eskiden ~190px'ti) — 210 tavanı bilerek 240'a
+// çıkarıldı: yeni ölçüme güvenli bir pay bırakırken, halka kabuğunun kendi
+// genişliğinin (287px, ring-fit testine bakın) hâlâ epey altında kalıp
+// gerçek bir taşma regresyonunu yakalamaya devam ediyor.
+const COUNTDOWN_MAX_WIDTH = 240;
 const MIN_TOUCH_TARGET = 44;
 const CONTRAST_MIN_NORMAL = 4.5;
 const CONTRAST_MIN_LARGE = 3.0;
@@ -1940,6 +1948,96 @@ async function checkRingContentFitsRing(browser) {
   }
 }
 
+/**
+ * Faz 26 — halka, min-height:720px üstü viewport'larda (index.css'teki
+ * .ring-metrics @media bloğu) belirgin şekilde büyütüldü. Bu, tam olarak
+ * ilgili spesifikasyonun istediği: halka genişliği >= viewport
+ * genişliğinin %72'si, halka + DialLegend (vakit şeridi) katlama altına
+ * taşmadan tam görünür, KERAHET şeridinin (KerahetStrip) en az bir kısmı
+ * ilk ekranda görünür kalır (DuaCard/HomeContextSlot'un tamamının scroll
+ * gerektirmesi kabul edilebilir — spesifikasyon sadece bunları "ekrandan
+ * tamamen dışarı itme" demiyor, KERAHET'in bir kısmının kalmasını istiyor),
+ * ve geri sayım metni kendi kutusunu taşmıyor. 360x640 (checkFocusScreenFitsWithoutScroll
+ * ve checkRingContentFitsRing'in zaten kapsadığı) bu formülden etkilenmiyor
+ * çünkü min-height eşiğinin altında kalıyor — burada test edilmiyor.
+ */
+async function checkRingEnlargement(browser) {
+  console.log('\n=== Halka büyütme: 360x800 ve 412x915 doğrulaması ===');
+  const viewports = [
+    { width: 360, height: 800 },
+    { width: 412, height: 915 },
+  ];
+  const MIN_RING_WIDTH_FRACTION = 0.72;
+  for (const viewport of viewports) {
+    const label = `${viewport.width}x${viewport.height}`;
+    const context = await browser.newContext({ viewport, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    try {
+      await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(600);
+
+      const result = await page.evaluate(() => {
+        const shell = document.querySelector('[data-testid="ring-shell"]');
+        const legend = document.querySelector('[data-testid="dial-legend"]');
+        const kerahet = document.querySelector('[data-testid="kerahet-strip"]');
+        const countdown = document.querySelector('[data-testid="countdown"]');
+        const shellRect = shell.getBoundingClientRect();
+        const legendRect = legend.getBoundingClientRect();
+        const kerahetRect = kerahet.getBoundingClientRect();
+        return {
+          shellWidth: shellRect.width,
+          shellBottom: shellRect.bottom,
+          legendBottom: legendRect.bottom,
+          kerahetTop: kerahetRect.top,
+          countdownScrollWidth: countdown.scrollWidth,
+          countdownClientWidth: countdown.clientWidth,
+          countdownScrollHeight: countdown.scrollHeight,
+          countdownClientHeight: countdown.clientHeight,
+        };
+      });
+
+      const minWidth = viewport.width * MIN_RING_WIDTH_FRACTION;
+      if (result.shellWidth < minWidth) {
+        violations.push(
+          `[ring-enlarge/${label}] halka genişliği ${result.shellWidth.toFixed(1)}px < hedef %${(MIN_RING_WIDTH_FRACTION * 100).toFixed(0)} (${minWidth.toFixed(1)}px)`
+        );
+      }
+      if (result.shellBottom > viewport.height) {
+        violations.push(
+          `[ring-enlarge/${label}] halka katlama altına taşıyor: bottom=${result.shellBottom.toFixed(1)} > viewport height=${viewport.height}`
+        );
+      }
+      if (result.legendBottom > viewport.height) {
+        violations.push(
+          `[ring-enlarge/${label}] vakit şeridi (DialLegend) katlama altına taşıyor: bottom=${result.legendBottom.toFixed(1)} > viewport height=${viewport.height}`
+        );
+      }
+      if (result.kerahetTop >= viewport.height) {
+        violations.push(
+          `[ring-enlarge/${label}] KERAHET şeridi tamamen katlama altında: top=${result.kerahetTop.toFixed(1)} >= viewport height=${viewport.height}`
+        );
+      }
+      if (result.countdownScrollWidth > result.countdownClientWidth + 1) {
+        violations.push(`[ring-enlarge/${label}] geri sayım metni yatayda taşıyor (scrollWidth > clientWidth)`);
+      }
+      if (result.countdownScrollHeight > result.countdownClientHeight + 1) {
+        violations.push(`[ring-enlarge/${label}] geri sayım metni dikeyde taşıyor (scrollHeight > clientHeight)`);
+      }
+      if (violations.length === 0 || !violations[violations.length - 1].startsWith(`[ring-enlarge/${label}]`)) {
+        console.log(
+          `  [${label}] halka ${result.shellWidth.toFixed(1)}px (>= ${minWidth.toFixed(1)}px hedef), halka+şerit katlama altına taşmıyor, KERAHET görünür, metin taşmıyor.`
+        );
+      }
+    } catch (err) {
+      violations.push(`[ring-enlarge/${label}] check threw: ${err.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 async function checkTabTransitionStability(browser) {
   console.log('\n=== Sekme geçişinde layout kayması testi ===');
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
@@ -2318,6 +2416,7 @@ async function main() {
       await checkLocationSheetKeyboardStability(browser);
       await checkFocusScreenFitsWithoutScroll(browser);
       await checkRingContentFitsRing(browser);
+      await checkRingEnlargement(browser);
     } finally {
       await browser.close();
     }

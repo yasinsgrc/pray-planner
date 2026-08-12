@@ -27,7 +27,12 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
   const prefersReducedMotion = useReducedMotion();
   const { dayCycleStart, dayCycleEnd, dayCyclePrayers, dayProgress, activePrayer, nextPrayer } = schedule;
 
-  const strokeWidth = 5;
+  // Faz 26 — halka artık min-height:720px üstü viewport'larda 288'lik
+  // viewBox'ı aşıp ~320px'e kadar render edilebiliyor (index.css'teki
+  // .ring-metrics), bu da viewBox koordinatlarını otomatik olarak >1
+  // oranında ölçekliyor; 5px'lik eski stroke o boyutlarda bile ince
+  // okunuyordu — 6'ya çıkarıldı.
+  const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
   const cx = size / 2;
   const cy = size / 2;
@@ -76,8 +81,8 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
       >
         <defs>
           <mask id="dial-crescent-mask">
-            <circle cx={markerPoint.x} cy={markerPoint.y} r={8} fill="white" />
-            <circle cx={markerPoint.x + 3} cy={markerPoint.y - 3} r={7} fill="black" />
+            <circle cx={markerPoint.x} cy={markerPoint.y} r={9} fill="white" />
+            <circle cx={markerPoint.x + 3} cy={markerPoint.y - 3} r={8} fill="black" />
           </mask>
         </defs>
 
@@ -119,7 +124,7 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
               key={`dot-${seg.name}`}
               cx={dot.x}
               cy={dot.y}
-              r={seg.isNext ? 4 : 2.5}
+              r={seg.isNext ? 4.5 : 3}
               fill={seg.isNext ? 'var(--accent)' : 'var(--paper)'}
               stroke={seg.isNext ? 'white' : `var(--v-${seg.name})`}
               strokeWidth={seg.isNext ? 1.5 : 1.5}
@@ -132,12 +137,12 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
           <circle
             cx={markerPoint.x}
             cy={markerPoint.y}
-            r={8}
+            r={9}
             fill="var(--accent)"
             mask="url(#dial-crescent-mask)"
           />
         ) : (
-          <circle cx={markerPoint.x} cy={markerPoint.y} r={8} fill="var(--accent)" stroke="white" strokeWidth={2} />
+          <circle cx={markerPoint.x} cy={markerPoint.y} r={9} fill="var(--accent)" stroke="white" strokeWidth={2} />
         )}
       </svg>
     </div>
