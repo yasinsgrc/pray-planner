@@ -2038,6 +2038,78 @@ async function checkRingEnlargement(browser) {
   }
 }
 
+/**
+ * Dua kartı hizalama — Arapça, okunuş, meal ve kaynak satırlarının hepsi
+ * yatayda ortalı olmalı (dir="rtl" korunarak, sadece text-align değişir).
+ * 320px genişlikte de test edilir çünkü Arapça metin orada iki satıra
+ * taşabiliyor — text-align:center o durumda da satırları ortalı tutmalı.
+ */
+async function checkDuaCardAlignment(browser) {
+  console.log('\n=== Dua kartı metin hizalama (320px ve 390px) ===');
+  for (const width of [320, 390]) {
+    const label = `${width}px`;
+    const context = await browser.newContext({
+      viewport: { width, height: 800 },
+      locale: 'tr-TR',
+      timezoneId: 'Europe/Istanbul',
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    try {
+      await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(600);
+
+      // Kaynak satırı yalnızca genişleyince görünür; onun da hizalamasını
+      // ölçmek için karta dokun.
+      const panel = page.locator('#dua-card-panel');
+      await panel.locator('..').click();
+      await page.waitForTimeout(200);
+
+      const result = await page.evaluate(() => {
+        const panelEl = document.getElementById('dua-card-panel');
+        const button = panelEl?.closest('button');
+        if (!button) return null;
+        const [arabicEl, translitEl, meaningEl] = button.querySelectorAll('p');
+        const sourceEl = panelEl.querySelector('p');
+        return {
+          dir: arabicEl?.getAttribute('dir'),
+          align: {
+            arabic: getComputedStyle(arabicEl).textAlign,
+            transliteration: getComputedStyle(translitEl).textAlign,
+            meaning: getComputedStyle(meaningEl).textAlign,
+            source: getComputedStyle(sourceEl).textAlign,
+          },
+          arabicRect: arabicEl.getBoundingClientRect(),
+        };
+      });
+
+      if (!result) {
+        violations.push(`[dua-align/${label}] dua kartı bulunamadı`);
+        continue;
+      }
+      if (result.dir !== 'rtl') {
+        violations.push(`[dua-align/${label}] Arapça metnin dir="rtl" özniteliği kayboldu: got "${result.dir}"`);
+      }
+      for (const [key, value] of Object.entries(result.align)) {
+        if (value !== 'center') {
+          violations.push(`[dua-align/${label}] "${key}" satırı ortalı değil: text-align="${value}"`);
+        }
+      }
+      if (result.arabicRect.right > width) {
+        violations.push(`[dua-align/${label}] Arapça metin kart genişliğini taşıyor: right=${result.arabicRect.right.toFixed(1)} > ${width}`);
+      }
+      if (violations.length === 0 || !violations[violations.length - 1].startsWith(`[dua-align/${label}]`)) {
+        console.log(`  [${label}] dört satır da ortalı (dir="rtl" korunuyor), taşma yok.`);
+      }
+    } catch (err) {
+      violations.push(`[dua-align/${label}] check threw: ${err.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 async function checkTabTransitionStability(browser) {
   console.log('\n=== Sekme geçişinde layout kayması testi ===');
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
@@ -2417,6 +2489,7 @@ async function main() {
       await checkFocusScreenFitsWithoutScroll(browser);
       await checkRingContentFitsRing(browser);
       await checkRingEnlargement(browser);
+      await checkDuaCardAlignment(browser);
     } finally {
       await browser.close();
     }
