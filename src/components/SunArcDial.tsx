@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { polarPoint, arcPath } from '../utils/dialGeometry';
+import { computeKerahetDialArcs } from '../utils/kerahetDialArcs';
 
 interface SunArcDialProps {
   schedule: DayPrayerSchedule;
@@ -26,7 +27,8 @@ const EASE = [0.16, 1, 0.3, 1] as const;
  */
 export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, now, size = 288 }) => {
   const prefersReducedMotion = useReducedMotion();
-  const { dayCycleStart, dayCycleEnd, dayCyclePrayers, dayProgress, activePrayer, nextPrayer } = schedule;
+  const { dayCycleStart, dayCycleEnd, dayCyclePrayers, dayProgress, activePrayer, nextPrayer, kerahetTimes } =
+    schedule;
 
   const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
@@ -56,6 +58,12 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, now, size = 28
   const isNight = activePrayer.name === 'imsak' || activePrayer.name === 'yatsi';
   const markerPoint = polarPoint(cx, cy, radius, dayProgress);
 
+  // Kerahet windows are always computed against "today" (see
+  // prayerCalculator's kerahetWindows), so during the pre-fajr wrap case
+  // (dayCycleStart = yesterday's fajr) they fall outside this cycle's
+  // [0,1] range and are naturally filtered out inside computeKerahetDialArcs.
+  const kerahetArcs = computeKerahetDialArcs(kerahetTimes, dayCycleStart, totalMs, now);
+
   return (
     <div className="relative w-full h-full">
       {/* Faz 25 Commit 2 — `size` (default 288) is only the internal SVG
@@ -81,6 +89,57 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, now, size = 28
             <circle cx={markerPoint.x + 3} cy={markerPoint.y - 3} r={7} fill="black" />
           </mask>
         </defs>
+
+        {/*
+          Kerahet pencereleri: çember izinin DIŞINDA, kısa ve kesiksiz yay
+          parçaları (design-refresh-v3 Faz 24 Commit 6, A; Faz 25 Commit 3'te
+          5px'e çıkarılıp kontrastı doğrulandı) — üç ayrı pencere saatlerce
+          arayla olduğu için kesiksiz TEK bir yay olamazlar, bu üç ayrı
+          parçanın kaçınılmaz sonucu. Kerahet token rengi (--gold): pasifken
+          %55 opaklık, aktifken veya başlamasına <=15 dk kalaysa
+          (computeKerahetDialArcs) %100 opaklık + yumuşak nabız (B), native
+          CSS @keyframes ile (index.css'teki .animate-kerahet-pulse) —
+          Motion'ın `animate` dizi + `repeat: Infinity` + `initial={false}`
+          kombinasyonu gerçek tarayıcıda hiç animasyon başlatmıyordu
+          (getAnimations() boş kalıyordu, opaklık sabit 1'de donuyordu).
+          prefers-reduced-motion altında yalnızca opaklık farkı kalır,
+          hareket yok — CSS media query üzerinden.
+        */}
+        {/* Faz 25 Commit 3 — arka plan (backing) yay: gold, --paper'a karşı
+            tam opaklıkta bile yalnızca ~2.2:1 kontrast veriyor (ikisi de
+            orta-açık tonlar), o yüzden opaklık ayarıyla 3:1'e ulaşmak
+            mümkün değil. Sabit koyu bir plaka (--kerahet-track, temadan
+            bağımsız) altına konarak gold'un asıl karşılaştığı arka plan
+            koyulaştırılıyor — spesifikasyonun sözünü ettiği "çember
+            track'i" burada bu. */}
+        {kerahetArcs.map((k) => (
+          <path
+            key={`kerahet-track-${k.type}`}
+            aria-hidden="true"
+            d={arcPath(cx, cy, radius + 8, Math.max(0, k.startFrac), Math.min(1, k.endFrac))}
+            stroke="var(--kerahet-track)"
+            strokeWidth={9}
+            strokeLinecap="round"
+            fill="none"
+          />
+        ))}
+
+        {kerahetArcs.map((k) => {
+          const isUrgent = k.isActiveOrUpcoming;
+          return (
+            <path
+              key={`kerahet-${k.type}`}
+              data-kerahet-type={k.type}
+              d={arcPath(cx, cy, radius + 8, Math.max(0, k.startFrac), Math.min(1, k.endFrac))}
+              stroke="var(--gold)"
+              strokeWidth={5}
+              strokeLinecap="round"
+              fill="none"
+              className={isUrgent ? 'animate-kerahet-pulse' : undefined}
+              style={isUrgent ? undefined : { opacity: 0.55 }}
+            />
+          );
+        })}
 
         {/* Arka plan: kalan (henüz gelmemiş) kısım, segment başına aynı boşluklarla */}
         {segments.map((seg) => (

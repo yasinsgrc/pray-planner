@@ -8,13 +8,23 @@ import { DEFAULT_LOCATION } from '../data/locations';
 
 const day = calculateDaySchedule(DEFAULT_LOCATION, new Date('2026-08-01T00:00:00'), 'Diyanet');
 
-// design-refresh-v3 Faz 25 Commit 3 — the ring's gold kerahet arcs read as a
-// "broken/dashed" ring on real devices because the three kerahet windows are
-// hours apart and are rendered as separate <path> segments outside the
-// track. There's no fix that makes disjoint time windows look like one
-// unbroken line, so the indicator moved off the ring entirely; kerahet info
-// now lives only in KerahetStrip and HomeContextSlot.
-test('SunArcDial renders no kerahet element on the ring, even during an active kerahet window', () => {
+// Faz 25 Commit 3 — kerahet yayları çembere geri döndü (7b9e884'te kısaca
+// kaldırılmıştı), bu kez 5px kalınlıkta ve çember izinin dışında, 3 ayrı
+// kısa yay olarak (İşrâk/İstivâ/Gurûb saatlerce arayla olduğu için tek
+// kesiksiz yay olamazlar — bu, "kesik" görünümün kaçınılmaz sonucu, bir
+// dasharray hatası değil).
+test('SunArcDial renders exactly 3 kerahet arcs, each tagged with its type and 5px stroke', () => {
+  const now = day.dhuhr;
+  const schedule = deriveLiveSchedule(day, now);
+
+  const html = renderToStaticMarkup(React.createElement(SunArcDial, { schedule, now }));
+
+  const matches = [...html.matchAll(/data-kerahet-type="([^"]+)"/g)];
+  assert.equal(matches.length, 3);
+  assert.match(html, /data-kerahet-type="[^"]+"[^>]*stroke-width="5"/);
+});
+
+test('SunArcDial marks the active kerahet arc urgent (pulse class) during its window', () => {
   const duringSunriseKerahet = new Date(day.sunrise.getTime() + 10 * 60 * 1000);
   const schedule = deriveLiveSchedule(day, duringSunriseKerahet);
 
@@ -22,5 +32,5 @@ test('SunArcDial renders no kerahet element on the ring, even during an active k
     React.createElement(SunArcDial, { schedule, now: duringSunriseKerahet })
   );
 
-  assert.doesNotMatch(html, /kerahet/i);
+  assert.match(html, /animate-kerahet-pulse/);
 });

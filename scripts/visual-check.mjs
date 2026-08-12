@@ -1838,13 +1838,18 @@ async function checkFocusScreenFitsWithoutScroll(browser) {
  * countdown's rendered box against the *shell's* box, not against its own.
  * Also adds a floor on the shell itself (>= MIN_RING_WIDTH_PX): without
  * it, a regression that satisfies "countdown <= shell" by shrinking both
- * toward zero would still pass. 160, not the originally-proposed 200: a
+ * toward zero would still pass. 150, not the originally-proposed 200: a
  * real production-build measurement at 360x640 (the shortest of the 3
  * viewports here) showed the ring-vs-scroll-fit tradeoff bottoms out at
- * 160px — main.scrollHeight matches clientHeight exactly there, and every
- * px above it turns into page scroll (checkFocusScreenFitsWithoutScroll).
+ * ~153.6px (Faz 25 Commit 3's clamp(150px, min(60vw, 24dvh), 240px) — the
+ * old 160px-fit formula no longer applies once the ring itself grew for
+ * kerahet-arc legibility) — main.scrollHeight matches clientHeight exactly
+ * there, and every px above it turns into page scroll
+ * (checkFocusScreenFitsWithoutScroll). 150 (not 153) leaves a tiny margin
+ * matching the CSS clamp's own floor, rather than re-hardcoding the exact
+ * fitted value.
  */
-const MIN_RING_WIDTH_PX = 160;
+const MIN_RING_WIDTH_PX = 150;
 
 async function checkRingContentFitsRing(browser) {
   console.log('\n=== Halka: SVG kapsayıcısını aşmıyor, vakit metni kırpılmıyor (3 viewport) ===');
@@ -2007,6 +2012,118 @@ async function checkKerahetDialArcPulse(browser) {
     } finally {
       await context.close();
     }
+  }
+}
+
+/**
+ * Faz 25 Commit 3 — kerahet yayları artık 5px kalınlıkta ve çember izinin
+ * (radius+8, izin DIŞINDA) üzerinde; pasif haldeyken (%55 opaklık — en düşük
+ * kontrast durumu, aktif/nabız halinde opaklık ~1'e çıkar) altındaki gerçek
+ * arka plana karşı en az 3:1 kontrast tutturmalı (WCAG 1.4.11 non-text,
+ * ikonlarla aynı eşik). checkScreen'in metin-kontrastıyla aynı "gizle,
+ * çek, örnekle" tekniği, ama bbox merkezi yerine path üzerindeki gerçek
+ * noktaları örnekliyor — kavisli bir yayda bbox merkezi genelde stroke'un
+ * üzerinde değil.
+ */
+async function checkKerahetArcContrast(browser) {
+  console.log('\n=== Kerahet yayı kontrastı: pasif haldeyken >=3:1 ===');
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+  try {
+    await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    const probes = await page.evaluate(() => {
+      const paths = Array.from(document.querySelectorAll('svg path[data-kerahet-type]'));
+      const probe = document.createElement('canvas');
+      probe.width = 1;
+      probe.height = 1;
+      const pctx = probe.getContext('2d');
+      const resolveColor = (str) => {
+        pctx.clearRect(0, 0, 1, 1);
+        pctx.fillStyle = str;
+        pctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = pctx.getImageData(0, 0, 1, 1).data;
+        return { r, g, b, a: a / 255 };
+      };
+      return paths.map((el) => {
+        const cs = getComputedStyle(el);
+        const len = el.getTotalLength();
+        const fracs = [0.2, 0.35, 0.5, 0.65, 0.8];
+        const points = fracs.map((f) => {
+          const p = el.getPointAtLength(f * len);
+          const screenPt = new DOMPoint(p.x, p.y).matrixTransform(el.getScreenCTM());
+          return { x: screenPt.x, y: screenPt.y };
+        });
+        return {
+          type: el.getAttribute('data-kerahet-type'),
+          color: resolveColor(cs.stroke),
+          opacity: parseFloat(cs.opacity) || 1,
+          points,
+        };
+      });
+    });
+
+    if (probes.length !== 3) {
+      violations.push(`[kerahet-contrast] beklenen 3 kerahet yayı bulunamadı (bulunan: ${probes.length})`);
+      return;
+    }
+
+    await page.evaluate(() => {
+      document.querySelectorAll('svg path[data-kerahet-type]').forEach((el) => {
+        el.setAttribute('data-contrast-hidden', '1');
+        el.style.setProperty('stroke', 'transparent', 'important');
+      });
+    });
+    const dpr = await page.evaluate(() => window.devicePixelRatio);
+    const shot = await page.screenshot({ fullPage: true });
+    await page.evaluate(() => {
+      document.querySelectorAll('[data-contrast-hidden]').forEach((el) => {
+        el.style.removeProperty('stroke');
+        el.removeAttribute('data-contrast-hidden');
+      });
+    });
+
+    const { data, info } = await sharp(shot).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const samplePixel = (px, py) => {
+      const x = Math.min(Math.max(Math.round(px), 0), info.width - 1);
+      const y = Math.min(Math.max(Math.round(py), 0), info.height - 1);
+      const i = (y * info.width + x) * info.channels;
+      return [data[i], data[i + 1], data[i + 2]];
+    };
+
+    for (const probe of probes) {
+      const samples = probe.points.map((p) => samplePixel(p.x * dpr, p.y * dpr));
+      const median = (arr) => {
+        const s = [...arr].sort((a, b) => a - b);
+        return s[Math.floor(s.length / 2)];
+      };
+      const bg = [0, 1, 2].map((ch) => median(samples.map((s) => s[ch])));
+      const alpha = (probe.color.a ?? 1) * probe.opacity;
+      const effective = [
+        bg[0] + (probe.color.r - bg[0]) * alpha,
+        bg[1] + (probe.color.g - bg[1]) * alpha,
+        bg[2] + (probe.color.b - bg[2]) * alpha,
+      ];
+      const ratio = contrastRatio(effective, bg);
+      if (ratio < CONTRAST_MIN_LARGE) {
+        violations.push(
+          `[kerahet-contrast] "${probe.type}" yayı pasif halde ${ratio.toFixed(2)}:1 < ${CONTRAST_MIN_LARGE}:1 (opacity=${probe.opacity})`
+        );
+      } else {
+        console.log(`  "${probe.type}": ${ratio.toFixed(2)}:1 (pasif, opacity=${probe.opacity}).`);
+      }
+    }
+  } catch (err) {
+    violations.push(`[kerahet-contrast] check threw: ${err.message}`);
+  } finally {
+    await context.close();
   }
 }
 
@@ -2389,6 +2506,7 @@ async function main() {
       await checkFocusScreenFitsWithoutScroll(browser);
       await checkRingContentFitsRing(browser);
       await checkKerahetDialArcPulse(browser);
+      await checkKerahetArcContrast(browser);
     } finally {
       await browser.close();
     }

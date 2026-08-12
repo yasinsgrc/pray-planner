@@ -50,7 +50,32 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
         <div
           className="relative flex flex-col items-center justify-center animate-blur-up"
-          style={{ '--ring-size': 'max(160px, min(72vw, 25dvh))' } as React.CSSProperties}
+          style={
+            {
+              // Faz 25 Commit 3 — halka büyütüldü (kerahet yaylarının
+              // okunabilmesi için), ama saf clamp(190px,60vw,240px) 360x640
+              // (en kısa hedef viewport) için main.scrollHeight'i
+              // clientHeight'in 55px üstüne taşırdı (gerçek dua metniyle
+              // ölçüldü — npm run visual, checkFocusScreenFitsWithoutScroll).
+              // 390x844/412x915 aynı formülle ZATEN 0 boşlukla tam
+              // sığıyordu, yani 360'ı düzeltirken onları aynen koruyan tek
+              // bir sürekli formül yok — min(vw,dvh), --ring-font-basis'in
+              // kanıtlanmış deseniyle aynı, dvh'ı kısa/geniş-oranlı
+              // viewport'larda (360x640) doğal olarak devreye sokuyor.
+              // 24dvh, 360x640'ta ~154px verir (435px bütçeye ~7px pay
+              // bırakır); 390/412'de ise vw dalı (60vw) yerine yine dvh
+              // baskın çıkar ama Commit 2'nin sığan değerlerinden (211/
+              // 228.75) daha küçük kalır, dolayısıyla onlar da
+              // güvenle sığar. Yazı boyutları BİLEREK ayrı, dondurulmuş
+              // bir referansa (--ring-font-basis: eski
+              // max(160px, min(72vw, 25dvh)) formülü, Faz 25 Commit 2'den)
+              // bağlı — halka büyürken metin orantılı büyürse ekranı ezer
+              // (spesifikasyon: geri sayım en fazla +2px, etiketler mevcut
+              // boyutta kalmalı).
+              '--ring-size': 'clamp(150px, min(60vw, 24dvh), 240px)',
+              '--ring-font-basis': 'max(160px, min(72vw, 25dvh))',
+            } as React.CSSProperties
+          }
         >
           {/* Glow effect behind golden ring — 0.875 oranı halka kabuğuyla
               aynı (Faz 24 Commit 5'ten beri: glow her zaman kabuktan biraz
@@ -78,11 +103,13 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
             {/* Sayacın İçi */}
             <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
               <div aria-hidden="true">
-                {/* Üst Bilgi Etiketi — punto artık --ring-size'a bağlı,
-                    sabit değil (aşağıdaki geri sayımla aynı ölçek). */}
+                {/* Üst Bilgi Etiketi — punto --ring-font-basis'e bağlı
+                    (aşağıdaki geri sayımla aynı ölçek, ama --ring-size'ın
+                    kendisine değil — Faz 25 Commit 3, halka büyürken metin
+                    orantılı büyümesin diye). */}
                 <span
                   className="font-medium text-mist mb-1 block text-center uppercase tracking-[0.08em]"
-                  style={{ fontSize: 'clamp(0.65rem, calc(var(--ring-size) * 0.043), 0.8125rem)' }}
+                  style={{ fontSize: 'clamp(0.65rem, calc(var(--ring-font-basis) * 0.043), 0.8125rem)' }}
                 >
                   {nextPrayer.label} vaktine kalan süre
                 </span>
@@ -92,7 +119,10 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
                   data-testid="countdown"
                   className="font-numbers text-ink my-1"
                   style={{
-                    fontSize: 'clamp(1.75rem, calc(var(--ring-size) * 0.16), 3.25rem)',
+                    // +2px sabit: spesifikasyonun izin verdiği azami büyüme
+                    // (rakamlar orantılı büyümesin diye --ring-font-basis'e
+                    // bağlı kaldı, ama halka büyüdüğü için biraz nefes payı).
+                    fontSize: 'clamp(1.75rem, calc(var(--ring-font-basis) * 0.16 + 2px), 3.25rem)',
                     letterSpacing: '-0.02em',
                     fontWeight: 800,
                   }}
@@ -111,7 +141,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   className="w-1.5 h-1.5 rounded-full bg-accent"
                 />
-                <span style={{ fontSize: 'clamp(0.65rem, calc(var(--ring-size) * 0.043), 0.8125rem)' }}>
+                <span style={{ fontSize: 'clamp(0.65rem, calc(var(--ring-font-basis) * 0.043), 0.8125rem)' }}>
                   {activePrayer.label} vaktindesiniz
                 </span>
               </div>

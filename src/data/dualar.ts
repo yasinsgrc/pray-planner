@@ -10,17 +10,16 @@ export interface Dua {
  * ilerleme çubuğunun yerine geçti). Dizi olarak tanımlı: tek kayıt olsa
  * bile, ileride küçük bir dua seti eklenmek istenirse yapı değişmesin diye.
  *
- * Bu alanlar placeholder'dır — gerçek Arapça metin, okunuş, meal ve kaynak
- * künyesi Diyanet'in basılı Riyâzü's-Sâlihîn tercümesinden elle
- * doğrulanarak girilecek (rivayet Ümmü Seleme'den; Tirmizî, Kader 7 ve
- * Daavât 90/124; ayrıca Ahmed b. Hanbel, Müsned). Yapı ve testler bu
- * placeholder'larla yeşile alınır, içerik doğruluğu test edilmez.
+ * Ümmü Seleme radıyallahu anhâ'dan: Hz. Peygamber'in yanındayken en çok
+ * okuduğu dua. Diyanet'in Riyâzü's-Sâlihîn tercümesinden doğrulanarak
+ * girildi (Tirmizî, Kader 7, Daavât 90, 124; ayrıca bk. Ahmed İbni Hanbel,
+ * Müsned, IV, 182, VI, 91, 251, 294, 302, 315).
  */
 export const DUALAR: readonly Dua[] = [
   {
-    arabic: '<<ARAPÇA METİN — Diyanet Riyâzü\'s-Sâlihîn\'den birebir, harekeli>>',
-    transliteration: '<<OKUNUŞ — Diyanet tercümesindeki latinize hali>>',
-    meaning: '<<MEAL — Diyanet tercümesinden birebir>>',
-    source: '<<KAYNAK KÜNYESİ>>',
+    arabic: 'يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِى عَلٰى دِينِكَ',
+    transliteration: "Yâ mukallibe'l-kulûb! Sebbit kalbî alâ dînik",
+    meaning: 'Ey kalpleri halden hale çeviren Allah! Benim kalbimi dininden ayırma!',
+    source: 'Tirmizî, Kader 7, Daavât 90, 124. Ayrıca bk. Ahmed İbni Hanbel, Müsned, IV, 182, VI, 91, 251, 294, 302, 315',
   },
 ];
