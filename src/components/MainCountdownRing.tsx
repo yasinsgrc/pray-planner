@@ -98,7 +98,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
               160px sınırına oturuyor; 160px alt sınır da bununla aynı
               değer (daha kısa/olağandışı viewport'lar için). */}
           <div data-testid="ring-shell" className="relative w-[var(--ring-size)] h-[var(--ring-size)] flex items-center justify-center">
-            <SunArcDial schedule={schedule} now={now} />
+            <SunArcDial schedule={schedule} />
 
             {/* Sayacın İçi */}
             <div className="absolute inset-0 flex flex-col items-center justify-center px-4">

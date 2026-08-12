@@ -186,13 +186,6 @@
        previously Navbar used max-w-[430px] while screens used max-w-md
        (448px), an 18px mismatch visible on wide viewports. */
     --shell-w: 430px;
-    /* Faz 25 Commit 3 — backing plate behind the kerahet dial arcs
-       (SunArcDial.tsx). --gold-on-paper tops out at ~2.2:1 even at full
-       opacity (both are mid-to-light tones), so no opacity of gold alone
-       can clear the 3:1 floor against the page background. Deliberately
-       NOT redefined in .dark: it must stay dark regardless of theme, or
-       the light-mode case loses its contrast floor again. */
-    --kerahet-track: #14151A;
   }
 
   .dark {
@@ -307,31 +300,6 @@
 
 .font-arabic {
   font-family: 'Noto Naskh Arabic', serif;
-}
-
-/* Aktif/yaklaşan kerahet yayı: yumuşak nabız (design-refresh-v3 Faz 24
-   Commit 6, B; Faz 25 Commit 3'te geri getirildi). Native CSS kullanılıyor
-   çünkü Motion'ın `animate` dizi + `repeat: Infinity` + `initial={false}`
-   kombinasyonu gerçek tarayıcıda animasyonu hiç başlatmıyordu. */
-@keyframes kerahetPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-.animate-kerahet-pulse {
-  animation: kerahetPulse 1.8s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-kerahet-pulse {
-    animation: none;
-    opacity: 1;
-  }
 }
 
 /* Fluid type scale (design-refresh-v2/v3 spec) — actually applied at each

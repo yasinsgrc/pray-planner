@@ -8,29 +8,17 @@ import { DEFAULT_LOCATION } from '../data/locations';
 
 const day = calculateDaySchedule(DEFAULT_LOCATION, new Date('2026-08-01T00:00:00'), 'Diyanet');
 
-// Faz 25 Commit 3 — kerahet yayları çembere geri döndü (7b9e884'te kısaca
-// kaldırılmıştı), bu kez 5px kalınlıkta ve çember izinin dışında, 3 ayrı
-// kısa yay olarak (İşrâk/İstivâ/Gurûb saatlerce arayla olduğu için tek
-// kesiksiz yay olamazlar — bu, "kesik" görünümün kaçınılmaz sonucu, bir
-// dasharray hatası değil).
-test('SunArcDial renders exactly 3 kerahet arcs, each tagged with its type and 5px stroke', () => {
-  const now = day.dhuhr;
-  const schedule = deriveLiveSchedule(day, now);
-
-  const html = renderToStaticMarkup(React.createElement(SunArcDial, { schedule, now }));
-
-  const matches = [...html.matchAll(/data-kerahet-type="([^"]+)"/g)];
-  assert.equal(matches.length, 3);
-  assert.match(html, /data-kerahet-type="[^"]+"[^>]*stroke-width="5"/);
-});
-
-test('SunArcDial marks the active kerahet arc urgent (pulse class) during its window', () => {
+// Kerahet yayları geri sayım halkasından kaldırıldı — kerahet bilgisi
+// halkanın altındaki KERAHET metin bölümünde (KerahetStrip) zaten veriliyor;
+// halka üzerindeki kalın yaylar vakit ilerleme yayıyla karışan görsel gürültü
+// yaratıyordu. Bu test halkanın artık kerahet'e özgü hiçbir eleman
+// render etmediğini doğrular.
+test('SunArcDial no longer renders kerahet arc elements', () => {
   const duringSunriseKerahet = new Date(day.sunrise.getTime() + 10 * 60 * 1000);
   const schedule = deriveLiveSchedule(day, duringSunriseKerahet);
 
-  const html = renderToStaticMarkup(
-    React.createElement(SunArcDial, { schedule, now: duringSunriseKerahet })
-  );
+  const html = renderToStaticMarkup(React.createElement(SunArcDial, { schedule }));
 
-  assert.match(html, /animate-kerahet-pulse/);
+  assert.doesNotMatch(html, /data-kerahet-type/);
+  assert.doesNotMatch(html, /animate-kerahet-pulse/);
 });
