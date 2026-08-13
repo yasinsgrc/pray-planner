@@ -1636,6 +1636,104 @@ async function checkNavbarLegibility(browser) {
 }
 
 /**
+ * Alt navbar ile içerik arasındaki boşluk. Kök neden: Navbar (fixed,
+ * bottom:0) kendi env(safe-area-inset-bottom) payını hiç ayırmıyordu, oysa
+ * .app-shell-padding bu payı İÇERİKTEN ayrılan boşluğa dahil ediyordu — bu
+ * yüzden gesture-bar'lı cihazlarda (safe-area>0) fark doğrudan fazladan,
+ * boş (ve koyu temada neredeyse siyah) bir bant olarak ortaya çıkıyordu.
+ * 360x800'de, güvenli alan hem 0 hem 34px (ev tuşu çizgili cihaz) iken her
+ * sekmenin sonuna kaydırılıp: (a) <main>'in kendi alt kenarı — CSS
+ * token'ının garanti ettiği, içerikten bağımsız sınır — ve (b) taşan
+ * sekmelerde ayrıca son görünür içerik elemanının alt kenarı, navbar'ın üst
+ * kenarına göre ölçülüyor. Kısa (taşmayan) sekmelerde (b) atlanıyor —
+ * orada son eleman zaten navbar'dan çok daha yukarıda durabilir, bu bir
+ * hata değil, sadece içeriğin kısa olmasıdır.
+ */
+const BOTTOM_GAP_MAX_PX = 26; // tasarım boşluk token'ı (24px) + alt piksel toleransı
+const BOTTOM_GAP_TABS = [
+  { id: 'focus', label: 'Ana Ekran' },
+  { id: 'flow', label: 'Vakitler' },
+  { id: 'spiritual', label: 'Maneviyat' },
+  { id: 'settings', label: 'Ayarlar' },
+];
+
+async function checkBottomNavGap(browser) {
+  console.log('\n=== Alt navbar ile içerik arasındaki boşluk ===');
+  for (const safeAreaBottom of [0, 34]) {
+    const context = await browser.newContext({
+      viewport: { width: 360, height: 800 },
+      locale: 'tr-TR',
+      timezoneId: 'Europe/Istanbul',
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    try {
+      if (safeAreaBottom > 0) {
+        const cdp = await context.newCDPSession(page);
+        await cdp.send('Emulation.setSafeAreaInsetsOverride', {
+          insets: { top: 0, left: 0, right: 0, bottom: safeAreaBottom, bottomMax: safeAreaBottom },
+        });
+      }
+      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+      await page.waitForTimeout(600);
+
+      for (const tab of BOTTOM_GAP_TABS) {
+        await page.getByRole('tab', { name: tab.label }).click();
+        await page.waitForTimeout(500);
+
+        const maxScroll = await page.evaluate(() => {
+          const main = document.querySelector('main');
+          return main.scrollHeight - main.clientHeight;
+        });
+        await page.evaluate((y) => {
+          document.querySelector('main').scrollTop = y;
+        }, maxScroll);
+        await page.waitForTimeout(300);
+
+        const m = await page.evaluate(() => {
+          const nav = document.querySelector('[role="tablist"]').getBoundingClientRect();
+          const main = document.querySelector('main').getBoundingClientRect();
+          const panel = document.querySelector('[role="tabpanel"]');
+          const last = panel.lastElementChild.getBoundingClientRect();
+          return { navTop: nav.top, mainBottom: main.bottom, contentBottom: last.bottom };
+        });
+
+        const label = `bottom-gap/safe-${safeAreaBottom}/${tab.id}`;
+        const mainGap = m.navTop - m.mainBottom;
+        if (m.mainBottom > m.navTop) {
+          violations.push(
+            `[${label}] <main> navbar'ın altına taşıyor: mainBottom=${m.mainBottom.toFixed(1)} > navTop=${m.navTop.toFixed(1)}`
+          );
+        } else if (mainGap > BOTTOM_GAP_MAX_PX) {
+          violations.push(`[${label}] <main> ile navbar arasında fazla boşluk: ${mainGap.toFixed(1)}px > ${BOTTOM_GAP_MAX_PX}px`);
+        } else {
+          console.log(`  [${label}] main-navbar boşluğu ${mainGap.toFixed(1)}px (<= ${BOTTOM_GAP_MAX_PX}px).`);
+        }
+
+        // Sadece gerçekten taşan (kaydırılabilir) sekmelerde: kullanıcının
+        // asıl bildirdiği senaryo — sona kaydırılmış son içerik elemanı.
+        if (maxScroll > 0) {
+          const contentGap = m.navTop - m.contentBottom;
+          if (m.contentBottom > m.navTop) {
+            violations.push(
+              `[${label}] son içerik elemanı navbar'ın altına taşıyor: contentBottom=${m.contentBottom.toFixed(1)} > navTop=${m.navTop.toFixed(1)}`
+            );
+          } else if (contentGap > BOTTOM_GAP_MAX_PX) {
+            violations.push(`[${label}] son içerik ile navbar arasında fazla boşluk: ${contentGap.toFixed(1)}px > ${BOTTOM_GAP_MAX_PX}px`);
+          } else {
+            console.log(`  [${label}] içerik-navbar boşluğu ${contentGap.toFixed(1)}px (<= ${BOTTOM_GAP_MAX_PX}px).`);
+          }
+        }
+      }
+    } catch (err) {
+      violations.push(`[bottom-gap/safe-${safeAreaBottom}] check threw: ${err.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
+/**
  * Tab-transition layout stability (design-refresh-v3 Faz 18 F8) — root
  * cause was App.tsx's tab-panel motion.div mounting with `y: 8`: a CSS
  * transform on a descendant still counts toward its nearest
@@ -2584,6 +2682,7 @@ async function main() {
       await checkGpsLocationLabelHonesty(browser);
       await checkRamadanMode(browser);
       await checkNavbarLegibility(browser);
+      await checkBottomNavGap(browser);
       await checkTabTransitionStability(browser);
       await checkMainScrollFunctional(browser);
       await checkScrollbarInvisible(browser);

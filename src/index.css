@@ -178,9 +178,15 @@
     --success-ink: #0C6A47;
     --danger: #EF4444;
     --danger-ink: #B3261E;
-    /* Reserved height of the fixed bottom Navbar, used to keep scrollable
-       content clear of it (see .app-shell-padding below). */
-    --nav-h: 76px;
+    /* Reserved height of the fixed bottom Navbar's own content box, used to
+       keep scrollable content clear of it (see .app-shell-padding below).
+       Navbar.tsx reserves env(safe-area-inset-bottom) itself via its own
+       padding-bottom, so this value must NOT include the safe-area inset —
+       .app-shell-padding adds that separately. Measured against the real
+       rendered Navbar (py-1.5 wrapper + min-h-[48px] tab buttons): ~67.5px;
+       68px keeps a hairline margin against subpixel/font-metric variance
+       without reopening the gap this token exists to prevent. */
+    --nav-h: 68px;
     /* Single source of truth for the app's mobile-shell max-width, so the
        fixed Navbar and every screen's content container always agree —
        previously Navbar used max-w-[430px] while screens used max-w-md
