@@ -31,21 +31,13 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
     <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 py-6 space-y-4">
       <h1 className="sr-only">Vakitler</h1>
       {/* Başlık */}
-      <div className="flex items-center justify-between border-b border-gold/15 pb-3">
-        <div>
-          <h2 className="font-serif-title text-display-l font-bold text-ink">
-            Günlük Vakit Akışı
-          </h2>
-          <p className="text-xs text-mist">
-            Günün 6 ana zaman dilimi ve kerahet vakitleri
-          </p>
-        </div>
-        <button
-          onClick={onOpenSettings}
-          className="relative text-xs font-semibold text-gold-ink hover:underline cursor-pointer before:content-[''] before:absolute before:-inset-4"
-        >
-          Ses Ayarları
-        </button>
+      <div className="border-b border-gold/15 pb-3">
+        <h2 className="font-serif-title text-display-l font-bold text-ink">
+          Günlük Vakit Akışı
+        </h2>
+        <p className="text-xs text-mist">
+          Günün 6 ana zaman dilimi ve kerahet vakitleri
+        </p>
       </div>
 
       {/* Efsane: kerahet dilini kadran/liste/kilit ekranında tek yerde açıkla */}
