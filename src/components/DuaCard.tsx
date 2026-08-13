@@ -29,7 +29,7 @@ export const DuaCard: React.FC<DuaCardProps> = ({ dua = DUALAR[0] }) => {
         aria-controls={PANEL_ID}
         className="w-full min-h-[44px] flex flex-col items-center gap-1 text-center px-3 py-2 cursor-pointer"
       >
-        <p dir="rtl" lang="ar" className="w-full font-arabic text-gold" style={{ fontSize: '22px', lineHeight: 2 }}>
+        <p dir="rtl" lang="ar" className="w-full font-arabic text-gold-ink" style={{ fontSize: '22px', lineHeight: 2 }}>
           {dua.arabic}
         </p>
         <p className="w-full text-micro text-ink normal-case">{dua.transliteration}</p>

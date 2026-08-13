@@ -414,6 +414,24 @@
   }
 }
 
+/* Faz 26 Commit 2 — 360x640'ta main.scrollHeight, clientHeight'i 2px
+   aşıyordu (npm run visual, checkFocusScreenFitsWithoutScroll: 445 > 443).
+   Halka boyutu Faz 25 Commit 2'de kilitlendi, bu yüzden çözüm halkaya değil
+   ana ekranın dikey padding'ine dokunuyor — yalnızca .ring-metrics'in
+   kullandığı aynı 720px eşiğinin altında (uzun telefonlar 390x844/412x915
+   etkilenmiyor). */
+.home-shell-py {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+@media (max-height: 719px) {
+  .home-shell-py {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-blur-up {
     animation: none;

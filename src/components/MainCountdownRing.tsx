@@ -44,7 +44,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
   const showDialLegend = useDialLegendVisibility();
 
   return (
-    <div className="flex-1 flex flex-col items-center px-4 py-2 max-w-[var(--shell-w)] mx-auto w-full text-center">
+    <div className="flex-1 flex flex-col items-center px-4 home-shell-py max-w-[var(--shell-w)] mx-auto w-full text-center">
       <h1 className="sr-only">Ana Ekran</h1>
       {/* Gün Kavisi Kadranı: ekranın büyük bölümünü kaplar, optik olarak ortalı */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
