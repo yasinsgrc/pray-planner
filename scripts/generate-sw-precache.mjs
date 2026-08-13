@@ -20,8 +20,11 @@ import crypto from 'node:crypto';
 const DIST = path.resolve('dist');
 const SW_PATH = path.join(DIST, 'sw.js');
 // sw.js itself is fetched by the browser's own SW update mechanism, not
-// through this list.
-const EXCLUDED = new Set(['sw.js']);
+// through this list. gizlilik.html (Faz 26 Commit 3) is excluded too — it's
+// the public, install-free privacy policy URL required by store listings
+// (Play Console Data Safety etc.); it must always serve fresh from the
+// network, never a stale cached copy from before an update.
+const EXCLUDED = new Set(['sw.js', 'gizlilik.html']);
 
 const VERSION_MARKER = "const PRECACHE_VERSION = 'dev';";
 const URLS_MARKER = 'const PRECACHE_URLS = [];';

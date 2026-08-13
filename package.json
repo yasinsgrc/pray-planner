@@ -25,6 +25,7 @@
     "generate:icons:android": "node scripts/generate-android-icons.mjs",
     "visual": "node scripts/visual-check.mjs",
     "generate:licenses": "node scripts/generate-licenses.mjs",
+    "generate:privacy": "tsx scripts/generate-privacy-page.mjs",
     "android:sync": "cross-env VAKIT_TARGET=native npm run build && tsx scripts/sync-android-version.mjs && npx cap sync android"
   },
   "dependencies": {

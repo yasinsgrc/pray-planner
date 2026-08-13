@@ -8,6 +8,7 @@ import {
   PRIVACY_CONTACT_EMAIL,
   PRIVACY_HOSTING_PROVIDER,
 } from '../utils/privacyConfig';
+import { PRIVACY_PLACEHOLDER_LABELS, PRIVACY_DISCLAIMER, splitPrivacyText, parsePrivacyBody } from '../utils/privacyRender';
 
 interface PrivacyPolicyModalProps {
   isOpen: boolean;
@@ -21,69 +22,36 @@ interface PrivacyPolicyModalProps {
 // her alan burada gözden kaçması imkansız kırmızı bir uyarıya dönüşür
 // (design-refresh-v3 Faz 9 M4) — sessizce eksik/yanlış içerikle yayına
 // çıkmak yerine.
-const PLACEHOLDER_LABELS: Record<string, string> = {
-  ENTITY_NAME: 'AD SOYAD veya ŞİRKET UNVANI',
-  ADDRESS: 'ADRES',
-  CONTACT_EMAIL: 'İLETİŞİM E-POSTASI',
-  HOSTING_PROVIDER: 'HOSTING SAĞLAYICI',
-};
-
-const TOKEN_PATTERN = /\{\{(\w+)\}\}/g;
-
 function renderWithFields(text: string, values: Record<string, string | undefined>, keyPrefix: string): React.ReactNode[] {
-  const nodes: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let partIndex = 0;
-  TOKEN_PATTERN.lastIndex = 0;
-
-  while ((match = TOKEN_PATTERN.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      nodes.push(text.slice(lastIndex, match.index));
-    }
-    const token = match[1];
-    const value = values[token];
-    if (value && value.trim()) {
-      nodes.push(<React.Fragment key={`${keyPrefix}-${partIndex}`}>{value}</React.Fragment>);
-    } else {
-      nodes.push(
-        <span key={`${keyPrefix}-${partIndex}`} className="text-danger-ink font-semibold">
-          [{PLACEHOLDER_LABELS[token] ?? token} — .env dosyasında VITE_PRIVACY_* tanımlanmadı]
-        </span>
-      );
-    }
-    partIndex += 1;
-    lastIndex = TOKEN_PATTERN.lastIndex;
-  }
-  if (lastIndex < text.length) {
-    nodes.push(text.slice(lastIndex));
-  }
-  return nodes;
+  return splitPrivacyText(text, values).map((part, i) => {
+    if (part.kind === 'text') return part.text;
+    if (part.resolved) return <React.Fragment key={`${keyPrefix}-${i}`}>{part.text}</React.Fragment>;
+    return (
+      <span key={`${keyPrefix}-${i}`} className="text-danger-ink font-semibold">
+        [{PRIVACY_PLACEHOLDER_LABELS[part.token!] ?? part.token} — .env dosyasında VITE_PRIVACY_* tanımlanmadı]
+      </span>
+    );
+  });
 }
 
 /** \n\n ayırır paragrafları; "- " ile başlayan ardışık satırlar madde işaretli liste olur. */
 function renderBody(body: string, values: Record<string, string | undefined>): React.ReactNode {
-  const paragraphs = body.split('\n\n');
+  const paragraphs = parsePrivacyBody(body);
   return (
     <>
-      {paragraphs.map((para, i) => {
-        const lines = para.split('\n').filter((l) => l.length > 0);
-        const isList = lines.length > 0 && lines.every((l) => l.startsWith('- '));
-        if (isList) {
-          return (
-            <ul key={i} className="text-xs space-y-1.5 list-disc pl-4 mb-3 last:mb-0">
-              {lines.map((line, j) => (
-                <li key={j}>{renderWithFields(line.slice(2), values, `p${i}-l${j}`)}</li>
-              ))}
-            </ul>
-          );
-        }
-        return (
+      {paragraphs.map((para, i) =>
+        para.kind === 'list' ? (
+          <ul key={i} className="text-xs space-y-1.5 list-disc pl-4 mb-3 last:mb-0">
+            {para.listItems.map((line, j) => (
+              <li key={j}>{renderWithFields(line, values, `p${i}-l${j}`)}</li>
+            ))}
+          </ul>
+        ) : (
           <p key={i} className="text-xs mb-3 last:mb-0 leading-relaxed">
-            {renderWithFields(para, values, `p${i}`)}
+            {renderWithFields(para.text, values, `p${i}`)}
           </p>
-        );
-      })}
+        )
+      )}
     </>
   );
 }
@@ -113,10 +81,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
           </section>
         ))}
 
-        <p className="text-[10px] text-mist pt-2 border-t border-hairline">
-          Bu metin, uygulamanın kaynak kodunda fiilen doğrulanan veri akışlarına göre hazırlanmıştır. Hukuki
-          danışmanlık değildir.
-        </p>
+        <p className="text-[10px] text-mist pt-2 border-t border-hairline">{PRIVACY_DISCLAIMER}</p>
       </div>
     </BottomSheet>
   );
