@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { WifiSlashIcon, ArrowsClockwiseIcon, MapPinIcon } from './components/icons';
 import { Header } from './components/Header';
@@ -93,6 +93,22 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<TabType>('focus');
   const [now, setNow] = useState(new Date());
+
+  // <main> aşağıda tek scroll konteyneri (window değil) — sekme her
+  // değiştiğinde onu en üste al, önceki sekmenin kaydırma konumunda kalmasın.
+  // useLayoutEffect: boyama öncesi çalışır, kullanıcı eski konumu görüp
+  // sonra yukarı zıplamaz. Aynı sekmeye tekrar basmak activeTab'i
+  // değiştirmediği (dolayısıyla bu efekti tetiklemediği) için o durum
+  // handleChangeTab içinde ayrıca ele alınıyor.
+  const mainRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [activeTab]);
+
+  const handleChangeTab = (tab: TabType) => {
+    if (tab === activeTab && mainRef.current) mainRef.current.scrollTop = 0;
+    setActiveTab(tab);
+  };
 
   // Modal States
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -646,7 +662,10 @@ export default function App() {
           gelecekte eklenecek başka bir içerik değişikliği), <main>'in
           genişliği sabit kalır; çubuk için yer her zaman ayrılmış olur
           (design-refresh-v3 Faz 18). */}
-      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] scrollbar-hide">
+      <main
+        ref={mainRef}
+        className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] scrollbar-hide"
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -723,7 +742,7 @@ export default function App() {
       </main>
 
       {/* Alt Navigasyon Barı */}
-      <Navbar activeTab={activeTab} onChangeTab={setActiveTab} />
+      <Navbar activeTab={activeTab} onChangeTab={handleChangeTab} />
 
       {/* Modallar */}
       <LocationModal

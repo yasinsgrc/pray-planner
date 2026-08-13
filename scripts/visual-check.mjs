@@ -2385,6 +2385,93 @@ async function checkMainScrollFunctional(browser) {
 }
 
 /**
+ * Regression test for "sekme geçişinde sayfayı en üste kaydır" — <main> is
+ * the app's single scroll container (see checkMainScrollFunctional above);
+ * switching tabs previously left it at whatever scrollTop the previous tab's
+ * content had, dropping the user into the middle of the new tab instead of
+ * its top. Deliberately does NOT install page.clock: the last case needs
+ * App's real one-second countdown tick (the `now` state's setInterval) to
+ * actually fire, proving an unrelated per-second re-render does NOT reset
+ * scroll — a naive "reset scrollTop on every render" fix would pass the
+ * tab-switch cases below but fail this one.
+ */
+async function checkTabScrollResetsOnTabChange(browser) {
+  console.log('\n=== Sekme geçişinde scroll en üste dönüyor mu testi ===');
+  const context = await browser.newContext({
+    viewport: { width: 360, height: 800 },
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+  try {
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+    const getScrollTop = () => page.evaluate(() => document.querySelector('main').scrollTop);
+    const setScrollTop = (v) =>
+      page.evaluate((val) => {
+        document.querySelector('main').scrollTop = val;
+      }, v);
+
+    await page.getByRole('tab', { name: 'Vakitler' }).click();
+    await page.waitForTimeout(400);
+    await setScrollTop(500);
+    const scrolledBefore = await getScrollTop();
+    if (scrolledBefore < 100) {
+      violations.push(
+        `[tab-scroll-reset] Vakitler sekmesi 500px kaydırılamadı (scrollTop=${scrolledBefore}) — 360x800'de içerik yeterince uzun değil, test öncülü sağlanamadı.`
+      );
+    } else {
+      // Maneviyat'a geç -> en üstte olmalı.
+      await page.getByRole('tab', { name: 'Maneviyat' }).click();
+      await page.waitForTimeout(400);
+      const afterSwitch = await getScrollTop();
+      if (afterSwitch !== 0) {
+        violations.push(`[tab-scroll-reset] Vakitler->Maneviyat geçişinde main.scrollTop=${afterSwitch} (0 olmalı)`);
+      }
+
+      // Vakitler'e geri dön -> yine en üstte olmalı.
+      await page.getByRole('tab', { name: 'Vakitler' }).click();
+      await page.waitForTimeout(400);
+      const afterReturn = await getScrollTop();
+      if (afterReturn !== 0) {
+        violations.push(`[tab-scroll-reset] Maneviyat->Vakitler geçişinde main.scrollTop=${afterReturn} (0 olmalı)`);
+      }
+
+      // Aynı sekmeye tekrar basmak da en üste dönmeli (yaygın davranış).
+      await setScrollTop(300);
+      await page.getByRole('tab', { name: 'Vakitler' }).click();
+      await page.waitForTimeout(400);
+      const afterReclick = await getScrollTop();
+      if (afterReclick !== 0) {
+        violations.push(
+          `[tab-scroll-reset] Vakitler sekmesine tekrar basınca main.scrollTop=${afterReclick} (0 olmalı)`
+        );
+      }
+
+      // Sayaç tik güncellemesi (aktif sekme değişmeden) scroll'u bozmamalı.
+      await setScrollTop(200);
+      const beforeTick = await getScrollTop();
+      await page.waitForTimeout(1300); // en az bir saniyelik sayaç tik'i için
+      const afterTick = await getScrollTop();
+      if (afterTick !== beforeTick) {
+        violations.push(
+          `[tab-scroll-reset] sayaç tik güncellemesi (aktif sekme değişmeden) scroll'u değiştirdi: ${beforeTick} -> ${afterTick}`
+        );
+      }
+    }
+
+    console.log(
+      "  Sekme geçişinde/yeniden basışta scroll en üste dönüyor, sekme içi state güncellemeleri (sayaç tiki) scroll'u bozmuyor."
+    );
+  } catch (err) {
+    violations.push(`[tab-scroll-reset] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+  }
+}
+
+/**
  * Regression guard for the "sekme geçişinde sağda beyaz scrollbar beliriyor"
  * report. checkMainScrollFunctional (just above) proves <main> stays really
  * scrollable; this proves the opposite property — its native scrollbar must
@@ -2685,6 +2772,7 @@ async function main() {
       await checkBottomNavGap(browser);
       await checkTabTransitionStability(browser);
       await checkMainScrollFunctional(browser);
+      await checkTabScrollResetsOnTabChange(browser);
       await checkScrollbarInvisible(browser);
       await checkLocationSheetKeyboardStability(browser);
       await checkFocusScreenFitsWithoutScroll(browser);
