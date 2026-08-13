@@ -23,6 +23,7 @@
     "test:push": "tsx server/send-test-push.ts",
     "generate:icons": "node scripts/generate-icons.mjs",
     "generate:icons:android": "node scripts/generate-android-icons.mjs",
+    "generate:feature-graphic": "node scripts/generate-feature-graphic.mjs",
     "visual": "node scripts/visual-check.mjs",
     "generate:licenses": "node scripts/generate-licenses.mjs",
     "generate:privacy": "tsx scripts/generate-privacy-page.mjs",
