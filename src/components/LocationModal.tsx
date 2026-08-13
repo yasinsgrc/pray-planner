@@ -8,6 +8,8 @@ import { guessTimeZone } from '../utils/timezone';
 import { normalizeTurkish } from '../utils/turkishText';
 import { useApiAvailable } from '../hooks/useApiAvailable';
 import { apiUrl } from '../utils/apiBaseUrl';
+import { getGpsErrorMessage } from '../utils/gpsError';
+import { isNativePlatform } from '../utils/platform';
 import { BottomSheet } from './BottomSheet';
 
 interface LocationModalProps {
@@ -171,13 +173,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
       },
       (error) => {
         setIsLocating(false);
-        if (error.code === error.PERMISSION_DENIED) {
-          setGpsError('Konum izni verilmedi. Tarayıcı ayarlarından konum iznini açabilirsiniz.');
-        } else if (error.code === error.TIMEOUT) {
-          setGpsError('Konum alma zaman aşımına uğradı. Tekrar deneyebilir veya listeden şehir seçebilirsiniz.');
-        } else {
-          setGpsError('Konum alınamadı. Aşağıdaki listeden şehir seçebilirsiniz.');
-        }
+        setGpsError(getGpsErrorMessage(error.code, isNativePlatform()));
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
