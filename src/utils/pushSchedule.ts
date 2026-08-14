@@ -1,5 +1,6 @@
 import { LocationItem, NotificationSettings } from '../types';
 import { calculateDaySchedule } from './prayerCalculator';
+import { isFridayInZone, resolveTimeZone } from './timezone';
 
 export interface PushScheduleEntry {
   /** ISO 8601 UTC instant — the server stores and fires this verbatim,
@@ -29,6 +30,7 @@ export function buildPushSchedule(
   now: Date = new Date()
 ): PushScheduleEntry[] {
   const entries: PushScheduleEntry[] = [];
+  const timeZone = resolveTimeZone(location);
 
   for (let dayOffset = 0; dayOffset < DAYS_AHEAD; dayOffset++) {
     const date = new Date(now);
@@ -37,7 +39,13 @@ export function buildPushSchedule(
 
     for (const prayer of day.rawPrayers) {
       if (notifications[prayer.name] !== 'sessiz' && prayer.dateObj.getTime() > now.getTime()) {
-        entries.push({ fireAt: prayer.dateObj.toISOString(), prayerKey: prayer.name });
+        // Cuma namazı: Öğle'nin kendi zaman damgası hedef saat diliminde
+        // Cuma'ya denk geldiğinde ayrı bir prayerKey ile işaretlenir —
+        // gün tespiti burada yapılır ki server/pushPayload.ts ve
+        // notificationText.ts koordinatsız kalıp yalnızca anahtara bakabilsin.
+        const prayerKey =
+          prayer.name === 'ogle' && isFridayInZone(prayer.dateObj, timeZone) ? 'ogle-cuma' : prayer.name;
+        entries.push({ fireAt: prayer.dateObj.toISOString(), prayerKey });
       }
 
       if (notifications.earlyWarningMinutes > 0 && notifications.earlyWarningSound !== 'sessiz') {

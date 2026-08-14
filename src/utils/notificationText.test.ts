@@ -22,6 +22,16 @@ test('buildLocalNotificationText: güneş vakti özel metinle ele alınır (nama
   });
 });
 
+test('buildLocalNotificationText: Cuma günü öğle için "ogle-cuma" anahtarı özel metin döner', () => {
+  const result = buildLocalNotificationText('ogle-cuma');
+  assert.deepEqual(result, { title: 'Cuma Vakti', body: 'Hayırlı Cumalar' });
+});
+
+test('buildLocalNotificationText: diğer günler "ogle" anahtarı değişmeden kalır', () => {
+  const result = buildLocalNotificationText('ogle');
+  assert.deepEqual(result, { title: 'Öğle Vakti Girdi', body: 'Hayırlı namazlar.' });
+});
+
 test('buildLocalNotificationText: erken uyarı için "X Vaktine N Dakika Kaldı"', () => {
   const result = buildLocalNotificationText('ikindi-early:15');
   assert.deepEqual(result, {

@@ -38,6 +38,11 @@ export function buildLocalNotificationText(prayerKey: string): LocalNotification
     return { title: 'Sabah Namazı Vakti Sona Erdi', body: 'Güneş doğdu, kerahet vakti başladı.' };
   }
 
+  // Mirrors server/pushPayload.ts's "ogle-cuma" handling verbatim.
+  if (prayerKey === 'ogle-cuma') {
+    return { title: 'Cuma Vakti', body: 'Hayırlı Cumalar' };
+  }
+
   if (PRAYER_NAMES.has(prayerKey)) {
     const label = PRAYER_LABELS[prayerKey as PrayerName];
     return { title: `${label} Vakti Girdi`, body: 'Hayırlı namazlar.' };

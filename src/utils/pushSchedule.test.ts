@@ -80,6 +80,24 @@ test('buildPushSchedule stays within the 30-day x 6-prayer x 2 upper bound', () 
   assert.ok(schedule.length <= 30 * 6 * 2);
 });
 
+test('buildPushSchedule tags Öğle as "ogle-cuma" when its local calendar day (Europe/Istanbul) is a Friday', () => {
+  // 2026-08-14 is a Friday in Europe/Istanbul (see timezone.test.ts).
+  const fridayMorning = new Date('2026-08-14T03:00:00.000Z');
+  const schedule = buildPushSchedule(ISTANBUL, 'Diyanet', notifications(), fridayMorning);
+  const ogleEntries = schedule.filter((e) => e.prayerKey === 'ogle' || e.prayerKey === 'ogle-cuma');
+  const firstOgle = ogleEntries.sort((a, b) => a.fireAt.localeCompare(b.fireAt))[0];
+  assert.equal(firstOgle.prayerKey, 'ogle-cuma');
+});
+
+test('buildPushSchedule keeps "ogle" untagged when its local calendar day (Europe/Istanbul) is a Thursday', () => {
+  // 2026-08-13 is a Thursday in Europe/Istanbul (see timezone.test.ts).
+  const thursdayMorning = new Date('2026-08-13T03:00:00.000Z');
+  const schedule = buildPushSchedule(ISTANBUL, 'Diyanet', notifications(), thursdayMorning);
+  const ogleEntries = schedule.filter((e) => e.prayerKey === 'ogle' || e.prayerKey === 'ogle-cuma');
+  const firstOgle = ogleEntries.sort((a, b) => a.fireAt.localeCompare(b.fireAt))[0];
+  assert.equal(firstOgle.prayerKey, 'ogle');
+});
+
 test('buildPushSchedule excludes prayer times already in the past for "today"', () => {
   // A `now` set to late in the day — most of today's prayers must already
   // have passed and be excluded, while tomorrow's are still included.

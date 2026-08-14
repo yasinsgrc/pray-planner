@@ -9,6 +9,18 @@ test('buildNotificationPayload builds a main-prayer title', () => {
   assert.equal(payload?.body, 'Hayırlı namazlar.');
 });
 
+test('buildNotificationPayload gives Öğle its Cuma-specific text on the "ogle-cuma" key', () => {
+  const payload = buildNotificationPayload('ogle-cuma');
+  assert.equal(payload?.title, 'Cuma Vakti');
+  assert.equal(payload?.body, 'Hayırlı Cumalar');
+});
+
+test('buildNotificationPayload leaves a plain "ogle" key (non-Friday) unchanged', () => {
+  const payload = buildNotificationPayload('ogle');
+  assert.equal(payload?.title, 'Öğle Vakti Girdi');
+  assert.equal(payload?.body, 'Hayırlı namazlar.');
+});
+
 test('buildNotificationPayload builds an early-warning title with the embedded minutes', () => {
   const payload = buildNotificationPayload('ikindi-early:15');
   assert.equal(payload?.title, 'İkindi Vaktine 15 Dakika Kaldı');

@@ -44,6 +44,14 @@ export function buildNotificationPayload(prayerKey: string): NotificationPayload
     return { title: 'Sabah Namazı Vakti Sona Erdi', body: 'Güneş doğdu, kerahet vakti başladı.' };
   }
 
+  // Öğle on a Friday is Cuma namazı, not an ordinary Öğle — pushSchedule.ts
+  // tags that one entry with this key instead of plain "ogle" (day check
+  // happens there, against the user's own location timezone; the server
+  // stays coordinate-free and just formats the key it's given).
+  if (prayerKey === 'ogle-cuma') {
+    return { title: 'Cuma Vakti', body: 'Hayırlı Cumalar' };
+  }
+
   if (PRAYER_NAMES.has(prayerKey)) {
     const label = PRAYER_LABELS[prayerKey as PrayerName];
     return { title: `${label} Vakti Girdi`, body: 'Hayırlı namazlar.' };
