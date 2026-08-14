@@ -65,6 +65,22 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
   const isNight = activePrayer.name === 'imsak' || activePrayer.name === 'yatsi';
   const markerPoint = polarPoint(cx, cy, radius, dayProgress);
 
+  // Hilal (gece işaretçisi) geometrisi — sabit, local (0,0) merkezli bir
+  // path: dış daire (R) artı ondan dx kadar +x'e ötelenmiş bir kesim
+  // dairesi (r), evenodd ile kesiliyor. Görünürdeki "kesik" +x yerelinde
+  // sabit kaldığı için, işaretçiyi markerPoint'e taşımadan önce +x'i
+  // dial merkezinden DIŞA (radyal yöne) çeviren bir rotate() gerekiyor.
+  // polarPoint'in theta'sı (fraction*360, saat 12'den saat yönünde) SVG
+  // rotate() ile aynı yönü paylaşıyor: +x ekseni theta-90 derece
+  // döndürüldüğünde tam theta yönünde (dışa) bakar.
+  const crescentOuterR = strokeWidth * 0.85;
+  const crescentInnerR = crescentOuterR * 0.82;
+  const crescentCutOffset = crescentOuterR * 0.42;
+  const crescentPath =
+    `M 0,${-crescentOuterR} A ${crescentOuterR},${crescentOuterR} 0 1,0 0,${crescentOuterR} A ${crescentOuterR},${crescentOuterR} 0 1,0 0,${-crescentOuterR} Z ` +
+    `M ${crescentCutOffset},${-crescentInnerR} A ${crescentInnerR},${crescentInnerR} 0 1,0 ${crescentCutOffset},${crescentInnerR} A ${crescentInnerR},${crescentInnerR} 0 1,0 ${crescentCutOffset},${-crescentInnerR} Z`;
+  const crescentRotationDeg = dayProgress * 360 - 90;
+
   const nextSegment = segments.find((seg) => seg.isNext);
   const msUntilNextPrayer = nextSegment ? (nextSegment.trueStart - dayProgress) * totalMs : Infinity;
   const hideNextDot = msUntilNextPrayer < NEXT_MARKER_MERGE_THRESHOLD_MS;
@@ -87,6 +103,7 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
         height="100%"
         style={{ overflow: 'visible' }}
         className="drop-shadow-sm"
+        data-dial-marker={JSON.stringify({ r: radius, frac: dayProgress })}
       >
         {/* Arka plan: kalan (henüz gelmemiş) kısım, segment başına aynı boşluklarla */}
         {segments.map((seg) => (
@@ -138,19 +155,14 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
 
         {/* Şu anki an işaretçisi: gündüz dolu daire (--accent), gece hilal.
             Hilal kendi lokal (0,0 merkezli) koordinatlarında sabit bir path —
-            iki daire evenodd fill-rule ile birleşip kesik oluşturuyor — ve
-            <g transform> ile markerPoint'e taşınıyor. Böylece işaretçi
-            halka üzerinde hareket ederken şekil asla bozulmaz (eski mask
-            yaklaşımı sabit koordinatlarda tanımlıydı ve işaretçi hareket
-            ettikçe kesim rastgele yerden geçip yamuk bir kama oluşturuyordu). */}
+            arc path'lerinden ve dot'lardan SONRA (DOM'da en son) render
+            edilerek her zaman üstte kalır. Altındaki opak --paper daire, o
+            noktadan geçen arc'ı kapatır (hilal path'i evenodd kesik
+            içerdiğinden kesik bölgede arc rengi sızmasın diye). */}
         {isNight ? (
-          <g transform={`translate(${markerPoint.x}, ${markerPoint.y})`}>
-            <path
-              data-crescent-shape="true"
-              fillRule="evenodd"
-              fill="var(--accent)"
-              d="M 9 0 A 9 9 0 1 0 -9 0 A 9 9 0 1 0 9 0 Z M 11 -3 A 8 8 0 1 0 -5 -3 A 8 8 0 1 0 11 -3 Z"
-            />
+          <g transform={`translate(${markerPoint.x}, ${markerPoint.y}) rotate(${crescentRotationDeg})`}>
+            <circle r={crescentOuterR} fill="var(--paper)" />
+            <path data-crescent-shape="true" fillRule="evenodd" fill="var(--gold)" d={crescentPath} />
           </g>
         ) : (
           <circle cx={markerPoint.x} cy={markerPoint.y} r={9} fill="var(--accent)" stroke="white" strokeWidth={2} />

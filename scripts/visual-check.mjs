@@ -31,6 +31,10 @@ const OUT_DIR = path.resolve('.visual');
 // genişliğinin (287px, ring-fit testine bakın) hâlâ epey altında kalıp
 // gerçek bir taşma regresyonunu yakalamaya devam ediyor.
 const COUNTDOWN_MAX_WIDTH = 240;
+// SunArcDial's own `strokeWidth` constant — the crescent marker's R/r/dx are
+// all derived from it, so the "not a giant blob" bbox-width check below
+// needs the same value to compute its ceiling.
+const DIAL_ARC_STROKE_WIDTH = 6;
 const MIN_TOUCH_TARGET = 44;
 const CONTRAST_MIN_NORMAL = 4.5;
 const CONTRAST_MIN_LARGE = 3.0;
@@ -2572,6 +2576,162 @@ async function checkScrollbarInvisible(browser) {
   }
 }
 
+/**
+ * Geri sayım halkasındaki gece hilal işaretçisi — dört gerçek regresyon:
+ * (1) hilal arc path'lerinin ALTINDA render ediliyordu (yay hilali kesiyordu),
+ * (2) hilal sınır noktasına merkezlenmemişti (iç "gölge" dairesi dış dairenin
+ * dışına taşıyordu, bbox'ı sola kaydırıyordu), (3) teğet/radyal eksene göre
+ * döndürülmemişti (boynuz yönü rastgele), (4) dolgu rengi (--accent, ki
+ * index.css'te var(--v-ogle)'nin bir alias'ı) segment token'larıyla aynı
+ * ailedendi. Bu kontrol hilal ELEMENTİNİN KENDİSİNİ ölçer (getBoundingClientRect),
+ * arc SVG'sini değil — ve "sınır noktası" SunArcDial'ın kendi markerPoint
+ * hesabından OKUNMAZ, <svg data-dial-marker>'daki ham {r, frac} değerlerinden
+ * polarPoint formülü burada BAĞIMSIZ olarak yeniden hesaplanır, sonra
+ * svg.getScreenCTM() ile ekran koordinatına çevrilir — böylece test,
+ * bileşenin kendi hesapladığı noktayı değil, gerçekte render edilenle
+ * geometrik olarak ne olması gerektiğini karşılaştırır.
+ */
+async function checkCrescentMarker(browser) {
+  console.log('\n=== Geri sayım halkası: gece hilal işaretçisi ===');
+  const violationsBefore = violations.length;
+  const nightScenario = SCENARIOS.find((s) => s.name === 'yatsi');
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: 'tr-TR',
+    timezoneId: 'Europe/Istanbul',
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(10000);
+  try {
+    await page.clock.install({ time: new Date(nightScenario.time).getTime() });
+    await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    const result = await page.evaluate((S) => {
+      const svg = document.querySelector('[data-testid="ring-shell"] svg');
+      if (!svg) return { error: 'ring-shell svg bulunamadı' };
+      const crescent = svg.querySelector('[data-crescent-shape]');
+      if (!crescent) return { error: 'gece olmasına rağmen hilal path bulunamadı (isNight false mu?)' };
+
+      const marker = JSON.parse(svg.getAttribute('data-dial-marker') || '{}');
+      const viewBox = svg.viewBox.baseVal;
+      const localCx = viewBox.width / 2;
+      const localCy = viewBox.height / 2;
+      const theta = marker.frac * 2 * Math.PI;
+      const localX = localCx + marker.r * Math.sin(theta);
+      const localY = localCy - marker.r * Math.cos(theta);
+
+      const pt = svg.createSVGPoint();
+      pt.x = localX;
+      pt.y = localY;
+      const screenPt = pt.matrixTransform(svg.getScreenCTM());
+
+      const crescentRect = crescent.getBoundingClientRect();
+      const actual = {
+        x: crescentRect.left + crescentRect.width / 2,
+        y: crescentRect.top + crescentRect.height / 2,
+      };
+
+      // Hilalin gerçek görsel genişliği — getBoundingClientRect() rotate()
+      // altında DAR/UZUN bir local bbox'ın (burada: 11.424 x 10.2, dış R ve
+      // dx ile ötelenmiş r dairesinin birleşimi) KÖŞELERİNİ döndürüp AABB
+      // alır; bu, gerçek eğri geometrisinden çok daha büyük (diagonale kadar,
+      // ~15.2px) bir sonuç verir — hilalin göründüğü GERÇEK boyut değil,
+      // salt bir bbox-köşe-rotasyonu artefaktı. Daire, herhangi bir
+      // rotasyon+üniform-ölçek altında yine bir dairedir (yarıçap sabit,
+      // sadece merkezi kayar) — bu yüzden her iki dairenin (R, r) ekran
+      // uzayındaki gerçek merkez+yarıçapını CTM üzerinden analitik olarak
+      // hesaplayıp birleşimin genişliğini ölçmek, gerçek görsel boyutu verir.
+      const pathCTM = crescent.getScreenCTM();
+      const ctmScale = Math.hypot(pathCTM.a, pathCTM.b);
+      const toScreen = (lx, ly) => {
+        const p = svg.createSVGPoint();
+        p.x = lx;
+        p.y = ly;
+        return p.matrixTransform(pathCTM);
+      };
+      const R_local = S * 0.85;
+      const r_local = R_local * 0.82;
+      const dx_local = R_local * 0.42;
+      const outerCenter = toScreen(0, 0);
+      const innerCenter = toScreen(dx_local, 0);
+      const outerR = R_local * ctmScale;
+      const innerR = r_local * ctmScale;
+      const bboxWidth =
+        Math.max(outerCenter.x + outerR, innerCenter.x + innerR) -
+        Math.min(outerCenter.x - outerR, innerCenter.x - innerR);
+
+      // DOM sırası: hilal her arc path'inden (fill="none" olan path'ler)
+      // SONRA gelmeli — document order SVG'de paint sırasıyla eşleşir.
+      const allEls = Array.from(svg.querySelectorAll('*'));
+      const arcIndices = allEls
+        .map((el, i) => (el.tagName === 'path' && el.getAttribute('fill') === 'none' ? i : -1))
+        .filter((i) => i >= 0);
+      const crescentIndex = allEls.indexOf(crescent);
+      const lastArcIndex = arcIndices.length ? Math.max(...arcIndices) : -1;
+
+      // Fill token: hilalin fill'i, sahnedeki hiçbir segment arc'ının
+      // stroke token'ıyla (ham "var(--...)" attribute string'i) aynı olmamalı.
+      const arcStrokeTokens = arcIndices.map((i) => allEls[i].getAttribute('stroke'));
+      const crescentFill = crescent.getAttribute('fill');
+
+      return {
+        expected: { x: screenPt.x, y: screenPt.y },
+        actual,
+        bboxWidth,
+        crescentIndex,
+        lastArcIndex,
+        arcStrokeTokens,
+        crescentFill,
+      };
+    }, DIAL_ARC_STROKE_WIDTH);
+
+    if (result.error) {
+      violations.push(`[crescent-marker] ${result.error}`);
+      return;
+    }
+
+    const dx = result.actual.x - result.expected.x;
+    const dy = result.actual.y - result.expected.y;
+    const deviation = Math.sqrt(dx * dx + dy * dy);
+    const TOLERANCE_PX = 2;
+    if (deviation > TOLERANCE_PX) {
+      violations.push(
+        `[crescent-marker] hilal bbox merkezi (${result.actual.x.toFixed(1)}, ${result.actual.y.toFixed(1)}) hesaplanan sınır noktasından (${result.expected.x.toFixed(1)}, ${result.expected.y.toFixed(1)}) ${deviation.toFixed(2)}px sapıyor (limit ${TOLERANCE_PX}px)`
+      );
+    }
+
+    const MAX_BBOX_WIDTH = DIAL_ARC_STROKE_WIDTH * 2.0;
+    if (result.bboxWidth > MAX_BBOX_WIDTH) {
+      violations.push(
+        `[crescent-marker] hilal bbox genişliği ${result.bboxWidth.toFixed(2)}px, limit ${MAX_BBOX_WIDTH}px'i aşıyor (devasa/bozuk boyut)`
+      );
+    }
+
+    if (result.crescentIndex <= result.lastArcIndex) {
+      violations.push(
+        `[crescent-marker] hilal DOM sırasında arc path'lerinden (son arc index=${result.lastArcIndex}) önce geliyor (hilal index=${result.crescentIndex})`
+      );
+    }
+
+    if (result.arcStrokeTokens.includes(result.crescentFill)) {
+      violations.push(
+        `[crescent-marker] hilal fill token'ı ("${result.crescentFill}") komşu segment arc'larının stroke token'larından biriyle aynı`
+      );
+    }
+
+    if (violations.length === violationsBefore) {
+      console.log(
+        `  hilal bbox merkezi sapması ${deviation.toFixed(2)}px (<=${TOLERANCE_PX}px), bbox genişliği ${result.bboxWidth.toFixed(2)}px (<=${MAX_BBOX_WIDTH}px), DOM sırası arc'lardan sonra, fill token ("${result.crescentFill}") segment token'larından farklı.`
+      );
+    }
+  } catch (err) {
+    violations.push(`[crescent-marker] check threw: ${err.message}`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
@@ -2779,6 +2939,7 @@ async function main() {
       await checkRingContentFitsRing(browser);
       await checkRingEnlargement(browser);
       await checkDuaCardAlignment(browser);
+      await checkCrescentMarker(browser);
     } finally {
       await browser.close();
     }
