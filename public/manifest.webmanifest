@@ -1,6 +1,6 @@
 {
-  "name": "VAKİT — Namaz Vakti ve Manevi Rehber",
-  "short_name": "VAKİT",
+  "name": "Vakit — Namaz Vakti ve Manevi Rehber",
+  "short_name": "Vakit",
   "description": "Sakin ve manevi bir namaz vakti sayaç uygulaması: kıble pusulası, zikirmatik, hicri takvim ve günlük manevi notlar.",
   "lang": "tr",
   "start_url": "/",
