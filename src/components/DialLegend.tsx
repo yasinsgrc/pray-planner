@@ -15,23 +15,31 @@ interface DialLegendProps {
  * max-width shell cannot overflow by construction.
  */
 export const DialLegend: React.FC<DialLegendProps> = ({ schedule }) => {
-  const { dayCyclePrayers, nextPrayer, resolvedTimeZone } = schedule;
+  const { dayCyclePrayers, activePrayer, nextPrayer, resolvedTimeZone } = schedule;
 
   return (
     <div className="grid grid-cols-6 gap-1 w-full mt-3 relative z-10" data-testid="dial-legend">
       {dayCyclePrayers.map((p) => {
-        const isNext = p.name === nextPrayer.name;
+        const isActive = p.name === activePrayer.name;
+        const isNext = !isActive && p.name === nextPrayer.name;
+        const state = isActive ? 'active' : isNext ? 'next' : 'other';
+        // Şu anki vakit --accent-ink ile (App.tsx tarafından aktif vaktin
+        // rengine bağlanır) güçlü vurgu alır; sıradaki vakit aynı rengi
+        // paylaşmasın diye --ink ile daha zayıf, orta ağırlıkta işaretlenir.
+        const color = isActive ? 'var(--accent-ink)' : isNext ? 'var(--ink)' : 'var(--mist)';
+        const fontWeight = isActive ? 700 : isNext ? 600 : 500;
         const Icon = PRAYER_ICON_COMPONENTS[p.name];
         return (
-          <div key={p.name} className="flex flex-col items-center gap-0.5 text-center">
-            <Icon
-              weight={isNext ? 'fill' : 'regular'}
-              className="w-3.5 h-3.5"
-              style={{ color: isNext ? 'var(--accent-ink)' : 'var(--mist)' }}
-            />
+          <div
+            key={p.name}
+            data-state={state}
+            data-prayer={p.name}
+            className="flex flex-col items-center gap-0.5 text-center"
+          >
+            <Icon weight={isActive ? 'fill' : 'regular'} className="w-3.5 h-3.5" style={{ color }} />
             <span
               className="font-numbers text-[11px] leading-tight"
-              style={{ color: isNext ? 'var(--accent-ink)' : 'var(--mist)', fontWeight: isNext ? 700 : 500 }}
+              style={{ color, fontWeight }}
             >
               {formatTime(p.dateObj, resolvedTimeZone)}
             </span>
