@@ -30,6 +30,7 @@
     "android:sync": "cross-env VAKIT_TARGET=native npm run build && tsx scripts/sync-android-version.mjs && npx cap sync android"
   },
   "dependencies": {
+    "@capacitor-community/safe-area": "^8.0.1",
     "@capacitor/android": "^8.5.0",
     "@capacitor/core": "^8.5.0",
     "@capacitor/local-notifications": "^8.2.1",
