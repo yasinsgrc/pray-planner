@@ -90,3 +90,17 @@ export function dateKeyInZone(date: Date, timeZone?: string): string {
   const { year, month, day } = getCalendarDateInZone(date, timeZone);
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
+
+/**
+ * Whether `date`'s calendar day in `timeZone` is a Friday — used by
+ * DialLegend to swap the Öğle column's name for "Cuma". Built on
+ * getCalendarDateInZone (not `date.getDay()`/`getUTCDay()`) so the result
+ * follows the target zone's local calendar day regardless of the process's
+ * own TZ (`npm run test:tz-utc` runs the whole suite with TZ=UTC
+ * specifically to catch a day check that silently depended on the
+ * device/process zone instead of an explicit one).
+ */
+export function isFridayInZone(date: Date, timeZone?: string): boolean {
+  const { year, month, day } = getCalendarDateInZone(date, timeZone);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay() === 5;
+}

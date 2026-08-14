@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { guessTimeZone, resolveTimeZone } from './timezone';
+import { guessTimeZone, resolveTimeZone, isFridayInZone } from './timezone';
 
 test('guessTimeZone identifies Istanbul coordinates as Europe/Istanbul', () => {
   assert.equal(guessTimeZone(41.0264, 29.0152), 'Europe/Istanbul');
@@ -22,4 +22,21 @@ test('resolveTimeZone prefers an explicit timeZone over guessing', () => {
 
 test('resolveTimeZone guesses when timeZone is absent', () => {
   assert.equal(resolveTimeZone({ lat: 21.4225, lng: 39.8262 }), 'Asia/Riyadh');
+});
+
+test('isFridayInZone is true for a Friday in Europe/Istanbul', () => {
+  // 2026-08-14 is a Friday.
+  assert.equal(isFridayInZone(new Date('2026-08-14T09:00:00Z'), 'Europe/Istanbul'), true);
+});
+
+test('isFridayInZone is false for a Thursday in Europe/Istanbul', () => {
+  // 2026-08-13 is a Thursday.
+  assert.equal(isFridayInZone(new Date('2026-08-13T09:00:00Z'), 'Europe/Istanbul'), false);
+});
+
+test('isFridayInZone reads the target zone, not the instant\'s UTC day', () => {
+  // 2026-08-14T01:00:00+03:00 (Friday, just after Istanbul midnight) is
+  // still 2026-08-13T22:00:00Z (Thursday) in UTC — a naive `.getUTCDay()`
+  // or device-local check would misread this as Thursday.
+  assert.equal(isFridayInZone(new Date('2026-08-14T01:00:00+03:00'), 'Europe/Istanbul'), true);
 });
