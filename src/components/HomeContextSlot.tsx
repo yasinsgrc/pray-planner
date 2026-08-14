@@ -1,6 +1,7 @@
 import React from 'react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { resolveHomeContextSlot } from '../utils/homeContextSlot';
+import { remainingMinutesCeil } from '../utils/remainingMinutes';
 import { KERAHET_SHORT_LABEL, KERAHET_WINDOW_TITLE, KERAHET_WINDOW_DESCRIPTION } from '../data/strings';
 import { PushNotificationHint } from './PushNotificationHint';
 
@@ -40,7 +41,7 @@ export const HomeContextSlot: React.FC<HomeContextSlotProps> = ({
   }
 
   if (slot.kind === 'kerahet') {
-    const remainingMinutes = Math.max(1, Math.ceil(slot.remainingSeconds / 60));
+    const remainingMinutes = remainingMinutesCeil(slot.remainingSeconds);
     return (
       <button
         onClick={onOpenKerahetInfo}

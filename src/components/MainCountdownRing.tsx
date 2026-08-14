@@ -7,6 +7,7 @@ import { KerahetStrip } from './KerahetStrip';
 import { DuaCard } from './DuaCard';
 import { HomeContextSlot } from './HomeContextSlot';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
+import { remainingMinutesCeil } from '../utils/remainingMinutes';
 
 interface MainCountdownRingProps {
   schedule: DayPrayerSchedule;
@@ -35,11 +36,10 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
 
   // Screen-reader announcement, rounded to the minute so aria-live only
   // fires once a minute instead of every second like the visible digits.
-  const remainingMinutes = Math.floor(timeRemainingSeconds / 60);
-  const srCountdownText =
-    remainingMinutes > 0
-      ? `${nextPrayer.label} vaktine yaklaşık ${remainingMinutes} dakika kaldı.`
-      : `${nextPrayer.label} vaktine bir dakikadan az kaldı.`;
+  // Diğer "X dk kaldı" yerleriyle (ör. HomeContextSlot'taki kerahet kartı)
+  // tutarlı olsun diye aynı yukarı-yuvarlama kaynağını kullanır.
+  const remainingMinutes = remainingMinutesCeil(timeRemainingSeconds);
+  const srCountdownText = `${nextPrayer.label} vaktine yaklaşık ${remainingMinutes} dakika kaldı.`;
 
   const showDialLegend = useDialLegendVisibility();
 
