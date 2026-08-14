@@ -10,6 +10,11 @@ interface SunArcDialProps {
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+// Sıradaki vakit dot'u (r=4.5) ile "şu an" işaretçisi (r=9) vakit bu kadar
+// (ms) yaklaştığında görsel olarak çakışıp tek bir blob gibi göründüğü için
+// dot bu eşiğin altında gizlenir.
+const NEXT_MARKER_MERGE_THRESHOLD_MS = 15 * 60 * 1000;
+
 /**
  * "Gün Kavisi Kadranı" — the app's one signature element. A full
  * imsak-to-imsak day cycle (not a "time to next prayer" progress bar): an
@@ -59,6 +64,10 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
 
   const isNight = activePrayer.name === 'imsak' || activePrayer.name === 'yatsi';
   const markerPoint = polarPoint(cx, cy, radius, dayProgress);
+
+  const nextSegment = segments.find((seg) => seg.isNext);
+  const msUntilNextPrayer = nextSegment ? (nextSegment.trueStart - dayProgress) * totalMs : Infinity;
+  const hideNextDot = msUntilNextPrayer < NEXT_MARKER_MERGE_THRESHOLD_MS;
 
   return (
     <div className="relative w-full h-full">
@@ -111,10 +120,12 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
 
         {/* Her vaktin açısında küçük bir nokta; sıradaki vakit vurgulu */}
         {segments.map((seg) => {
+          if (seg.isNext && hideNextDot) return null;
           const dot = polarPoint(cx, cy, radius, seg.trueStart);
           return (
             <circle
               key={`dot-${seg.name}`}
+              data-next-prayer-dot={seg.isNext ? 'true' : undefined}
               cx={dot.x}
               cy={dot.y}
               r={seg.isNext ? 4.5 : 3}

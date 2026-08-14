@@ -71,3 +71,29 @@ test('SunArcDial crescent path "d" is identical across two different moments, on
   assert.equal(first.d, second.d, 'crescent shape "d" must be identical regardless of position');
   assert.notEqual(`${first.x},${first.y}`, `${second.x},${second.y}`, 'translate must differ between moments');
 });
+
+// Sıradaki vakit dot'u (r=4.5, beyaz stroke) ile "şu an" işaretçisi (r=9,
+// beyaz stroke) vakit yaklaşınca üst üste binip tek bir blob gibi
+// görünüyordu. Vakte çok az kala sıradaki vakit dot'u gizlenmeli.
+// Öğle→ikindi aralığı (~234 dk) hem 11 dk hem 2 saat öncesini aynı
+// "sıradaki vakit = ikindi" penceresinde test edebilecek kadar geniş —
+// imsak→güneş aralığı (~105 dk) bunun için yeterince geniş değil.
+const ikindiTime = day.rawPrayers.find((p) => p.name === 'ikindi')!.dateObj;
+
+test('SunArcDial vakte 11 dakika kala sıradaki vakit dot\'unu gizler', () => {
+  const elevenMinutesBefore = new Date(ikindiTime.getTime() - 11 * 60 * 1000);
+  const schedule = deriveLiveSchedule(day, elevenMinutesBefore);
+
+  const html = renderToStaticMarkup(React.createElement(SunArcDial, { schedule }));
+
+  assert.doesNotMatch(html, /data-next-prayer-dot="true"/);
+});
+
+test('SunArcDial vakte 2 saat kala sıradaki vakit dot\'unu gösterir', () => {
+  const twoHoursBefore = new Date(ikindiTime.getTime() - 2 * 60 * 60 * 1000);
+  const schedule = deriveLiveSchedule(day, twoHoursBefore);
+
+  const html = renderToStaticMarkup(React.createElement(SunArcDial, { schedule }));
+
+  assert.match(html, /data-next-prayer-dot="true"/);
+});
