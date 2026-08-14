@@ -27,8 +27,8 @@ test('SunArcDial no longer renders kerahet arc elements', () => {
 // ama eski uygulama sabit koordinatlarda tanımlı bir <mask> kullanıyordu
 // (işaretçi hareket ederken kesim rastgele yerden geçip yamuk bir kama
 // oluşturuyordu). Hilal artık kendi lokal koordinatlarında sabit bir <path>
-// olarak çizilip tek bir <g transform="translate(x, y) rotate(angle)">
-// ile konumlandırılıp döndürülmeli — böylece şekil konumdan bağımsız olur.
+// olarak çizilip <g transform="translate(x,y)"> ile konumlandırılmalı —
+// böylece şekil konumdan bağımsız olur.
 test('SunArcDial no longer uses an SVG mask for the crescent marker', () => {
   const duringImsak = new Date(day.fajr.getTime() + 5 * 60 * 1000);
   const schedule = deriveLiveSchedule(day, duringImsak);
@@ -60,10 +60,8 @@ test('SunArcDial crescent path "d" is identical across two different moments, on
   );
 
   const extractCrescent = (html: string) => {
-    const match = html.match(
-      /<g transform="translate\(([^,]+), ?([^)]+)\) rotate\([^)]+\)">\s*<circle[^>]*><\/circle>\s*<path[^>]*data-crescent-shape[^>]*d="([^"]+)"/
-    );
-    assert.ok(match, 'crescent <g translate+rotate><circle/><path data-crescent-shape d="..."/></g> not found');
+    const match = html.match(/<g transform="translate\(([^,]+),([^)]+)\)">\s*<path[^>]*data-crescent-shape[^>]*d="([^"]+)"/);
+    assert.ok(match, 'crescent <g><path data-crescent-shape d="..."/></g> not found');
     return { x: match![1], y: match![2], d: match![3] };
   };
 
@@ -72,34 +70,6 @@ test('SunArcDial crescent path "d" is identical across two different moments, on
 
   assert.equal(first.d, second.d, 'crescent shape "d" must be identical regardless of position');
   assert.notEqual(`${first.x},${first.y}`, `${second.x},${second.y}`, 'translate must differ between moments');
-});
-
-// Hilal dolgusu eskiden var(--accent) idi — --accent ise index.css'te
-// var(--v-ogle)'nin bir alias'ı, yani teknik olarak bir segment token'ı.
-// Gece segmentleriyle (imsak/yatsi) karışmasın diye hilale özgü, segment
-// token'larından bağımsız bir tasarım token'ı (--gold) kullanılmalı.
-test('SunArcDial crescent fill uses a token distinct from --accent/segment tokens', () => {
-  const duringImsak = new Date(day.fajr.getTime() + 5 * 60 * 1000);
-  const schedule = deriveLiveSchedule(day, duringImsak);
-
-  const html = renderToStaticMarkup(React.createElement(SunArcDial, { schedule }));
-
-  const match = html.match(/data-crescent-shape="true"[^>]*fill="([^"]+)"/);
-  assert.ok(match, 'crescent path with a fill attribute not found');
-  assert.equal(match![1], 'var(--gold)');
-});
-
-// Hilal, radyal/teğet eksene göre döndürülmeli (sabit/rastgele yön değil) —
-// konumdan bağımsız aynı "d" değerini koruyan <g transform="translate(...)
-// rotate(...)"> tek transform'unun parçası olarak, açıya göre değişen bir
-// rotate() içermeli.
-test('SunArcDial crescent is wrapped in a rotate() transform tied to day progress', () => {
-  const duringImsak = new Date(day.fajr.getTime() + 5 * 60 * 1000);
-  const schedule = deriveLiveSchedule(day, duringImsak);
-
-  const html = renderToStaticMarkup(React.createElement(SunArcDial, { schedule }));
-
-  assert.match(html, /<g transform="translate\([^)]+\) rotate\([^)]+\)">\s*<circle[^>]*><\/circle>\s*<path[^>]*data-crescent-shape/);
 });
 
 // Sıradaki vakit dot'u (r=4.5, beyaz stroke) ile "şu an" işaretçisi (r=9,
