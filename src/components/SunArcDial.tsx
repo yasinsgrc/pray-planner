@@ -88,6 +88,13 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
         style={{ overflow: 'visible' }}
         className="drop-shadow-sm"
       >
+        <defs>
+          <mask id="dial-crescent-mask">
+            <circle cx={markerPoint.x} cy={markerPoint.y} r={9} fill="white" />
+            <circle cx={markerPoint.x + 3} cy={markerPoint.y - 3} r={8} fill="black" />
+          </mask>
+        </defs>
+
         {/* Arka plan: kalan (henüz gelmemiş) kısım, segment başına aynı boşluklarla */}
         {segments.map((seg) => (
           <path
@@ -136,22 +143,15 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
           );
         })}
 
-        {/* Şu anki an işaretçisi: gündüz dolu daire (--accent), gece hilal.
-            Hilal kendi lokal (0,0 merkezli) koordinatlarında sabit bir path —
-            iki daire evenodd fill-rule ile birleşip kesik oluşturuyor — ve
-            <g transform> ile markerPoint'e taşınıyor. Böylece işaretçi
-            halka üzerinde hareket ederken şekil asla bozulmaz (eski mask
-            yaklaşımı sabit koordinatlarda tanımlıydı ve işaretçi hareket
-            ettikçe kesim rastgele yerden geçip yamuk bir kama oluşturuyordu). */}
+        {/* Şu anki an işaretçisi: gündüz dolu daire (--accent), gece hilal (mask ile gerçek kesik) */}
         {isNight ? (
-          <g transform={`translate(${markerPoint.x}, ${markerPoint.y})`}>
-            <path
-              data-crescent-shape="true"
-              fillRule="evenodd"
-              fill="var(--accent)"
-              d="M 9 0 A 9 9 0 1 0 -9 0 A 9 9 0 1 0 9 0 Z M 11 -3 A 8 8 0 1 0 -5 -3 A 8 8 0 1 0 11 -3 Z"
-            />
-          </g>
+          <circle
+            cx={markerPoint.x}
+            cy={markerPoint.y}
+            r={9}
+            fill="var(--accent)"
+            mask="url(#dial-crescent-mask)"
+          />
         ) : (
           <circle cx={markerPoint.x} cy={markerPoint.y} r={9} fill="var(--accent)" stroke="white" strokeWidth={2} />
         )}
