@@ -27,6 +27,10 @@
         android:textSize="13sp"
         android:maxLines="3"
         android:ellipsize="end"
+        android:shadowColor="#B3000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4"
         android:visibility="gone" />
 
     <LinearLayout
@@ -71,7 +75,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
 
                 <!-- Geri sayım çemberin tek birincil öğesi, nötr birincil
                      metin tonunda: widget_accent yalnızca ArcRenderer'daki
@@ -85,7 +93,11 @@
                     android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
 
                 <TextView
                     android:id="@+id/widget_active_prayer_name"
@@ -96,7 +108,11 @@
                     android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
             </LinearLayout>
         </FrameLayout>
 
@@ -120,7 +136,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
 
                 <TextView
                     android:id="@+id/widget_prayer_time_0"
@@ -129,7 +149,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
             </LinearLayout>
 
             <LinearLayout
@@ -146,7 +170,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
 
                 <TextView
                     android:id="@+id/widget_prayer_time_1"
@@ -155,7 +183,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
             </LinearLayout>
 
             <LinearLayout
@@ -172,7 +204,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
 
                 <TextView
                     android:id="@+id/widget_prayer_time_2"
@@ -181,7 +217,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
             </LinearLayout>
 
             <LinearLayout
@@ -198,7 +238,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
 
                 <TextView
                     android:id="@+id/widget_prayer_time_3"
@@ -207,7 +251,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
             </LinearLayout>
 
             <LinearLayout
@@ -224,7 +272,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
 
                 <TextView
                     android:id="@+id/widget_prayer_time_4"
@@ -233,7 +285,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
             </LinearLayout>
 
             <LinearLayout
@@ -250,7 +306,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
 
                 <TextView
                     android:id="@+id/widget_prayer_time_5"
@@ -259,7 +319,11 @@
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

@@ -21,7 +21,7 @@ import android.graphics.RectF
 object ArcRenderer {
 
     private const val SEGMENT_COUNT = 6
-    private const val REMAINDER_ALPHA = 56 // 255 * 0.22 ≈ %22 opaklık
+    private const val REMAINDER_ALPHA = 102 // 255 * 0.40 ≈ %40 opaklık
     private const val MARKER_BORDER_WIDTH_PX = 2f
 
     internal data class ArcSegment(
