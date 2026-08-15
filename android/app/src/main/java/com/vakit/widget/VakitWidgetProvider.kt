@@ -228,10 +228,6 @@ class VakitWidgetProvider : AppWidgetProvider() {
 
         views.setTextViewText(R.id.widget_location, locationLabel)
         views.setTextViewText(R.id.widget_active_prayer_name, active.label)
-        views.setTextViewText(
-            R.id.widget_window_range,
-            "${formatTime(active.atMs, timeZone)} → ${formatTime(next.atMs, timeZone)}"
-        )
 
         views.setChronometerCountDown(R.id.widget_countdown, true)
         val elapsedRealtimeTarget = SystemClock.elapsedRealtime() + (next.atMs - now)
