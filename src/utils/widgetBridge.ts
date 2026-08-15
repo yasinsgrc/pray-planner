@@ -35,7 +35,10 @@ export function buildWidgetPayload(
 ): WidgetPayload {
   const entries: WidgetPayload['entries'] = [];
 
-  for (let dayOffset = 0; dayOffset < days; dayOffset++) {
+  // dayOffset starts at -1 (yesterday) so the 00:00-imsak window always has
+  // an entry with atMs < now — otherwise the earliest entry is today's
+  // still-upcoming imsak and the native side finds no active prayer.
+  for (let dayOffset = -1; dayOffset < days; dayOffset++) {
     const date = new Date(now);
     date.setDate(date.getDate() + dayOffset);
     const day = calculateDaySchedule(location, date, methodName);

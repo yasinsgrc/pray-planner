@@ -30,18 +30,30 @@ test('entries is strictly increasing in atMs — no two entries share the same i
   }
 });
 
-test('7 days produce exactly 42 entries (6 prayers x 7 days)', () => {
+test('days=7 produce (days+1)*6 = 48 entries — one extra day prepended so midnight-to-imsak has an active entry', () => {
   const payload = buildWidgetPayload(CAYIROVA, 'Diyanet', NOW);
-  assert.equal(payload.entries.length, 42);
+  assert.equal(payload.entries.length, 48);
 });
 
-test('the first entry is that day\'s imsak, not the first prayer still ahead of now', () => {
+test('the first entry is the PREVIOUS day\'s imsak, not today\'s and not the first prayer still ahead of now', () => {
   const payload = buildWidgetPayload(CAYIROVA, 'Diyanet', NOW);
   assert.equal(payload.entries[0].name, 'imsak');
   // NOW (13:00 İstanbul) is well after today's imsak (04:17) — a "first
   // upcoming prayer" implementation would have started at öğle/ikindi
-  // instead, this asserts it did not.
+  // instead, this asserts it did not. The entry is yesterday's imsak
+  // (dayOffset=-1), prepended so the 00:00-imsak window always has an
+  // entry with atMs < now (see the midnight-window test below).
   assert.ok(payload.entries[0].atMs < NOW.getTime());
+});
+
+test('at local midnight (00:07, before imsak), the widget can still resolve an active entry', () => {
+  // İstanbul 2026-08-07 00:07 == UTC 2026-08-06T21:07:00Z (UTC+3). Before
+  // the fix, dayOffset started at 0 ("today"), so entries[0] was today's
+  // imsak (~04:17 İstanbul) — still in the future at 00:07, leaving no
+  // entry with atMs < now for the whole 00:00-imsak window.
+  const midnightNow = new Date('2026-08-06T21:07:00Z');
+  const payload = buildWidgetPayload(CAYIROVA, 'Diyanet', midnightNow);
+  assert.ok(payload.entries[0].atMs < midnightNow.getTime());
 });
 
 test('generatedAtMs equals now.getTime()', () => {
@@ -68,8 +80,10 @@ test('atMs values do not depend on the device timezone (TZ=UTC invariant)', () =
   // test:tz-utc kapısı bu dosyayı zaten TZ=UTC altında çalıştırıyor —
   // burada mutlak epoch ms üretildiğini doğrudan da doğruluyoruz: gerçek
   // Çayırova/7 Ağustos 2026 vakitleri her zaman diliminde aynı olmalı.
+  // entries[0..5] is now the PREPENDED previous day (6 Ağustos); the
+  // 7 Ağustos block this test asserts on starts at index 6.
   const payload = buildWidgetPayload(CAYIROVA, 'Diyanet', NOW);
-  const first = payload.entries.slice(0, 6);
+  const first = payload.entries.slice(6, 12);
   assert.deepEqual(
     first.map((e) => e.atMs),
     [
@@ -85,7 +99,7 @@ test('atMs values do not depend on the device timezone (TZ=UTC invariant)', () =
 
 test('schemaVersion, days parameter, and empty/default behavior', () => {
   const payload = buildWidgetPayload(CAYIROVA, 'Diyanet', NOW, 1);
-  assert.equal(payload.entries.length, 6);
+  assert.equal(payload.entries.length, 12); // (days+1)*6 = (1+1)*6
   assert.equal(payload.locationLabel, 'Çayırova');
   assert.equal(payload.timeZone, 'Europe/Istanbul');
 });
