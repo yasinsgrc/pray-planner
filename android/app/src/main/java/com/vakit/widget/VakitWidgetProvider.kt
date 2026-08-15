@@ -49,7 +49,7 @@ internal fun dayBlockStartFor(activeIndex: Int): Int = (activeIndex / 6) * 6
 /** Çember içi metinlerin (sayaç/konum/vakit adı) çember çapına (dp) oranlanmış puntoları. */
 internal data class ArcTextSizes(val countdownSp: Float, val locationSp: Float, val prayerNameSp: Float)
 
-private const val ARC_COUNTDOWN_SP_RATIO = 0.17f
+private const val ARC_COUNTDOWN_SP_RATIO = 0.15f
 private const val ARC_LOCATION_SP_RATIO = 0.085f
 private const val ARC_PRAYER_NAME_SP_RATIO = 0.095f
 private const val ARC_COUNTDOWN_MIN_SP = 14f
@@ -65,6 +65,28 @@ internal fun arcTextSizesFor(circleDp: Float): ArcTextSizes {
         countdownSp = (circleDp * ARC_COUNTDOWN_SP_RATIO).coerceAtLeast(ARC_COUNTDOWN_MIN_SP),
         locationSp = (circleDp * ARC_LOCATION_SP_RATIO).coerceAtLeast(ARC_SECONDARY_MIN_SP),
         prayerNameSp = (circleDp * ARC_PRAYER_NAME_SP_RATIO).coerceAtLeast(ARC_SECONDARY_MIN_SP)
+    )
+}
+
+/** Alt sıradaki 6 vakit hücresinin (ad/saat) widget genişliğine (dp) oranlanmış puntoları. */
+internal data class DailyRowTextSizes(val prayerNameSp: Float, val prayerTimeSp: Float)
+
+private const val ROW_PRAYER_NAME_SP_RATIO = 0.032f
+private const val ROW_PRAYER_TIME_SP_RATIO = 0.040f
+private const val ROW_PRAYER_NAME_MIN_SP = 9f
+private const val ROW_PRAYER_NAME_MAX_SP = 12f
+private const val ROW_PRAYER_TIME_MIN_SP = 11f
+private const val ROW_PRAYER_TIME_MAX_SP = 15f
+
+/**
+ * Vakit adı/saat puntolarını widget genişliğine (dp) oranlayarak hesaplar.
+ * 6 kolonlu dar widget'larda ("Güneş"/"İkindi" gibi) ellipsize'a düşmemesi
+ * için üst sınır, çok dar widget'larda okunabilirlik için alt sınır uygulanır.
+ */
+internal fun dailyRowTextSizesFor(widthDp: Float): DailyRowTextSizes {
+    return DailyRowTextSizes(
+        prayerNameSp = (widthDp * ROW_PRAYER_NAME_SP_RATIO).coerceIn(ROW_PRAYER_NAME_MIN_SP, ROW_PRAYER_NAME_MAX_SP),
+        prayerTimeSp = (widthDp * ROW_PRAYER_TIME_SP_RATIO).coerceIn(ROW_PRAYER_TIME_MIN_SP, ROW_PRAYER_TIME_MAX_SP)
     )
 }
 
@@ -338,6 +360,18 @@ class VakitWidgetProvider : AppWidgetProvider() {
         val density = context.resources.displayMetrics.density
         val paddingPx = (circleDp * ARC_TEXT_PADDING_RATIO * density).toInt()
         views.setViewPadding(R.id.widget_arc_text_block, paddingPx, 0, paddingPx, 0)
+
+        val rowSizes = dailyRowTextSizesFor(minWidthDp.toFloat())
+        val nameIds = intArrayOf(
+            R.id.widget_prayer_name_0, R.id.widget_prayer_name_1, R.id.widget_prayer_name_2,
+            R.id.widget_prayer_name_3, R.id.widget_prayer_name_4, R.id.widget_prayer_name_5
+        )
+        val timeIds = intArrayOf(
+            R.id.widget_prayer_time_0, R.id.widget_prayer_time_1, R.id.widget_prayer_time_2,
+            R.id.widget_prayer_time_3, R.id.widget_prayer_time_4, R.id.widget_prayer_time_5
+        )
+        for (id in nameIds) views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, rowSizes.prayerNameSp)
+        for (id in timeIds) views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, rowSizes.prayerTimeSp)
     }
 
     /**

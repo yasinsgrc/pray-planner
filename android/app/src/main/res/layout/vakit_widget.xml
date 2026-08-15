@@ -73,15 +73,16 @@
                     android:maxLines="1"
                     android:ellipsize="end" />
 
-                <!-- Geri sayım çemberin tek birincil öğesi: widget_accent
-                     yalnızca burada kullanılır, kalan metinler nötr tonda. -->
+                <!-- Geri sayım çemberin tek birincil öğesi, nötr birincil
+                     metin tonunda: widget_accent yalnızca ArcRenderer'daki
+                     çember işaretçisinde kullanılır. -->
                 <Chronometer
                     android:id="@+id/widget_countdown"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:gravity="center"
-                    android:textColor="@color/widget_accent"
+                    android:textColor="@color/widget_text_primary"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end" />
@@ -118,7 +119,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="9sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
 
@@ -128,7 +128,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="11sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -146,7 +145,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="9sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
 
@@ -156,7 +154,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="11sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -174,7 +171,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="9sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
 
@@ -184,7 +180,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="11sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -202,7 +197,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="9sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
 
@@ -212,7 +206,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="11sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -230,7 +223,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="9sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
 
@@ -240,7 +232,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="11sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -258,7 +249,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="9sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
 
@@ -268,7 +258,6 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="11sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>

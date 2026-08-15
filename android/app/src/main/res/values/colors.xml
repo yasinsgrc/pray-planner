@@ -4,7 +4,7 @@
          renk tokenlarının (src/index.css .dark) statik bir aynası. Widget
          her zaman koyu zeminde çizilir; ana ekran/kilit ekranı arka planı
          zaten değişken olduğundan tek bir tutarlı görünüm daha güvenilir. -->
-    <color name="widget_background">#E61A1B1E</color>
+    <color name="widget_background">#991A1B1E</color>
     <color name="widget_text_primary">#ECEAE3</color>
     <color name="widget_text_secondary">#ABA89F</color>
     <color name="widget_accent">#E5B757</color>
