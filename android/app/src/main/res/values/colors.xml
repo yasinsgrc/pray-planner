@@ -8,4 +8,13 @@
     <color name="widget_text_primary">#ECEAE3</color>
     <color name="widget_text_secondary">#ABA89F</color>
     <color name="widget_accent">#E5B757</color>
+
+    <!-- Arc çemberi için vakit renkleri — src/index.css .dark'taki v- ön
+         ekli tokenların statik aynası (bkz. SunArcDial.tsx). -->
+    <color name="widget_v_imsak">#7B8FC7</color>
+    <color name="widget_v_gunes">#F5B968</color>
+    <color name="widget_v_ogle">#F0D264</color>
+    <color name="widget_v_ikindi">#DB9556</color>
+    <color name="widget_v_aksam">#C46A66</color>
+    <color name="widget_v_yatsi">#5A63A0</color>
 </resources>

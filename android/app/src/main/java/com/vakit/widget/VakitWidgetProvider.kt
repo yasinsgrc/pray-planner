@@ -7,6 +7,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
@@ -40,6 +42,9 @@ internal fun selectHighlightIndex(activeIndex: Int, nextIndex: Int, dayBlockStar
     return if (nextWithinToday != -1) nextWithinToday else activeIndex
 }
 
+/** activeIndex'in içinde bulunduğu 6'lı günlük vakit bloğunun başlangıcı. */
+internal fun dayBlockStartFor(activeIndex: Int): Int = (activeIndex / 6) * 6
+
 class VakitWidgetProvider : AppWidgetProvider() {
 
     companion object {
@@ -47,6 +52,13 @@ class VakitWidgetProvider : AppWidgetProvider() {
         private const val PAYLOAD_KEY = "vakit_widget_payload_v1"
         private const val SCHEMA_VERSION = 1
         const val ACTION_REFRESH_BOUNDARY = "com.vakit.widget.ACTION_REFRESH_BOUNDARY"
+        const val ACTION_PERIODIC_REFRESH = "com.vakit.widget.ACTION_PERIODIC_REFRESH"
+        private const val BOUNDARY_ALARM_REQUEST_CODE = 0
+        private const val PERIODIC_ALARM_REQUEST_CODE = 1
+        private const val PERIODIC_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
+
+        /** RemoteViews Binder ~1MB sınırını korumak için bitmap kenarına üst sınır (ARGB_8888, 256px ≈ 262KB). */
+        internal const val MAX_ARC_BITMAP_PX = 256
 
         /** JS tarafı yeni yük yazdığında (WidgetBridgePlugin.refresh) ve dahili sınır alarmlarında çağrılır. */
         fun updateAllWidgets(context: Context) {
@@ -63,7 +75,18 @@ class VakitWidgetProvider : AppWidgetProvider() {
                 action = ACTION_REFRESH_BOUNDARY
             }
             return PendingIntent.getBroadcast(
-                context, 0, intent,
+                context, BOUNDARY_ALARM_REQUEST_CODE, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        /** Sınır alarmının request code'unu (0) ezmemek için ayrı bir request code (1) kullanır. */
+        private fun periodicAlarmPendingIntent(context: Context): PendingIntent {
+            val intent = Intent(context, VakitWidgetProvider::class.java).apply {
+                action = ACTION_PERIODIC_REFRESH
+            }
+            return PendingIntent.getBroadcast(
+                context, PERIODIC_ALARM_REQUEST_CODE, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         }
@@ -76,6 +99,18 @@ class VakitWidgetProvider : AppWidgetProvider() {
             updateWidget(context, appWidgetManager, id)
         }
         scheduleNextBoundaryAlarm(context)
+        schedulePeriodicRefreshAlarm(context)
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        // Widget yeniden boyutlandırıldığında arc bitmap'i yeni boyuta göre yeniden çizilmeli.
+        updateWidget(context, appWidgetManager, appWidgetId)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -85,15 +120,34 @@ class VakitWidgetProvider : AppWidgetProvider() {
             Intent.ACTION_TIMEZONE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_BOOT_COMPLETED,
-            ACTION_REFRESH_BOUNDARY -> updateAllWidgets(context)
+            ACTION_REFRESH_BOUNDARY,
+            ACTION_PERIODIC_REFRESH -> updateAllWidgets(context)
         }
     }
 
     override fun onDisabled(context: Context) {
-        // Son widget örneği kaldırıldığında sınır alarmını da iptal et —
-        // aksi halde sahipsiz bir alarm gereksiz yere ateşlenmeye devam eder.
+        // Son widget örneği kaldırıldığında her iki alarmı da iptal et —
+        // aksi halde sahipsiz alarmlar gereksiz yere ateşlenmeye devam eder.
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(boundaryAlarmPendingIntent(context))
+        alarmManager.cancel(periodicAlarmPendingIntent(context))
+    }
+
+    /**
+     * Sınır alarmı (scheduleNextBoundaryAlarm) yalnızca bir sonraki vakit
+     * sınırında ateşlenir; bu ek ~15 dk periyotlu alarm, aradaki sürede
+     * widget boyutu/veri tazeliği gibi durumların çok gecikmeden
+     * yansımasını sağlar. setInexactRepeating kullanılır — setExact* YOK,
+     * yeni bir izin gerekmez.
+     */
+    private fun schedulePeriodicRefreshAlarm(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.setInexactRepeating(
+            AlarmManager.ELAPSED_REALTIME,
+            SystemClock.elapsedRealtime() + PERIODIC_REFRESH_INTERVAL_MS,
+            PERIODIC_REFRESH_INTERVAL_MS,
+            periodicAlarmPendingIntent(context)
+        )
     }
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
@@ -107,7 +161,7 @@ class VakitWidgetProvider : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent)
 
         val now = System.currentTimeMillis()
-        val rendered = tryRenderContent(context, views, now)
+        val rendered = tryRenderContent(context, appWidgetManager, appWidgetId, views, now)
         if (!rendered) {
             views.setViewVisibility(R.id.widget_content, View.GONE)
             views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
@@ -122,7 +176,13 @@ class VakitWidgetProvider : AppWidgetProvider() {
      * saat göstermemekten çok daha kötüdür (design-refresh-v3 Faz 23
      * Commit 4, açık gereksinim).
      */
-    private fun tryRenderContent(context: Context, views: RemoteViews, now: Long): Boolean {
+    private fun tryRenderContent(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        views: RemoteViews,
+        now: Long
+    ): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val raw = prefs.getString(PAYLOAD_KEY, null) ?: return false
 
@@ -177,7 +237,9 @@ class VakitWidgetProvider : AppWidgetProvider() {
         val elapsedRealtimeTarget = SystemClock.elapsedRealtime() + (next.atMs - now)
         views.setChronometer(R.id.widget_countdown, elapsedRealtimeTarget, null, true)
 
-        renderDailyRow(views, entries, activeIndex, nextIndex, timeZone)
+        val dayBlockStart = dayBlockStartFor(activeIndex)
+        renderDailyRow(views, entries, activeIndex, nextIndex, dayBlockStart, timeZone)
+        renderArc(context, appWidgetManager, appWidgetId, views, entries, dayBlockStart, now)
 
         views.setViewVisibility(R.id.widget_content, View.VISIBLE)
         views.setViewVisibility(R.id.widget_empty, View.GONE)
@@ -189,9 +251,9 @@ class VakitWidgetProvider : AppWidgetProvider() {
         entries: List<WidgetEntry>,
         activeIndex: Int,
         nextIndex: Int,
+        dayBlockStart: Int,
         timeZone: String
     ) {
-        val dayBlockStart = (activeIndex / 6) * 6
         val dayBlockEnd = dayBlockStart + 6
         val nameIds = intArrayOf(
             R.id.widget_prayer_name_0, R.id.widget_prayer_name_1, R.id.widget_prayer_name_2,
@@ -224,6 +286,70 @@ class VakitWidgetProvider : AppWidgetProvider() {
             views.setTextColor(nameIds[slot], color)
             views.setTextColor(timeIds[slot], color)
         }
+    }
+
+    /**
+     * dayBlockStart..dayBlockStart+6 aralığı entries'te tam yoksa (payload
+     * bu kadar ileri gitmiyorsa) veya widget boyutu henüz bilinmiyorsa
+     * (getAppWidgetOptions MIN_WIDTH/MIN_HEIGHT 0/eksik gelirse) arc
+     * gizli bırakılır — mevcut düzen bozulmaz.
+     */
+    private fun renderArc(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        views: RemoteViews,
+        entries: List<WidgetEntry>,
+        dayBlockStart: Int,
+        now: Long
+    ) {
+        val dayBlockEnd = dayBlockStart + 6
+        if (dayBlockEnd >= entries.size) {
+            views.setViewVisibility(R.id.widget_arc, View.GONE)
+            return
+        }
+
+        val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+        val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+        val minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+        if (minWidthDp <= 0 || minHeightDp <= 0) {
+            views.setViewVisibility(R.id.widget_arc, View.GONE)
+            return
+        }
+
+        val density = context.resources.displayMetrics.density
+        val sizePx = (minOf(minWidthDp, minHeightDp) * density).toInt().coerceAtMost(MAX_ARC_BITMAP_PX)
+        if (sizePx <= 0) {
+            views.setViewVisibility(R.id.widget_arc, View.GONE)
+            return
+        }
+
+        val boundaries = (dayBlockStart..dayBlockEnd).map { entries[it].atMs }
+        val segmentColors = intArrayOf(
+            context.getColor(R.color.widget_v_imsak),
+            context.getColor(R.color.widget_v_gunes),
+            context.getColor(R.color.widget_v_ogle),
+            context.getColor(R.color.widget_v_ikindi),
+            context.getColor(R.color.widget_v_aksam),
+            context.getColor(R.color.widget_v_yatsi)
+        )
+
+        val bitmap = ArcRenderer.render(
+            sizePx = sizePx,
+            boundaries = boundaries,
+            now = now,
+            segmentColors = segmentColors,
+            remainderColor = context.getColor(R.color.widget_text_secondary),
+            markerColor = context.getColor(R.color.widget_accent),
+            markerBorderColor = Color.WHITE
+        )
+
+        if (bitmap == null) {
+            views.setViewVisibility(R.id.widget_arc, View.GONE)
+            return
+        }
+        views.setImageViewBitmap(R.id.widget_arc, bitmap)
+        views.setViewVisibility(R.id.widget_arc, View.VISIBLE)
     }
 
     private fun formatTime(atMs: Long, timeZone: String): String {

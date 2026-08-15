@@ -33,6 +33,12 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:orientation="horizontal">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
@@ -268,5 +274,17 @@
                     android:ellipsize="end" />
             </LinearLayout>
         </LinearLayout>
+    </LinearLayout>
+
+    <!-- Arc çemberi (ArcRenderer) bu ImageView'a çizilir. Boyut/veri
+         eksikse VakitWidgetProvider gone bırakır, mevcut düzen bozulmaz. -->
+    <ImageView
+        android:id="@+id/widget_arc"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginStart="10dp"
+        android:layout_gravity="center_vertical"
+        android:scaleType="fitCenter"
+        android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>
