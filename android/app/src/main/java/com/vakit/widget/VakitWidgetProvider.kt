@@ -27,6 +27,19 @@ import java.util.TimeZone
  * adhan Kotlin'e port edilmedi: JS tarafı (widgetBridge.ts) epoch ms
  * yazar, burası yalnızca aritmetik yapar.
  */
+/**
+ * Bugünün 6'lı vakit bloğunda (dayBlockStart..dayBlockEnd) hangi slotun
+ * vurgulanacağını seçer. dayBlockStart her zaman activeIndex'ten türetildiği
+ * için activeIndex bu aralığın içindedir — bu yüzden fonksiyon hiçbir zaman
+ * -1 döndürmez. Yatsı aktifken sıradaki vakit (nextIndex) yarının İmsak'ı
+ * olup bugünün bloğu dışına taşarsa, satırın tamamen sönük kalması yerine
+ * Yatsı'nın kendisi vurgulanır.
+ */
+internal fun selectHighlightIndex(activeIndex: Int, nextIndex: Int, dayBlockStart: Int, dayBlockEnd: Int): Int {
+    val nextWithinToday = if (nextIndex in dayBlockStart until dayBlockEnd) nextIndex else -1
+    return if (nextWithinToday != -1) nextWithinToday else activeIndex
+}
+
 class VakitWidgetProvider : AppWidgetProvider() {
 
     companion object {
@@ -180,29 +193,36 @@ class VakitWidgetProvider : AppWidgetProvider() {
     ) {
         val dayBlockStart = (activeIndex / 6) * 6
         val dayBlockEnd = dayBlockStart + 6
-        val slotIds = intArrayOf(
-            R.id.widget_prayer_0, R.id.widget_prayer_1, R.id.widget_prayer_2,
-            R.id.widget_prayer_3, R.id.widget_prayer_4, R.id.widget_prayer_5
+        val nameIds = intArrayOf(
+            R.id.widget_prayer_name_0, R.id.widget_prayer_name_1, R.id.widget_prayer_name_2,
+            R.id.widget_prayer_name_3, R.id.widget_prayer_name_4, R.id.widget_prayer_name_5
         )
-        // nextIndex bugünün son vaktini aşıp yarına taşıyorsa (Yatsı
-        // içindeyken sıradaki İmsak yarınki), bugünün satırında vurgulanacak
-        // "sıradaki" yok — hiçbiri vurgulanmaz.
-        val nextWithinToday = if (nextIndex in dayBlockStart until dayBlockEnd) nextIndex else -1
+        val timeIds = intArrayOf(
+            R.id.widget_prayer_time_0, R.id.widget_prayer_time_1, R.id.widget_prayer_time_2,
+            R.id.widget_prayer_time_3, R.id.widget_prayer_time_4, R.id.widget_prayer_time_5
+        )
+        val highlightIndex = selectHighlightIndex(activeIndex, nextIndex, dayBlockStart, dayBlockEnd)
 
         for (slot in 0 until 6) {
             val entryIndex = dayBlockStart + slot
             if (entryIndex >= entries.size) {
-                views.setTextViewText(slotIds[slot], "")
+                views.setTextViewText(nameIds[slot], "")
+                views.setTextViewText(timeIds[slot], "")
                 continue
             }
             val entry = entries[entryIndex]
-            views.setTextViewText(slotIds[slot], formatTime(entry.atMs, timeZone))
+            views.setTextViewText(nameIds[slot], entry.label)
+            views.setTextViewText(timeIds[slot], formatTime(entry.atMs, timeZone))
             // RemoteViews.setTextColor wants a resolved color int, not a
-            // resource id — mirrors colors.xml's widget_accent/
+            // resource id — mirrors colors.xml's widget_text_primary/
             // widget_text_secondary values (no Context/Resources available
             // in this static-ish helper without threading it through).
-            val color = if (entryIndex == nextWithinToday) 0xFFE5B757.toInt() else 0xFFABA89F.toInt()
-            views.setTextColor(slotIds[slot], color)
+            // widget_accent is intentionally not used here: the countdown is
+            // the single accent-colored primary element, this row stays
+            // neutral so it doesn't compete for attention.
+            val color = if (entryIndex == highlightIndex) 0xFFECEAE3.toInt() else 0xFFABA89F.toInt()
+            views.setTextColor(nameIds[slot], color)
+            views.setTextColor(timeIds[slot], color)
         }
     }
 

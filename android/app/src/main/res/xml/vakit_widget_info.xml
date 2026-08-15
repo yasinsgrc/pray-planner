@@ -14,7 +14,7 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/vakit_widget"
-    android:previewLayout="@layout/vakit_widget"
+    android:previewLayout="@layout/vakit_widget_preview"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen|keyguard"
     android:description="@string/widget_description" />
