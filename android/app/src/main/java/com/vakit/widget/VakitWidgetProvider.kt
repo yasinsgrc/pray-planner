@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.SystemClock
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.vakit.MainActivity
@@ -45,6 +46,28 @@ internal fun selectHighlightIndex(activeIndex: Int, nextIndex: Int, dayBlockStar
 /** activeIndex'in içinde bulunduğu 6'lı günlük vakit bloğunun başlangıcı. */
 internal fun dayBlockStartFor(activeIndex: Int): Int = (activeIndex / 6) * 6
 
+/** Çember içi metinlerin (sayaç/konum/vakit adı) çember çapına (dp) oranlanmış puntoları. */
+internal data class ArcTextSizes(val countdownSp: Float, val locationSp: Float, val prayerNameSp: Float)
+
+private const val ARC_COUNTDOWN_SP_RATIO = 0.17f
+private const val ARC_LOCATION_SP_RATIO = 0.085f
+private const val ARC_PRAYER_NAME_SP_RATIO = 0.095f
+private const val ARC_COUNTDOWN_MIN_SP = 14f
+private const val ARC_SECONDARY_MIN_SP = 8f
+
+/**
+ * Sayaç/konum/vakit adı puntolarını çember çapına (dp) oranlayarak hesaplar.
+ * Küçük çemberlerde ("3:33:17", "Küçükçekmece" gibi geniş metinlerin taşmasını
+ * önlemek için) alt sınır uygulanır.
+ */
+internal fun arcTextSizesFor(circleDp: Float): ArcTextSizes {
+    return ArcTextSizes(
+        countdownSp = (circleDp * ARC_COUNTDOWN_SP_RATIO).coerceAtLeast(ARC_COUNTDOWN_MIN_SP),
+        locationSp = (circleDp * ARC_LOCATION_SP_RATIO).coerceAtLeast(ARC_SECONDARY_MIN_SP),
+        prayerNameSp = (circleDp * ARC_PRAYER_NAME_SP_RATIO).coerceAtLeast(ARC_SECONDARY_MIN_SP)
+    )
+}
+
 class VakitWidgetProvider : AppWidgetProvider() {
 
     companion object {
@@ -57,8 +80,11 @@ class VakitWidgetProvider : AppWidgetProvider() {
         private const val PERIODIC_ALARM_REQUEST_CODE = 1
         private const val PERIODIC_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
 
-        /** RemoteViews Binder ~1MB sınırını korumak için bitmap kenarına üst sınır (ARGB_8888, 256px ≈ 262KB). */
-        internal const val MAX_ARC_BITMAP_PX = 256
+        /** RemoteViews Binder ~1MB sınırını korumak için bitmap kenarına üst sınır (ARGB_8888, 384px ≈ 589KB). */
+        internal const val MAX_ARC_BITMAP_PX = 384
+
+        /** Çember içi metin bloğunun yatay padding'i, çember çapının (dp) yüzdesi olarak. */
+        private const val ARC_TEXT_PADDING_RATIO = 0.10f
 
         /** JS tarafı yeni yük yazdığında (WidgetBridgePlugin.refresh) ve dahili sınır alarmlarında çağrılır. */
         fun updateAllWidgets(context: Context) {
@@ -235,6 +261,7 @@ class VakitWidgetProvider : AppWidgetProvider() {
 
         val dayBlockStart = dayBlockStartFor(activeIndex)
         renderDailyRow(views, entries, activeIndex, nextIndex, dayBlockStart, timeZone)
+        applyArcTextSizing(context, appWidgetManager, appWidgetId, views)
         renderArc(context, appWidgetManager, appWidgetId, views, entries, dayBlockStart, now)
 
         views.setViewVisibility(R.id.widget_content, View.VISIBLE)
@@ -282,6 +309,35 @@ class VakitWidgetProvider : AppWidgetProvider() {
             views.setTextColor(nameIds[slot], color)
             views.setTextColor(timeIds[slot], color)
         }
+    }
+
+    /**
+     * Çember içi metinlerin (sayaç/konum/vakit adı) puntosunu ve metin
+     * bloğunun yatay padding'ini widget'ın gerçek boyutuna (dp) göre
+     * ölçekler. Boyut bilinmiyorsa (getAppWidgetOptions MIN_WIDTH/MIN_HEIGHT
+     * 0/eksik) XML'deki varsayılan (platform) punto/padding korunur — arc'ın
+     * gone bırakılmasından bağımsız bir savunmacı yol.
+     */
+    private fun applyArcTextSizing(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        views: RemoteViews
+    ) {
+        val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+        val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+        val minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+        if (minWidthDp <= 0 || minHeightDp <= 0) return
+
+        val circleDp = minOf(minWidthDp, minHeightDp).toFloat()
+        val sizes = arcTextSizesFor(circleDp)
+        views.setTextViewTextSize(R.id.widget_countdown, TypedValue.COMPLEX_UNIT_SP, sizes.countdownSp)
+        views.setTextViewTextSize(R.id.widget_location, TypedValue.COMPLEX_UNIT_SP, sizes.locationSp)
+        views.setTextViewTextSize(R.id.widget_active_prayer_name, TypedValue.COMPLEX_UNIT_SP, sizes.prayerNameSp)
+
+        val density = context.resources.displayMetrics.density
+        val paddingPx = (circleDp * ARC_TEXT_PADDING_RATIO * density).toInt()
+        views.setViewPadding(R.id.widget_arc_text_block, paddingPx, 0, paddingPx, 0)
     }
 
     /**

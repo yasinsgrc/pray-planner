@@ -22,4 +22,26 @@ class VakitWidgetProviderTest {
     fun highlightsNextIndexInSecondDayBlock() {
         assertEquals(7, selectHighlightIndex(activeIndex = 6, nextIndex = 7, dayBlockStart = 6, dayBlockEnd = 12))
     }
+
+    @Test
+    fun arcTextSizesScaleWithCircleDiameter() {
+        val sizes = arcTextSizesFor(120f)
+        assertEquals(20.4f, sizes.countdownSp, 0.01f)
+    }
+
+    @Test
+    fun arcTextSizesClampToFloorWhenCircleIsSmall() {
+        val sizes = arcTextSizesFor(60f)
+        assertEquals(14f, sizes.countdownSp, 0.01f)
+        assertEquals(8f, sizes.locationSp, 0.01f)
+        assertEquals(8f, sizes.prayerNameSp, 0.01f)
+    }
+
+    @Test
+    fun arcTextSizesNeverGoBelowFloorForTinyCircles() {
+        val sizes = arcTextSizesFor(1f)
+        assert(sizes.countdownSp >= 14f)
+        assert(sizes.locationSp >= 8f)
+        assert(sizes.prayerNameSp >= 8f)
+    }
 }
