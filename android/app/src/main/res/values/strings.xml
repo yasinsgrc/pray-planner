@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Vakit</string>
-    <string name="title_activity_main">VAKİT</string>
+    <string name="title_activity_main">Vakit</string>
     <string name="package_name">com.vakit</string>
     <string name="custom_url_scheme">com.vakit</string>
 

@@ -1,6 +1,6 @@
 {
   "name": "vakit",
-  "description": "VAKİT — Türkçe, sakin ve manevi bir namaz vakti sayaç uygulaması.",
+  "description": "Vakit — Türkçe, sakin ve manevi bir namaz vakti sayaç uygulaması.",
   "private": true,
   "version": "1.0.0",
   "type": "module",
