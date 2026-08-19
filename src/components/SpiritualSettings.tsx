@@ -8,6 +8,7 @@ import {
   CheckIcon,
   GearIcon,
   PlayIcon,
+  StopIcon,
   DeviceMobileIcon,
   SpeakerHighIcon,
   LockIcon,
@@ -23,7 +24,7 @@ import { LicensesModal } from './LicensesModal';
 import { FeedbackModal } from './FeedbackModal';
 import { AppSettings, PrayerName, SoundMode } from '../types';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
-import { playEzanAudio } from '../utils/audio';
+import { playEzanAudio, stopEzanAudio } from '../utils/audio';
 import { PRAYER_LABELS } from '../data/strings';
 import { getPrivacySummary } from '../data/privacy';
 import {
@@ -81,6 +82,15 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
   const [isLicensesSheetOpen, setIsLicensesSheetOpen] = useState(false);
   const [isFeedbackSheetOpen, setIsFeedbackSheetOpen] = useState(false);
+  const [isEzanPreviewPlaying, setIsEzanPreviewPlaying] = useState(false);
+  // Sekme kapatılmadan/bileşen unmount olmadan önizleme çalar durumda
+  // bırakılmasın diye — sayfadan ayrılınca ses arka planda çalmaya devam
+  // etmemeli.
+  useEffect(() => {
+    return () => {
+      stopEzanAudio();
+    };
+  }, []);
   // Bildirim izni istenmeden ÖNCE açık rıza — kullanıcı onaylamazsa
   // onEnablePush hiç çağrılmaz, hiçbir abonelik denemesi yapılmaz
   // (design-refresh-v3 Faz 16).
@@ -338,10 +348,24 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           </div>
 
           <button
-            onClick={() => playEzanAudio()}
+            onClick={() => {
+              if (isEzanPreviewPlaying) {
+                stopEzanAudio();
+                setIsEzanPreviewPlaying(false);
+              } else {
+                playEzanAudio(() => setIsEzanPreviewPlaying(false));
+                setIsEzanPreviewPlaying(true);
+              }
+            }}
+            aria-label={isEzanPreviewPlaying ? 'Ezan önizlemesini durdur' : 'Ezan önizlemesini oynat'}
             className="min-h-[44px] flex items-center gap-1.5 text-xs font-semibold text-gold-ink cursor-pointer"
           >
-            <PlayIcon className="w-3.5 h-3.5" /> Önizle
+            {isEzanPreviewPlaying ? (
+              <StopIcon className="w-3.5 h-3.5" />
+            ) : (
+              <PlayIcon className="w-3.5 h-3.5" />
+            )}{' '}
+            {isEzanPreviewPlaying ? 'Durdur' : 'Önizle'}
           </button>
 
           <p className="text-[10px] text-mist pt-1">

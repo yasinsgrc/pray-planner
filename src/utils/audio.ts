@@ -57,11 +57,18 @@ export function playSoftChime() {
  */
 let ezanAudioElement: HTMLAudioElement | null = null;
 
-export function playEzanAudio() {
+/**
+ * onEnded verilirse ses doğal olarak bitince (örn. önizleme) tetiklenir;
+ * verilmezse önceki bir çağrıdan kalmış olabilecek handler temizlenir —
+ * aksi halde önizlemeden kalan callback, sonraki gerçek ezan çalışında da
+ * (App.tsx'in playEzanInForeground tetiklemesi) yanlışlıkla çalışırdı.
+ */
+export function playEzanAudio(onEnded?: () => void) {
   try {
     if (!ezanAudioElement) {
       ezanAudioElement = new Audio(EZAN_AUDIO_SRC);
     }
+    ezanAudioElement.onended = onEnded ?? null;
     ezanAudioElement.pause();
     ezanAudioElement.currentTime = 0;
     ezanAudioElement.play().catch((err) => {
@@ -69,5 +76,16 @@ export function playEzanAudio() {
     });
   } catch (err) {
     console.log('Ezan sesi çalınamadı:', err);
+  }
+}
+
+export function stopEzanAudio() {
+  try {
+    if (ezanAudioElement) {
+      ezanAudioElement.pause();
+      ezanAudioElement.currentTime = 0;
+    }
+  } catch (err) {
+    console.log('Ezan sesi durdurulamadı:', err);
   }
 }

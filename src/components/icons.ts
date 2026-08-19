@@ -42,6 +42,7 @@ export { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
 export { SpeakerHighIcon } from '@phosphor-icons/react/dist/csr/SpeakerHigh';
 export { SpeakerXIcon } from '@phosphor-icons/react/dist/csr/SpeakerX';
 export { StarIcon } from '@phosphor-icons/react/dist/csr/Star';
+export { StopIcon } from '@phosphor-icons/react/dist/csr/Stop';
 export { SunIcon } from '@phosphor-icons/react/dist/csr/Sun';
 export { SunDimIcon } from '@phosphor-icons/react/dist/csr/SunDim';
 export { SunHorizonIcon } from '@phosphor-icons/react/dist/csr/SunHorizon';
