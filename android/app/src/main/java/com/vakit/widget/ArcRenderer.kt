@@ -23,6 +23,22 @@ object ArcRenderer {
     private const val SEGMENT_COUNT = 6
     private const val REMAINDER_ALPHA = 102 // 255 * 0.40 ≈ %40 opaklık
     private const val MARKER_BORDER_WIDTH_PX = 2f
+    internal const val MARKER_RADIUS_RATIO = 1.4f
+
+    internal data class RingMetrics(val strokeWidthPx: Float, val radiusPx: Float, val markerRadiusPx: Float)
+
+    /**
+     * radius, hem stroke kalınlığının hem de marker yarıçapının bitmap
+     * kenarını aşmayacağı şekilde daraltılır (+1px antialias payı).
+     */
+    internal fun ringMetricsFor(sizePx: Int): RingMetrics? {
+        if (sizePx <= 0) return null
+        val strokeWidthPx = sizePx * 6f / 160f
+        val markerRadiusPx = strokeWidthPx * MARKER_RADIUS_RATIO
+        val radiusPx = sizePx / 2f - maxOf(strokeWidthPx / 2f, markerRadiusPx) - 1f
+        if (radiusPx <= 0f) return null
+        return RingMetrics(strokeWidthPx, radiusPx, markerRadiusPx)
+    }
 
     internal data class ArcSegment(
         val trueStart: Float,
@@ -72,11 +88,10 @@ object ArcRenderer {
         markerColor: Int,
         markerBorderColor: Int
     ): Bitmap? {
-        if (sizePx <= 0 || segmentColors.size != SEGMENT_COUNT) return null
-
-        val strokeWidthPx = sizePx * 6f / 160f
-        val radius = (sizePx - strokeWidthPx) / 2f
-        if (radius <= 0f) return null
+        if (segmentColors.size != SEGMENT_COUNT) return null
+        val metrics = ringMetricsFor(sizePx) ?: return null
+        val strokeWidthPx = metrics.strokeWidthPx
+        val radius = metrics.radiusPx
 
         val circumference = 2f * Math.PI.toFloat() * radius
         val gapFrac = 3f / circumference
@@ -106,7 +121,7 @@ object ArcRenderer {
         }
 
         val (markerX, markerY) = pointOnCircle(cx, cy, radius, geometry.progress)
-        val markerRadius = strokeWidthPx * 1.4f
+        val markerRadius = metrics.markerRadiusPx
 
         val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL

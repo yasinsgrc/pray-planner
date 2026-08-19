@@ -55,4 +55,20 @@ class ArcRendererTest {
         assertTrue(geometry.progress < 1f)
         assertTrue(yatsiSegment.hasElapsed)
     }
+
+    @Test
+    fun ringMetricsKeepMarkerOutlineInsideBitmapBounds() {
+        listOf(96, 160, 240, 384).forEach { sizePx ->
+            val metrics = ArcRenderer.ringMetricsFor(sizePx)!!
+            assertTrue(
+                "sizePx=$sizePx: marker dış kenarı bitmap dışına taşıyor",
+                metrics.radiusPx + metrics.markerRadiusPx + 1f <= sizePx / 2f
+            )
+        }
+    }
+
+    @Test
+    fun ringMetricsForReturnsNullForTooSmallSize() {
+        assertEquals(null, ArcRenderer.ringMetricsFor(8))
+    }
 }
