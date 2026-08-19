@@ -26,23 +26,23 @@ class VakitWidgetProviderTest {
     @Test
     fun arcTextSizesScaleWithCircleDiameter() {
         val sizes = arcTextSizesFor(120f)
-        assertEquals(18f, sizes.countdownSp, 0.01f)
+        assertEquals(15f, sizes.countdownSp, 0.01f)
     }
 
     @Test
     fun arcTextSizesClampToFloorWhenCircleIsSmall() {
         val sizes = arcTextSizesFor(60f)
-        assertEquals(14f, sizes.countdownSp, 0.01f)
-        assertEquals(8f, sizes.locationSp, 0.01f)
-        assertEquals(8f, sizes.prayerNameSp, 0.01f)
+        assertEquals(12f, sizes.countdownSp, 0.01f)
+        assertEquals(7f, sizes.locationSp, 0.01f)
+        assertEquals(7f, sizes.prayerNameSp, 0.01f)
     }
 
     @Test
     fun arcTextSizesNeverGoBelowFloorForTinyCircles() {
         val sizes = arcTextSizesFor(1f)
-        assert(sizes.countdownSp >= 14f)
-        assert(sizes.locationSp >= 8f)
-        assert(sizes.prayerNameSp >= 8f)
+        assert(sizes.countdownSp >= 12f)
+        assert(sizes.locationSp >= 7f)
+        assert(sizes.prayerNameSp >= 7f)
     }
 
     @Test

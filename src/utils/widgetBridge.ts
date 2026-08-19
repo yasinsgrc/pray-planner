@@ -18,6 +18,20 @@ export interface WidgetPayload {
 const DEFAULT_DAYS = 7;
 
 /**
+ * GPS düşük doğrulukta resolveGpsDistrictLabel "Kocaeli (yaklaşık)" gibi
+ * il adını zaten içeren bir ilçe etiketi üretebiliyor — bu durumda ili
+ * tekrar önüne eklemek "Kocaeli, Kocaeli (yaklaşık)" gibi bir tekrara yol
+ * açar, o yüzden ilçe adı il adıyla başlıyorsa sadece ilçe döndürülür.
+ */
+export function formatWidgetLocationLabel(location: { cityName: string; districtName: string }): string {
+  const { cityName, districtName } = location;
+  if (!districtName || districtName === cityName || districtName.startsWith(cityName)) {
+    return districtName || cityName;
+  }
+  return `${cityName}, ${districtName}`;
+}
+
+/**
  * adhan Kotlin'e port edilmez (design-refresh-v3 Faz 23 Commit 3) — JS
  * tarafı vakitleri epoch ms olarak yazar, native taraf yalnızca aritmetik
  * yapar. calculateDaySchedule zaten mevcut hesaplamayı yapıyor; bu
@@ -49,7 +63,7 @@ export function buildWidgetPayload(
 
   return {
     schemaVersion: 1,
-    locationLabel: location.districtName,
+    locationLabel: formatWidgetLocationLabel(location),
     timeZone: resolveTimeZone(location),
     generatedAtMs: now.getTime(),
     entries,

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildWidgetPayload } from './widgetBridge';
+import { buildWidgetPayload, formatWidgetLocationLabel } from './widgetBridge';
 import { LocationItem } from '../types';
 
 // Faz 23 Commit 3 — widget'ın kilit ekranında saatler saatlerce doğru
@@ -100,6 +100,36 @@ test('atMs values do not depend on the device timezone (TZ=UTC invariant)', () =
 test('schemaVersion, days parameter, and empty/default behavior', () => {
   const payload = buildWidgetPayload(CAYIROVA, 'Diyanet', NOW, 1);
   assert.equal(payload.entries.length, 12); // (days+1)*6 = (1+1)*6
-  assert.equal(payload.locationLabel, 'Çayırova');
+  assert.equal(payload.locationLabel, 'Kocaeli, Çayırova');
   assert.equal(payload.timeZone, 'Europe/Istanbul');
+});
+
+// widget çember içi konum etiketi il+ilçe olmalı — yalnızca ilçe adı
+// (örn. "Çayırova") kullanıcının hangi ilde olduğunu belirsiz bırakıyordu.
+test('formatWidgetLocationLabel joins city and district with a comma', () => {
+  assert.equal(
+    formatWidgetLocationLabel({ cityName: 'Kocaeli', districtName: 'Çayırova' }),
+    'Kocaeli, Çayırova'
+  );
+});
+
+test('formatWidgetLocationLabel falls back to city name when district is empty', () => {
+  assert.equal(formatWidgetLocationLabel({ cityName: 'Kocaeli', districtName: '' }), 'Kocaeli');
+});
+
+test('formatWidgetLocationLabel collapses to one name when city and district match', () => {
+  assert.equal(
+    formatWidgetLocationLabel({ cityName: 'İstanbul', districtName: 'İstanbul' }),
+    'İstanbul'
+  );
+});
+
+test('formatWidgetLocationLabel does not double the city when the GPS-approx district already includes it', () => {
+  // resolveGpsDistrictLabel, düşük doğrulukta "Kocaeli (yaklaşık)" gibi
+  // il adını zaten içeren bir metin üretir — "Kocaeli, Kocaeli (yaklaşık)"
+  // olmamalı.
+  assert.equal(
+    formatWidgetLocationLabel({ cityName: 'Kocaeli', districtName: 'Kocaeli (yaklaşık)' }),
+    'Kocaeli (yaklaşık)'
+  );
 });

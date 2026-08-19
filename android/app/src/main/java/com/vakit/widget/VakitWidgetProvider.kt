@@ -69,11 +69,11 @@ internal fun nextRefreshAtMs(nextBoundaryMs: Long, now: Long): Long =
 /** Çember içi metinlerin (sayaç/konum/vakit adı) çember çapına (dp) oranlanmış puntoları. */
 internal data class ArcTextSizes(val countdownSp: Float, val locationSp: Float, val prayerNameSp: Float)
 
-private const val ARC_COUNTDOWN_SP_RATIO = 0.15f
-private const val ARC_LOCATION_SP_RATIO = 0.085f
-private const val ARC_PRAYER_NAME_SP_RATIO = 0.095f
-private const val ARC_COUNTDOWN_MIN_SP = 14f
-private const val ARC_SECONDARY_MIN_SP = 8f
+private const val ARC_COUNTDOWN_SP_RATIO = 0.125f
+private const val ARC_LOCATION_SP_RATIO = 0.068f
+private const val ARC_PRAYER_NAME_SP_RATIO = 0.082f
+private const val ARC_COUNTDOWN_MIN_SP = 12f
+private const val ARC_SECONDARY_MIN_SP = 7f
 
 /**
  * Sayaç/konum/vakit adı puntolarını çember çapına (dp) oranlayarak hesaplar.
@@ -126,7 +126,7 @@ class VakitWidgetProvider : AppWidgetProvider() {
         internal const val MAX_ARC_BITMAP_PX = 384
 
         /** Çember içi metin bloğunun yatay padding'i, çember çapının (dp) yüzdesi olarak. */
-        private const val ARC_TEXT_PADDING_RATIO = 0.10f
+        private const val ARC_TEXT_PADDING_RATIO = 0.13f
 
         /** JS tarafı yeni yük yazdığında (WidgetBridgePlugin.refresh) ve dahili sınır alarmlarında çağrılır. */
         fun updateAllWidgets(context: Context) {
