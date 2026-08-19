@@ -192,6 +192,11 @@
        previously Navbar used max-w-[430px] while screens used max-w-md
        (448px), an 18px mismatch visible on wide viewports. */
     --shell-w: 430px;
+    /* How much the on-screen keyboard has shrunk the visual viewport, kept
+       in sync by useVisualViewportKeyboard.ts. Read by BottomSheet's
+       max-height/padding calc()s so the sheet fits above the keyboard
+       instead of getting clipped at the top. */
+    --kb-height: 0px;
   }
 
   .dark {
