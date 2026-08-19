@@ -11,7 +11,7 @@ interface HeaderProps {
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   onOpenLocationModal: () => void;
-  onOpenQiblaModal: () => void;
+  onOpenExplore: () => void;
   onOpenZikirmatikModal: () => void;
 }
 
@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   isDarkMode,
   onToggleDarkMode,
   onOpenLocationModal,
-  onOpenQiblaModal,
+  onOpenExplore,
   onOpenZikirmatikModal,
 }) => {
   const gregorianFormatter = useMemo(
@@ -92,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-1">
           {/* Kıble Butonu */}
           <button
-            onClick={onOpenQiblaModal}
+            onClick={onOpenExplore}
             className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label="Kıble Pusulası"
           >

@@ -12,9 +12,9 @@ import { DailyFlowList } from './components/DailyFlowList';
 import { RamadanModeCard } from './components/RamadanModeCard';
 import { SpiritualSettings } from './components/SpiritualSettings';
 import { SpiritualHub } from './components/SpiritualHub';
+import { ExploreHub } from './components/ExploreHub';
 import { Navbar, TabType } from './components/Navbar';
 import { LocationModal } from './components/LocationModal';
-import { QiblaCompassModal } from './components/QiblaCompassModal';
 import { ZikirmatikModal } from './components/ZikirmatikModal';
 import { KnowledgeSheet } from './components/KnowledgeSheet';
 import { KERAHET_KNOWLEDGE } from './data/knowledge';
@@ -112,7 +112,6 @@ export default function App() {
 
   // Modal States
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isQiblaModalOpen, setIsQiblaModalOpen] = useState(false);
   const [isZikirmatikModalOpen, setIsZikirmatikModalOpen] = useState(false);
   const [isKerahetSheetOpen, setIsKerahetSheetOpen] = useState(false);
 
@@ -592,7 +591,7 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={handleToggleDarkMode}
         onOpenLocationModal={() => setIsLocationModalOpen(true)}
-        onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
+        onOpenExplore={() => setActiveTab('explore')}
         onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
       />
 
@@ -718,11 +717,12 @@ export default function App() {
                 location={settings.location}
                 zikirState={zikirState}
                 todayZikirTotal={getDayTotal(zikirLog, dateKeyInZone(now, schedule.resolvedTimeZone))}
-                onOpenQiblaModal={() => setIsQiblaModalOpen(true)}
                 onOpenZikirmatikModal={() => setIsZikirmatikModalOpen(true)}
                 onOpenKerahetInfo={() => setIsKerahetSheetOpen(true)}
               />
             )}
+
+            {activeTab === 'explore' && <ExploreHub location={settings.location} />}
 
             {activeTab === 'settings' && (
               <SpiritualSettings
@@ -752,12 +752,6 @@ export default function App() {
         onSelectLocation={(loc: LocationItem) =>
           handleUpdateSettings({ location: loc })
         }
-      />
-
-      <QiblaCompassModal
-        location={settings.location}
-        isOpen={isQiblaModalOpen}
-        onClose={() => setIsQiblaModalOpen(false)}
       />
 
       <ZikirmatikModal

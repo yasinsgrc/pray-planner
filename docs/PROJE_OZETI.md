@@ -18,7 +18,7 @@
 src/
   App.tsx                    — ana state, sekme yönlendirme, push bildirim bağlama
   components/                — Header, Navbar, MainCountdownRing, DailyFlowList,
-                                SpiritualSettings, LocationModal, QiblaCompassModal,
+                                SpiritualSettings, LocationModal, ExploreHub, QiblaCompassView,
                                 ZikirmatikModal, LiveActivityWidgetModal, DailyInspirationCard
   hooks/useCompassHeading.ts — cihaz pusulası sensör hook'u
   utils/                     — prayerCalculator, hijri, audio, compassHeading, pushClient

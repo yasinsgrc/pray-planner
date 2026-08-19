@@ -1,9 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { CompassIcon, HandHeartIcon, SparkleIcon, BookOpenIcon } from './icons';
+import { HandHeartIcon, SparkleIcon, BookOpenIcon } from './icons';
 import { DailyInspirationCard } from './DailyInspirationCard';
 import { LocationItem } from '../types';
-import { calculateQiblaBearing } from '../utils/qibla';
 import { PRESET_DHIKRS, ZikirmatikState, getCounterFor } from '../utils/zikirmatikStorage';
 import { ESMA_UL_HUSNA } from '../data/esmaulHusna';
 import { ReligiousDaysCard } from './ReligiousDaysCard';
@@ -13,7 +12,6 @@ interface SpiritualHubProps {
   zikirState: ZikirmatikState;
   /** Sum of every dhikr counted today, across all 5 presets (design-refresh-v3 Faz 7 F3). */
   todayZikirTotal: number;
-  onOpenQiblaModal: () => void;
   onOpenZikirmatikModal: () => void;
   onOpenKerahetInfo: () => void;
 }
@@ -24,11 +22,9 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
   location,
   zikirState,
   todayZikirTotal,
-  onOpenQiblaModal,
   onOpenZikirmatikModal,
   onOpenKerahetInfo,
 }) => {
-  const qiblaBearing = Math.round(calculateQiblaBearing(location));
   const lastDhikr = PRESET_DHIKRS[zikirState.selectedDhikrIndex];
   const lastDhikrCounter = getCounterFor(zikirState, zikirState.selectedDhikrIndex);
 
@@ -70,52 +66,29 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
         </div>
       </motion.button>
 
-      <div className="w-full max-w-[var(--shell-w)] mx-auto px-4 grid grid-cols-3 gap-3">
-        {/* Kıble Kartı (geniş) */}
-        <motion.button
-          onClick={onOpenQiblaModal}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.05, duration: 0.5, ease: EASE }}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          className="col-span-2 p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold/40 transition-colors cursor-pointer flex items-center justify-between gap-3"
-        >
-          <div>
-            <div className="text-label text-gold-ink font-bold">Pusula</div>
-            <div className="text-base font-bold text-ink mt-1">Kıble Açısı</div>
-            <div className="font-numbers text-2xl font-extrabold text-gold-ink mt-1">{qiblaBearing}°</div>
+      {/* Zikirmatik Kartı — Pusula kartı Keşfet sekmesine taşındı, tek kart
+          kaldığı için Kerahet kartıyla aynı tam genişlik düzenini kullanır. */}
+      <motion.button
+        onClick={onOpenZikirmatikModal}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.05, duration: 0.5, ease: EASE }}
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.99 }}
+        className="w-full max-w-[var(--shell-w)] mx-auto px-4 mb-3 block"
+      >
+        <div className="p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold/40 transition-colors cursor-pointer flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-gold/10 text-gold-ink flex items-center justify-center shrink-0">
+            <HandHeartIcon className="w-4 h-4" />
           </div>
-          <div className="relative w-14 h-14 rounded-full border-2 border-gold/30 flex items-center justify-center shrink-0">
-            <div
-              className="absolute inset-0 flex items-start justify-center pt-1"
-              style={{ transform: `rotate(${qiblaBearing}deg)` }}
-            >
-              <div className="w-1 h-4 rounded-full bg-gold" />
-            </div>
-            <CompassIcon className="w-5 h-5 text-gold/50" />
-          </div>
-        </motion.button>
-
-        {/* Zikirmatik Kartı (dar) */}
-        <motion.button
-          onClick={onOpenZikirmatikModal}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1, duration: 0.5, ease: EASE }}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.97 }}
-          className="col-span-1 p-4 rounded-2xl bg-card border border-hairline text-left hover:border-gold/40 transition-colors cursor-pointer flex flex-col justify-between"
-        >
-          <HandHeartIcon className="w-5 h-5 text-gold-ink" />
-          <div className="mt-2">
-            <div className="text-[11px] text-mist leading-tight">{lastDhikr.title}</div>
-            <div className="font-numbers text-sm font-bold text-ink">
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-ink">{lastDhikr.title}</div>
+            <div className="font-numbers text-xs text-mist mt-0.5">
               {lastDhikrCounter.counter}/{lastDhikr.target}
             </div>
           </div>
-        </motion.button>
-      </div>
+        </div>
+      </motion.button>
 
       {/* Bugünün toplamı — sessizce görünür, kutlama veya bildirim yok
           (design-refresh-v3 Faz 7 F3): bir seri sayacı veya "harika gidiyor"

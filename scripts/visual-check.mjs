@@ -75,6 +75,7 @@ const TABS = [
   { id: 'focus', label: 'Ana Ekran' },
   { id: 'flow', label: 'Vakitler' },
   { id: 'spiritual', label: 'Maneviyat' },
+  { id: 'explore', label: 'Keşfet' },
   { id: 'settings', label: 'Ayarlar' },
 ];
 
@@ -1171,21 +1172,22 @@ async function checkInteractionSweep(browser) {
       violations.push('[sweep] LocationModal backdrop tıklamasıyla kapanmadı');
     }
 
-    // --- Qibla modal: open, Escape closes, reopen, backdrop closes ---
+    // --- Kıble butonu: Pusula ekranı Keşfet sekmesine taşındığı için
+    // artık modal açmıyor, doğrudan Keşfet sekmesine geçiriyor (Pusula
+    // orada varsayılan alt görünüm) ---
     await page.getByRole('button', { name: 'Kıble Pusulası' }).click();
     await page.waitForTimeout(400);
-    if (!(await page.evaluate(() => !!document.querySelector('[role="dialog"]')))) {
-      violations.push('[sweep] Kıble Pusulası sheet\'i açılmadı');
+    const exploreTabSelected = await page
+      .getByRole('tab', { name: 'Keşfet' })
+      .getAttribute('aria-selected');
+    if (exploreTabSelected !== 'true') {
+      violations.push('[sweep] Kıble Pusulası butonu Keşfet sekmesine geçmedi');
     }
-    await page.keyboard.press('Escape');
-    if (!(await waitForDialogClosed(page))) {
-      violations.push('[sweep] Kıble Pusulası Escape ile kapanmadı');
-    }
-    await page.getByRole('button', { name: 'Kıble Pusulası' }).click();
-    await page.waitForTimeout(400);
-    await page.mouse.click(10, 10);
-    if (!(await waitForDialogClosed(page))) {
-      violations.push('[sweep] Kıble Pusulası backdrop tıklamasıyla kapanmadı');
+    const qiblaViewVisible = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('h2')).some((el) => el.textContent === 'Kıble Pusulası')
+    );
+    if (!qiblaViewVisible) {
+      violations.push('[sweep] Keşfet sekmesinde Pusula (varsayılan alt görünüm) görünmedi');
     }
 
     // --- Zikirmatik: increment, then reset (cancel then confirm) ---
@@ -1654,6 +1656,7 @@ const BOTTOM_GAP_TABS = [
   { id: 'focus', label: 'Ana Ekran' },
   { id: 'flow', label: 'Vakitler' },
   { id: 'spiritual', label: 'Maneviyat' },
+  { id: 'explore', label: 'Keşfet' },
   { id: 'settings', label: 'Ayarlar' },
 ];
 

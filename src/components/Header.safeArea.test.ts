@@ -17,7 +17,7 @@ test('Header reserves env(safe-area-inset-top) so native status bar does not ove
       isDarkMode: false,
       onToggleDarkMode: noop,
       onOpenLocationModal: noop,
-      onOpenQiblaModal: noop,
+      onOpenExplore: noop,
       onOpenZikirmatikModal: noop,
     })
   );

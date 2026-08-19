@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ClockIcon, CalendarDotsIcon, BookOpenIcon, GearSixIcon, Icon } from './icons';
+import { ClockIcon, CalendarDotsIcon, BookOpenIcon, CompassIcon, GearSixIcon, Icon } from './icons';
 
-export type TabType = 'focus' | 'flow' | 'spiritual' | 'settings';
+export type TabType = 'focus' | 'flow' | 'spiritual' | 'explore' | 'settings';
 
 interface NavbarProps {
   activeTab: TabType;
@@ -13,6 +13,7 @@ const TABS: { id: TabType; label: string; Icon: Icon }[] = [
   { id: 'focus', label: 'Ana Ekran', Icon: ClockIcon },
   { id: 'flow', label: 'Vakitler', Icon: CalendarDotsIcon },
   { id: 'spiritual', label: 'Maneviyat', Icon: BookOpenIcon },
+  { id: 'explore', label: 'Keşfet', Icon: CompassIcon },
   { id: 'settings', label: 'Ayarlar', Icon: GearSixIcon },
 ];
 
