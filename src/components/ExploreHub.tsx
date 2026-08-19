@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { MapPinIcon } from './icons';
 import { LocationItem } from '../types';
 import { SegmentedControl } from './SegmentedControl';
 import { QiblaCompassView } from './QiblaCompassView';
+import { NearbyView } from './NearbyView';
 
 interface ExploreHubProps {
   location: LocationItem;
@@ -35,15 +35,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ location }) => {
         </div>
       )}
 
-      {view === 'nearby' && (
-        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-4 text-center">
-          <MapPinIcon className="w-8 h-8 text-gold/40 mb-3" />
-          <p className="text-sm font-semibold text-ink">Yakınımda</p>
-          <p className="text-[11px] text-mist mt-1 max-w-[240px]">
-            Yakındaki mekanlar yakında burada listelenecek.
-          </p>
-        </div>
-      )}
+      {view === 'nearby' && <NearbyView />}
     </div>
   );
 };

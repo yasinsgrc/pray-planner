@@ -27,7 +27,11 @@ async function main() {
   try {
     response = await fetch(OVERPASS_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "*/*",
+        "User-Agent": "curl/8.0.0",
+      },
       body: `data=${encodeURIComponent(QUERY)}`,
       signal: controller.signal,
     });
