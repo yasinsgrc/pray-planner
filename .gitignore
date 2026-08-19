@@ -28,3 +28,6 @@ android/local.properties
 android/keystore.properties
 *.keystore
 *.jks
+
+# OSM ham veri önbelleği (scripts/places/fetch-osm.ts) — üretilen veri, versiyonlanmaz.
+scripts/places/.cache/
