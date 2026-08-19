@@ -58,4 +58,53 @@ class VakitWidgetProviderTest {
         assertEquals(11f, sizes.prayerTimeSp, 0.01f)
         assertEquals(9f, sizes.prayerNameSp, 0.01f)
     }
+
+    @Test
+    fun countdownFormatUsesMmSsPrefixUnderOneHour() {
+        val remainingMs = 8 * 60_000L + 37_000L // 8dk 37sn
+        assertEquals("00:%s", countdownFormatFor(remainingMs))
+    }
+
+    @Test
+    fun countdownFormatUsesMmSsPrefixJustUnderOneHourBoundary() {
+        val remainingMs = 59 * 60_000L + 59_999L // 59:59.999
+        assertEquals("00:%s", countdownFormatFor(remainingMs))
+    }
+
+    @Test
+    fun countdownFormatSwitchesToPlainFormatAtExactlyOneHour() {
+        assertEquals("%s", countdownFormatFor(ONE_HOUR_MS))
+    }
+
+    @Test
+    fun countdownFormatUsesPlainFormatOverOneHour() {
+        val remainingMs = 6 * ONE_HOUR_MS + 5 * 60_000L // 6sa 05dk
+        assertEquals("%s", countdownFormatFor(remainingMs))
+    }
+
+    @Test
+    fun countdownFormatUsesPlainFormatWhenTimeHasPassed() {
+        assertEquals("%s", countdownFormatFor(-100L))
+    }
+
+    @Test
+    fun nextRefreshAtMsWakesEarlyWhenBoundaryIsMoreThanOneHourAway() {
+        val nextBoundaryMs = 10_000_000L
+        val now = 0L
+        assertEquals(nextBoundaryMs - ONE_HOUR_MS, nextRefreshAtMs(nextBoundaryMs, now))
+    }
+
+    @Test
+    fun nextRefreshAtMsUsesBoundaryDirectlyWhenWithinOneHour() {
+        val nextBoundaryMs = 3_000_000L
+        val now = 0L
+        assertEquals(nextBoundaryMs, nextRefreshAtMs(nextBoundaryMs, now))
+    }
+
+    @Test
+    fun nextRefreshAtMsUsesBoundaryDirectlyAtExactOneHourEdge() {
+        val nextBoundaryMs = ONE_HOUR_MS
+        val now = 0L
+        assertEquals(nextBoundaryMs, nextRefreshAtMs(nextBoundaryMs, now))
+    }
 }

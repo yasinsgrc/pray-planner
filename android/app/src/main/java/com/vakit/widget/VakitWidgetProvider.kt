@@ -46,6 +46,26 @@ internal fun selectHighlightIndex(activeIndex: Int, nextIndex: Int, dayBlockStar
 /** activeIndex'in içinde bulunduğu 6'lı günlük vakit bloğunun başlangıcı. */
 internal fun dayBlockStartFor(activeIndex: Int): Int = (activeIndex / 6) * 6
 
+internal const val ONE_HOUR_MS = 3_600_000L
+
+/**
+ * Chronometer'ın format string'i: 1 saatin altında MM:SS iki haneli olduğu
+ * için "08:37" hem 8dk37sn hem 8sa37dk okunabiliyordu — "00:" öneki bu
+ * belirsizliği gideriyor. 1 saat ve üstünde H:MM:SS zaten üç gruplu ve
+ * belirsiz değil, öneke gerek yok.
+ */
+internal fun countdownFormatFor(remainingMs: Long): String =
+    if (remainingMs in 0 until ONE_HOUR_MS) "00:%s" else "%s"
+
+/**
+ * Format 1 saat sınırında değişmeli (countdownFormatFor), yoksa widget
+ * 59:59'a düşene kadar önceki (belirsiz) formatta kalır. Sınır 1 saatten
+ * uzaksa alarmı sınırdan bir saat önceye çekerek formatın tam zamanında
+ * yenilenmesini sağlar; sınır zaten bir saat içindeyse doğrudan sınırda kurulur.
+ */
+internal fun nextRefreshAtMs(nextBoundaryMs: Long, now: Long): Long =
+    if (nextBoundaryMs - ONE_HOUR_MS > now) nextBoundaryMs - ONE_HOUR_MS else nextBoundaryMs
+
 /** Çember içi metinlerin (sayaç/konum/vakit adı) çember çapına (dp) oranlanmış puntoları. */
 internal data class ArcTextSizes(val countdownSp: Float, val locationSp: Float, val prayerNameSp: Float)
 
@@ -279,7 +299,7 @@ class VakitWidgetProvider : AppWidgetProvider() {
 
         views.setChronometerCountDown(R.id.widget_countdown, true)
         val elapsedRealtimeTarget = SystemClock.elapsedRealtime() + (next.atMs - now)
-        views.setChronometer(R.id.widget_countdown, elapsedRealtimeTarget, null, true)
+        views.setChronometer(R.id.widget_countdown, elapsedRealtimeTarget, countdownFormatFor(next.atMs - now), true)
 
         val dayBlockStart = dayBlockStartFor(activeIndex)
         renderDailyRow(views, entries, activeIndex, nextIndex, dayBlockStart, timeZone)
@@ -470,8 +490,11 @@ class VakitWidgetProvider : AppWidgetProvider() {
         // Tam alarm izni istemiyoruz: setWindow yaklaşık teslimat için
         // yeterli — Chronometer 00:00 gösterir, birkaç saniye/dakika sonra
         // yeniden çizilir (design-refresh-v3 Faz 23 Commit 4).
+        // nextRefreshAtMs: sınır 1 saatten uzaksa erken uyanarak countdown
+        // format geçişini (countdownFormatFor) tam zamanında tetikler.
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val triggerElapsedRealtime = SystemClock.elapsedRealtime() + (nextBoundary - now)
+        val refreshAtMs = nextRefreshAtMs(nextBoundary, now)
+        val triggerElapsedRealtime = SystemClock.elapsedRealtime() + (refreshAtMs - now)
         val windowLengthMs = 5 * 60 * 1000L
         alarmManager.setWindow(
             AlarmManager.ELAPSED_REALTIME_WAKEUP,
