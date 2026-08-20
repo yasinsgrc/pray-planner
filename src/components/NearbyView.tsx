@@ -28,6 +28,7 @@ function PlaceRow({ place }: { place: Place }) {
       </div>
       <div className="min-w-0 flex-1 text-left">
         <p className="text-base font-bold text-ink truncate">{place.name}</p>
+        {place.category === 'turbe' && <p className="text-micro text-mist">Türbe</p>}
         <p className="text-micro text-mist mt-0.5">{formatDistance(place.distanceMeters)}</p>
       </div>
     </button>
@@ -210,19 +211,19 @@ export const NearbyView: React.FC = () => {
           {places.map((place) => (
             <PlaceRow key={`${place.lat},${place.lon},${place.name}`} place={place} />
           ))}
-          <p className="text-micro text-mist text-center pt-2">
-            Mekân verileri{' '}
-            <a
-              href="https://www.openstreetmap.org/copyright"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              © OpenStreetMap katkıcıları (ODbL)
-            </a>
-          </p>
         </div>
       )}
+      <p className="text-micro text-mist text-center py-2">
+        Mekân verileri{' '}
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          © OpenStreetMap katkıcıları (ODbL)
+        </a>
+      </p>
     </div>
   );
 };
