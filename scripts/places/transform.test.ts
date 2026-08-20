@@ -45,6 +45,48 @@ test("isNotable returns false when neither wikidata nor wikipedia is present", (
   assert.equal(isNotable({ name: "Bir Yer" }), false);
 });
 
+test("classifyPlace jenerik isimler için null döner (cami, camii, mescit, mescid)", () => {
+  assert.equal(classifyPlace({ name: "Cami", amenity: "place_of_worship", religion: "muslim" }), null);
+  assert.equal(classifyPlace({ name: " Camii ", amenity: "place_of_worship", religion: "muslim" }), null);
+  assert.equal(classifyPlace({ name: "MESCIT", amenity: "place_of_worship", religion: "muslim" }), null);
+  assert.equal(classifyPlace({ name: "mescid", amenity: "place_of_worship", religion: "muslim" }), null);
+});
+
+test("transform aynı bucket'ta aynı isimli ve 100m'den yakın kayıtları eler (ilk gelen kalır)", () => {
+  const data: OsmData = {
+    elements: [
+      {
+        type: "node",
+        id: 10,
+        lat: 41.0,
+        lon: 29.0,
+        tags: { name: "Yakın Camii", amenity: "place_of_worship", religion: "muslim" },
+      },
+      {
+        type: "node",
+        id: 11,
+        lat: 41.00045,
+        lon: 29.0,
+        tags: { name: "Yakın Camii", amenity: "place_of_worship", religion: "muslim" },
+      },
+      {
+        type: "node",
+        id: 12,
+        lat: 41.0018,
+        lon: 29.0,
+        tags: { name: "Yakın Camii", amenity: "place_of_worship", religion: "muslim" },
+      },
+    ],
+  };
+
+  assert.deepEqual(transform(data), {
+    "410_290": [
+      { n: "Yakın Camii", y: 41, x: 29, c: 0 },
+      { n: "Yakın Camii", y: 41.0018, x: 29, c: 0 },
+    ],
+  });
+});
+
 test("transform gruplar OSM elemanlarını bucket'lara, uygun olmayanları eler", () => {
   const data: OsmData = {
     elements: [

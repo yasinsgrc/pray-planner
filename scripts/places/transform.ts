@@ -33,8 +33,11 @@ export interface PlaceEntry {
   w?: 1;
 }
 
+const GENERIC_NAMES = new Set(["cami", "camii", "mescit", "mescid"]);
+
 export function classifyPlace(tags: OsmTags): PlaceKind | null {
   if (!tags.name) return null;
+  if (GENERIC_NAMES.has(tags.name.trim().toLowerCase())) return null;
   if (tags.historic === "tomb" || tags.building === "mausoleum") return "turbe";
   if (tags.amenity === "place_of_worship" && tags.religion === "muslim") return "cami";
   return null;
@@ -46,6 +49,17 @@ export function isNotable(tags: OsmTags): boolean {
 
 function round5(value: number): number {
   return Math.round(value * 1e5) / 1e5;
+}
+
+const DEDUPE_DEGREE_THRESHOLD = 100 / 111_320; // ~100m, basit derece farkı
+
+function isNearDuplicate(entry: PlaceEntry, existing: PlaceEntry[]): boolean {
+  return existing.some(
+    (other) =>
+      other.n === entry.n &&
+      Math.abs(other.y - entry.y) < DEDUPE_DEGREE_THRESHOLD &&
+      Math.abs(other.x - entry.x) < DEDUPE_DEGREE_THRESHOLD,
+  );
 }
 
 function elementCoords(element: OsmElement): { lat: number; lon: number } | null {
@@ -75,7 +89,9 @@ export function transform(data: OsmData): Record<string, PlaceEntry[]> {
     if (isNotable(tags)) entry.w = 1;
 
     const key = bucketKey(y, x);
-    (buckets[key] ??= []).push(entry);
+    const bucket = (buckets[key] ??= []);
+    if (isNearDuplicate(entry, bucket)) continue;
+    bucket.push(entry);
   }
 
   return buckets;
