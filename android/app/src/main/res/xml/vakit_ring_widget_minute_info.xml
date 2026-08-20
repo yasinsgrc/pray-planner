@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- vakit_ring_widget_info.xml'in dakika hassasiyetli varyantı. updatePeriodMillis=0
+     ve tetikleyiciler A ile aynı mantığı paylaşır (bkz. BaseVakitWidgetProvider);
+     minWidth/minHeight/targetCell C ile aynı küçük kare hücreye (2x2) göre ayarlı. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/vakit_ring_widget_minute"
+    android:previewLayout="@layout/vakit_ring_widget_minute_preview"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen|keyguard"
+    android:description="@string/widget_description_ring_minute" />

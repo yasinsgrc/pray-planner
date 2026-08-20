@@ -176,7 +176,8 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
         private val ALL_PROVIDERS: List<Pair<Class<*>, () -> BaseVakitWidgetProvider>> = listOf(
             Pair(VakitWidgetProvider::class.java, { VakitWidgetProvider() }),
             Pair(VakitRingWidgetProvider::class.java, { VakitRingWidgetProvider() }),
-            Pair(VakitWidgetMinuteProvider::class.java, { VakitWidgetMinuteProvider() })
+            Pair(VakitWidgetMinuteProvider::class.java, { VakitWidgetMinuteProvider() }),
+            Pair(VakitRingMinuteWidgetProvider::class.java, { VakitRingMinuteWidgetProvider() })
         )
 
         /** JS tarafı yeni yük yazdığında (WidgetBridgePlugin.refresh) ve dahili sınır alarmlarında çağrılır. */
@@ -313,6 +314,8 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(context)
             val hasMinuteVariant = manager.getAppWidgetIds(
                 ComponentName(context, VakitWidgetMinuteProvider::class.java)
+            ).isNotEmpty() || manager.getAppWidgetIds(
+                ComponentName(context, VakitRingMinuteWidgetProvider::class.java)
             ).isNotEmpty()
             if (!hasMinuteVariant) {
                 alarmManager.cancel(pendingIntent)
