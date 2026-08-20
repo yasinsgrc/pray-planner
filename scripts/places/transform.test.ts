@@ -45,6 +45,31 @@ test("isNotable returns false when neither wikidata nor wikipedia is present", (
   assert.equal(isNotable({ name: "Bir Yer" }), false);
 });
 
+test("classifyPlace returns cami for building=mosque with a name (religion tag olmadan)", () => {
+  assert.equal(classifyPlace({ name: "Fatih Camii", building: "mosque" }), "cami");
+});
+
+test("classifyPlace returns cami for amenity=place_of_worship + religion yok + name Camii/Mescit/Mescid deseni", () => {
+  assert.equal(classifyPlace({ name: "Yeni Camii", amenity: "place_of_worship" }), "cami");
+  assert.equal(classifyPlace({ name: "Köy Mescidi", amenity: "place_of_worship" }), "cami");
+  assert.equal(classifyPlace({ name: "Sokak Mescit", amenity: "place_of_worship" }), "cami");
+});
+
+test("classifyPlace returns null for amenity=place_of_worship + religion yok + isim desene uymuyor", () => {
+  assert.equal(classifyPlace({ name: "Bilinmeyen İbadethane", amenity: "place_of_worship" }), null);
+});
+
+test("classifyPlace returns null for amenity=place_of_worship + religion=christian|jewish (KESİN dışla)", () => {
+  assert.equal(
+    classifyPlace({ name: "Ayasofya", amenity: "place_of_worship", religion: "christian" }),
+    null,
+  );
+  assert.equal(
+    classifyPlace({ name: "Neve Şalom Camii", amenity: "place_of_worship", religion: "jewish" }),
+    null,
+  );
+});
+
 test("classifyPlace jenerik isimler için null döner (cami, camii, mescit, mescid)", () => {
   assert.equal(classifyPlace({ name: "Cami", amenity: "place_of_worship", religion: "muslim" }), null);
   assert.equal(classifyPlace({ name: " Camii ", amenity: "place_of_worship", religion: "muslim" }), null);

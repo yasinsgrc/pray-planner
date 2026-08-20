@@ -13,10 +13,12 @@ const QUERY = `
 area["ISO3166-1"="TR"][admin_level=2]->.tr;
 (
   nwr["amenity"="place_of_worship"]["religion"="muslim"](area.tr);
+  nwr["building"="mosque"](area.tr);
+  nwr["amenity"="place_of_worship"]["name"~"[CcÇç]ami|[Mm]escit|[Mm]escid"](area.tr);
   nwr["historic"="tomb"](area.tr);
   nwr["building"="mausoleum"](area.tr);
 );
-out center tags;
+out tags center;
 `;
 
 async function main() {
