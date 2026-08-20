@@ -16,7 +16,7 @@ import com.getcapacitor.annotation.CapacitorPlugin
 class WidgetBridgePlugin : Plugin() {
     @PluginMethod
     fun refresh(call: PluginCall) {
-        VakitWidgetProvider.updateAllWidgets(context)
+        BaseVakitWidgetProvider.updateAllWidgets(context)
         call.resolve()
     }
 }

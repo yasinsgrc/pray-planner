@@ -88,23 +88,74 @@ class VakitWidgetProviderTest {
     }
 
     @Test
-    fun nextRefreshAtMsWakesEarlyWhenBoundaryIsMoreThanOneHourAway() {
-        val nextBoundaryMs = 10_000_000L
+    fun planNextRefreshSwitchesFormatWhenBoundaryIsMoreThanOneHourAway() {
         val now = 0L
-        assertEquals(nextBoundaryMs - ONE_HOUR_MS, nextRefreshAtMs(nextBoundaryMs, now))
+        val nextBoundaryMs = 3 * ONE_HOUR_MS
+        val plan = planNextRefresh(nextBoundaryMs, now, exactAlarms = false)
+        assertEquals(RefreshKind.FORMAT_SWITCH, plan.kind)
+        assertEquals(nextBoundaryMs - ONE_HOUR_MS, plan.atMs)
     }
 
     @Test
-    fun nextRefreshAtMsUsesBoundaryDirectlyWhenWithinOneHour() {
-        val nextBoundaryMs = 3_000_000L
+    fun planNextRefreshFreezesAtOneMinuteWhenNoExactAlarms() {
         val now = 0L
-        assertEquals(nextBoundaryMs, nextRefreshAtMs(nextBoundaryMs, now))
+        val nextBoundaryMs = 40 * 60_000L
+        val plan = planNextRefresh(nextBoundaryMs, now, exactAlarms = false)
+        assertEquals(RefreshKind.FREEZE, plan.kind)
+        assertEquals(nextBoundaryMs - ONE_MINUTE_MS, plan.atMs)
     }
 
     @Test
-    fun nextRefreshAtMsUsesBoundaryDirectlyAtExactOneHourEdge() {
-        val nextBoundaryMs = ONE_HOUR_MS
+    fun planNextRefreshGoesStraightToBoundaryWhenExactAlarmsAvailable() {
         val now = 0L
-        assertEquals(nextBoundaryMs, nextRefreshAtMs(nextBoundaryMs, now))
+        val nextBoundaryMs = 40 * 60_000L
+        val plan = planNextRefresh(nextBoundaryMs, now, exactAlarms = true)
+        assertEquals(RefreshKind.BOUNDARY, plan.kind)
+        assertEquals(nextBoundaryMs + BOUNDARY_ALARM_LEAD_MS, plan.atMs)
+    }
+
+    @Test
+    fun planNextRefreshUsesBoundaryWhenVeryCloseRegardlessOfExactAlarms() {
+        val now = 0L
+        val nextBoundaryMs = 30_000L
+        val withoutExact = planNextRefresh(nextBoundaryMs, now, exactAlarms = false)
+        val withExact = planNextRefresh(nextBoundaryMs, now, exactAlarms = true)
+        assertEquals(RefreshKind.BOUNDARY, withoutExact.kind)
+        assertEquals(RefreshKind.BOUNDARY, withExact.kind)
+    }
+
+    @Test
+    fun countdownRenderKeepsTickingUnderOneHourWithExactAlarms() {
+        val remainingMs = 8 * 60_000L + 37_000L // 8dk 37sn
+        val render = countdownRenderFor(remainingMs, exactAlarms = true)
+        assertEquals(false, render.frozen)
+        assertEquals("00:%s", render.format)
+    }
+
+    @Test
+    fun countdownRenderFreezesInLastMinuteWithoutExactAlarms() {
+        val render = countdownRenderFor(40_000L, exactAlarms = false)
+        assertEquals(true, render.frozen)
+    }
+
+    @Test
+    fun countdownRenderKeepsTickingInLastMinuteWithExactAlarms() {
+        val render = countdownRenderFor(40_000L, exactAlarms = true)
+        assertEquals(false, render.frozen)
+        assertEquals("00:%s", render.format)
+    }
+
+    @Test
+    fun countdownRenderUsesPlainFormatAtExactlyOneHour() {
+        val render = countdownRenderFor(ONE_HOUR_MS, exactAlarms = false)
+        assertEquals("%s", render.format)
+    }
+
+    @Test
+    fun countdownRenderFreezesAtZeroOrNegativeRegardlessOfExactAlarms() {
+        assertEquals(true, countdownRenderFor(0L, exactAlarms = false).frozen)
+        assertEquals(true, countdownRenderFor(0L, exactAlarms = true).frozen)
+        assertEquals(true, countdownRenderFor(-100L, exactAlarms = false).frozen)
+        assertEquals(true, countdownRenderFor(-100L, exactAlarms = true).frozen)
     }
 }
