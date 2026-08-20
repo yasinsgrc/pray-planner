@@ -172,7 +172,8 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
          * sorusuna cevap verir. Yeni varyantlar yalnızca buraya eklenir.
          */
         private val ALL_PROVIDERS: List<Pair<Class<*>, () -> BaseVakitWidgetProvider>> = listOf(
-            Pair(VakitWidgetProvider::class.java, { VakitWidgetProvider() })
+            Pair(VakitWidgetProvider::class.java, { VakitWidgetProvider() }),
+            Pair(VakitRingWidgetProvider::class.java, { VakitRingWidgetProvider() })
         )
 
         /** JS tarafı yeni yük yazdığında (WidgetBridgePlugin.refresh) ve dahili sınır alarmlarında çağrılır. */

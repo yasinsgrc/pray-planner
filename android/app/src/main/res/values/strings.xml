@@ -11,7 +11,15 @@
          değil, salt operasyonel arayüz metni. -->
     <string name="widget_countdown_label">Vaktin çıkmasına</string>
     <string name="widget_empty_state">Vakitleri yüklemek için uygulamayı açın.</string>
-    <string name="widget_description">Gün içindeki vaktin ilerleyişini ve namaz vakitlerini gösterir.</string>
+
+    <!-- Dört varyantın widget seçicide ayırt edilebilmesi için ad/açıklama
+         çifti (design-refresh-v3 Faz 23 Commit 4 sonrası). "full" günlük
+         vakit satırını da gösterir, "ring" yalnızca çemberi; "seconds"
+         Chronometer ile saniye hassasiyetinde sayar. -->
+    <string name="widget_name_full_seconds">Vakit — Çember ve Vakitler (saniyeli)</string>
+    <string name="widget_description">Çemberde günün ilerleyişini, namaz vakitlerini ve saniye hassasiyetli geri sayımı gösterir.</string>
+    <string name="widget_name_ring_seconds">Vakit — Çember (saniyeli)</string>
+    <string name="widget_description_ring_seconds">Çemberde günün ilerleyişini ve saniye hassasiyetli geri sayımı gösterir.</string>
 
     <!-- Yalnızca widget seçicide (vakit_widget_preview.xml) gösterilen
          statik örnek veriler — gerçek konum/saat değil, mevcut vakit
