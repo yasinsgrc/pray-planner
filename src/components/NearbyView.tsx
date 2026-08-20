@@ -20,7 +20,7 @@ type PermissionState = 'prompt' | 'denied';
 function PlaceRow({ place }: { place: Place }) {
   return (
     <button
-      onClick={() => AppLauncher.openUrl({ url: buildGoogleMapsUrl(place.name, place.lat, place.lon) })}
+      onClick={() => AppLauncher.openUrl({ url: buildGoogleMapsUrl(place.lat, place.lon) })}
       className="rounded-xl p-4 bg-card/70 border border-hairline/50 flex items-center gap-3.5 text-left cursor-pointer"
     >
       <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gold/10 text-gold-ink shrink-0">
