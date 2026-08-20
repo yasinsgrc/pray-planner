@@ -67,7 +67,8 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       'Konumunuz iki şekilde belirlenebilir:\n\n' +
       '- Listeden seçim (varsayılan): Uygulamanın içine gömülü şehir/ilçe listesinden seçim yaparsınız. Bu işlem tamamen çevrimdışıdır, hiçbir veri dışarı çıkmaz.\n' +
       '- "Konumumu Otomatik Kullan (GPS)": Yalnızca bu butona bastığınızda ve tarayıcı izni verdiğinizde cihazınızın konumu okunur. Koordinat, bulunduğunuz yerin adını belirlemek için tek seferlik olarak OpenStreetMap Nominatim servisine gönderilir. Koordinatınız tarafımızca kaydedilmez.\n\n' +
-      'Uygulama arka planda konumunuzu takip etmez. Farklı bir şehre gittiğinizde bir öneri gösterilebilir; bu kontrol yalnızca uygulama ön plana geldiğinde ve daha önce konum izni vermişseniz yapılır, konumunuz hiçbir yere gönderilmez ve konum otomatik olarak değiştirilmez — kararı siz verirsiniz.',
+      'Uygulama arka planda konumunuzu takip etmez. Farklı bir şehre gittiğinizde bir öneri gösterilebilir; bu kontrol yalnızca uygulama ön plana geldiğinde ve daha önce konum izni vermişseniz yapılır, konumunuz hiçbir yere gönderilmez ve konum otomatik olarak değiştirilmez — kararı siz verirsiniz.\n\n' +
+      'Keşfet sekmesindeki "Yakınımda" görünümü için okunan konum da sunucumuza hiçbir zaman gönderilmez; yakınınızdaki cami, türbe ve tarihi yer listesi, uygulamayla birlikte gelen çevrimdışı bir veri seti kullanılarak tamamen cihazınızda hesaplanır.',
   },
   {
     title: '6. Üçüncü Taraf Hizmetler',

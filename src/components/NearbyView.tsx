@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { AppLauncher } from '@capacitor/app-launcher';
 import { MapPinIcon, WarningCircleIcon } from './icons';
 import { findNearby, Place, PlaceCategory, PlaceIndex } from '../lib/places/query';
 import { formatDistance } from '../lib/places/formatDistance';
+import { buildGoogleMapsUrl } from '../lib/places/mapsLink';
 import { getGpsErrorMessage } from '../utils/gpsError';
 import { isNativePlatform } from '../utils/platform';
 
@@ -17,7 +19,10 @@ type PermissionState = 'prompt' | 'denied';
 
 function PlaceRow({ place }: { place: Place }) {
   return (
-    <div className="rounded-xl p-4 bg-card/70 border border-hairline/50 flex items-center gap-3.5">
+    <button
+      onClick={() => AppLauncher.openUrl({ url: buildGoogleMapsUrl(place.name, place.lat, place.lon) })}
+      className="rounded-xl p-4 bg-card/70 border border-hairline/50 flex items-center gap-3.5 text-left cursor-pointer"
+    >
       <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gold/10 text-gold-ink shrink-0">
         <MapPinIcon className="w-5 h-5" />
       </div>
@@ -25,7 +30,7 @@ function PlaceRow({ place }: { place: Place }) {
         <p className="text-base font-bold text-ink truncate">{place.name}</p>
         <p className="text-micro text-mist mt-0.5">{formatDistance(place.distanceMeters)}</p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -205,6 +210,17 @@ export const NearbyView: React.FC = () => {
           {places.map((place) => (
             <PlaceRow key={`${place.lat},${place.lon},${place.name}`} place={place} />
           ))}
+          <p className="text-micro text-mist text-center pt-2">
+            Mekân verileri{' '}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              © OpenStreetMap katkıcıları (ODbL)
+            </a>
+          </p>
         </div>
       )}
     </div>
