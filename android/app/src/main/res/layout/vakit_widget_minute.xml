@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- vakit_widget.xml'in dakika hassasiyetli varyantı — tek fark, kendi
+     kendine akan Chronometer yerine statik bir TextView (id aynı:
+     widget_countdown), metni BaseVakitWidgetProvider tarafından
+     MinuteCountdown.minuteText ile dakika alarmında yazılır. Font
+     nitelikleri Chronometer ile birebir aynı. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="14dp">
+
+    <!-- widget_empty ve widget_content, aynı dikey LinearLayout içinde
+         weight=1 ile 0dp yükseklik paylaşır: yalnızca biri visibility=visible
+         olsa da (öteki gone), iki match_parent kardeşin ölçüm sırasına göre
+         kırılgan davranmasının önüne geçer. -->
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="@string/widget_empty_state"
+        android:textColor="@color/widget_text_secondary"
+        android:textSize="13sp"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:shadowColor="#B3000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/widget_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <!-- Arc çemberi (ArcRenderer) widget_arc'a çizilir. Boyut/veri
+             eksikse VakitWidgetMinuteProvider gone bırakır, mevcut düzen
+             bozulmaz. Çemberin içine metin bindirmek için FrameLayout
+             kullanılır: altta çember (ImageView), üstte ortalanmış üç
+             satırlık metin. -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/widget_arc"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/widget_arc_text_block"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
+
+                <TextView
+                    android:id="@+id/widget_location"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:fontFamily="sans-serif"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+
+                <!-- Geri sayım çemberin tek birincil öğesi, nötr birincil
+                     metin tonunda: widget_accent yalnızca ArcRenderer'daki
+                     çember işaretçisinde kullanılır. -->
+                <TextView
+                    android:id="@+id/widget_countdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:id="@+id/widget_active_prayer_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/widget_prayer_name_0"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:id="@+id/widget_prayer_time_0"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/widget_prayer_name_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:id="@+id/widget_prayer_time_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/widget_prayer_name_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:id="@+id/widget_prayer_time_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/widget_prayer_name_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:id="@+id/widget_prayer_time_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/widget_prayer_name_4"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:id="@+id/widget_prayer_time_4"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/widget_prayer_name_5"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+
+                <TextView
+                    android:id="@+id/widget_prayer_time_5"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="#B3000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="4" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

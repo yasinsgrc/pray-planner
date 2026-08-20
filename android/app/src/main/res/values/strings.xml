@@ -20,6 +20,8 @@
     <string name="widget_description">Çemberde günün ilerleyişini, namaz vakitlerini ve saniye hassasiyetli geri sayımı gösterir.</string>
     <string name="widget_name_ring_seconds">Vakit — Çember (saniyeli)</string>
     <string name="widget_description_ring_seconds">Çemberde günün ilerleyişini ve saniye hassasiyetli geri sayımı gösterir.</string>
+    <string name="widget_name_full_minute">Vakit — Çember ve Vakitler (dakikalı)</string>
+    <string name="widget_description_full_minute">Çemberde günün ilerleyişini, namaz vakitlerini ve dakika hassasiyetli geri sayımı gösterir.</string>
 
     <!-- Yalnızca widget seçicide (vakit_widget_preview.xml) gösterilen
          statik örnek veriler — gerçek konum/saat değil, mevcut vakit

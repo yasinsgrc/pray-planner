@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Yalnızca widget seçicide (previewLayout) gösterilir; vakit_widget_preview.xml'in
+     statik bir kopyasıdır. Gerçek veri burada YOKTUR — tüm metinler
+     values/strings.xml'deki widget_preview_* örnek string'lerinden gelir
+     (vakit_widget_preview.xml ile aynı, dakika varyantı için ayrı bir
+     örnek string eklenmedi), Kotlin tarafından doldurulmaz. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="14dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_preview_location"
+        android:textColor="@color/widget_text_secondary"
+        android:textSize="11sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:shadowColor="#B3000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/widget_preview_active_prayer_name"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:shadowColor="#B3000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="4" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_preview_window_range"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:shadowColor="#B3000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="4" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/widget_countdown_label"
+        android:textColor="@color/widget_text_secondary"
+        android:textSize="11sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:shadowColor="#B3000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_preview_countdown"
+        android:textColor="@color/widget_accent"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:shadowColor="#B3000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_name_0"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_time_0"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_name_1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_time_1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_name_2"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_time_2"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_name_3"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_time_3"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_name_4"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_time_4"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_name_5"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/widget_preview_prayer_time_5"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="#B3000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

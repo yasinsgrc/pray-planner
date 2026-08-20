@@ -155,8 +155,10 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
         private const val SCHEMA_VERSION = 1
         const val ACTION_REFRESH_BOUNDARY = "com.vakit.widget.ACTION_REFRESH_BOUNDARY"
         const val ACTION_PERIODIC_REFRESH = "com.vakit.widget.ACTION_PERIODIC_REFRESH"
+        const val ACTION_MINUTE_TICK = "com.vakit.widget.ACTION_MINUTE_TICK"
         private const val BOUNDARY_ALARM_REQUEST_CODE = 0
         private const val PERIODIC_ALARM_REQUEST_CODE = 1
+        private const val MINUTE_ALARM_REQUEST_CODE = 2
         private const val PERIODIC_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
 
         /** RemoteViews Binder ~1MB sınırını korumak için bitmap kenarına üst sınır (ARGB_8888, 384px ≈ 589KB). */
@@ -173,7 +175,8 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
          */
         private val ALL_PROVIDERS: List<Pair<Class<*>, () -> BaseVakitWidgetProvider>> = listOf(
             Pair(VakitWidgetProvider::class.java, { VakitWidgetProvider() }),
-            Pair(VakitRingWidgetProvider::class.java, { VakitRingWidgetProvider() })
+            Pair(VakitRingWidgetProvider::class.java, { VakitRingWidgetProvider() }),
+            Pair(VakitWidgetMinuteProvider::class.java, { VakitWidgetMinuteProvider() })
         )
 
         /** JS tarafı yeni yük yazdığında (WidgetBridgePlugin.refresh) ve dahili sınır alarmlarında çağrılır. */
@@ -189,6 +192,7 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
             }
             if (!anyUpdated) return
             scheduleNextBoundaryAlarm(context)
+            scheduleOrCancelMinuteAlarm(context)
         }
 
         /** PendingIntent hedefi her zaman VakitWidgetProvider'dır — manifestteki tek receiver bu; o varyantın hiç örneği olmasa bile explicit broadcast ona ulaşır. */
@@ -209,6 +213,17 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
             }
             return PendingIntent.getBroadcast(
                 context, PERIODIC_ALARM_REQUEST_CODE, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        /** Sınır (0) ve periyodik (1) alarmların request code'larını ezmemek için ayrı bir request code (2) kullanır. */
+        private fun minuteAlarmPendingIntent(context: Context): PendingIntent {
+            val intent = Intent(context, VakitWidgetProvider::class.java).apply {
+                action = ACTION_MINUTE_TICK
+            }
+            return PendingIntent.getBroadcast(
+                context, MINUTE_ALARM_REQUEST_CODE, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         }
@@ -234,25 +249,27 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
             )
         }
 
-        private fun scheduleNextBoundaryAlarm(context: Context) {
+        /** JS tarafının yazdığı yükten bir sonraki vakit sınırını (atMs > now) okur; yük yoksa/bozuksa/tüm pencere geçmişteyse -1L döner. */
+        private fun readNextBoundary(context: Context, now: Long): Long {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val raw = prefs.getString(PAYLOAD_KEY, null) ?: return
+            val raw = prefs.getString(PAYLOAD_KEY, null) ?: return -1L
             val json = try {
                 JSONObject(raw)
             } catch (e: Exception) {
-                return
+                return -1L
             }
-            val entriesJson = json.optJSONArray("entries") ?: return
-            val now = System.currentTimeMillis()
+            val entriesJson = json.optJSONArray("entries") ?: return -1L
 
-            var nextBoundary = -1L
             for (i in 0 until entriesJson.length()) {
                 val atMs = entriesJson.optJSONObject(i)?.optLong("atMs", -1L) ?: continue
-                if (atMs > now) {
-                    nextBoundary = atMs
-                    break
-                }
+                if (atMs > now) return atMs
             }
+            return -1L
+        }
+
+        private fun scheduleNextBoundaryAlarm(context: Context) {
+            val now = System.currentTimeMillis()
+            val nextBoundary = readNextBoundary(context, now)
             if (nextBoundary <= 0) return
 
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -280,6 +297,39 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
                 )
             }
         }
+
+        /**
+         * Dakika varyantının (Chronometer olmayan, bkz. MinuteCountdown) TextView'ini
+         * bir sonraki dakika sınırında tazelemek için tek seferlik, cihazı UYANDIRMAYAN
+         * (ELAPSED_REALTIME, _WAKEUP değil) bir alarm kurar. Yalnızca en az bir dakika
+         * varyantı örneği varsa kurulur; yoksa iptal edilir — her updateAllWidgets ve
+         * onUpdate/onDisabled sonunda yeniden değerlendirilir, alarm kendi kendini
+         * (onReceive -> updateAllWidgets -> bu fonksiyon) yeniden kurar.
+         */
+        private fun scheduleOrCancelMinuteAlarm(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val pendingIntent = minuteAlarmPendingIntent(context)
+
+            val manager = AppWidgetManager.getInstance(context)
+            val hasMinuteVariant = manager.getAppWidgetIds(
+                ComponentName(context, VakitWidgetMinuteProvider::class.java)
+            ).isNotEmpty()
+            if (!hasMinuteVariant) {
+                alarmManager.cancel(pendingIntent)
+                return
+            }
+
+            val now = System.currentTimeMillis()
+            val nextBoundary = readNextBoundary(context, now)
+            if (nextBoundary <= 0) {
+                alarmManager.cancel(pendingIntent)
+                return
+            }
+
+            val delay = MinuteCountdown.nextTickDelayMs(nextBoundary - now)
+            val triggerElapsedRealtime = SystemClock.elapsedRealtime() + delay
+            alarmManager.set(AlarmManager.ELAPSED_REALTIME, triggerElapsedRealtime, pendingIntent)
+        }
     }
 
     private data class WidgetEntry(val name: String, val label: String, val atMs: Long)
@@ -290,6 +340,7 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
         }
         scheduleNextBoundaryAlarm(context)
         schedulePeriodicRefreshAlarm(context)
+        scheduleOrCancelMinuteAlarm(context)
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -311,7 +362,8 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_BOOT_COMPLETED,
             ACTION_REFRESH_BOUNDARY,
-            ACTION_PERIODIC_REFRESH -> updateAllWidgets(context)
+            ACTION_PERIODIC_REFRESH,
+            ACTION_MINUTE_TICK -> updateAllWidgets(context)
         }
     }
 
@@ -323,6 +375,9 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
         val anyRemaining = ALL_PROVIDERS.any { (clazz, _) ->
             manager.getAppWidgetIds(ComponentName(context, clazz)).isNotEmpty()
         }
+        // Dakika alarmı yalnızca dakika varyantının kendi örnek sayısına bağlı,
+        // diğer varyantlardan bağımsız olarak her onDisabled'da yeniden değerlendirilir.
+        scheduleOrCancelMinuteAlarm(context)
         if (anyRemaining) return
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(boundaryAlarmPendingIntent(context))
@@ -418,6 +473,8 @@ abstract class BaseVakitWidgetProvider : AppWidgetProvider() {
             // Sıra önemli: RemoteViews eylemleri eklenme sırasıyla uygulanır, setChronometer
             // metni yeniden yazar — bu yüzden statik metin ondan SONRA eklenmeli.
             if (render.frozen) views.setTextViewText(R.id.widget_countdown, "00:00:00")
+        } else {
+            views.setTextViewText(R.id.widget_countdown, MinuteCountdown.minuteText(next.atMs - now))
         }
 
         val dayBlockStart = dayBlockStartFor(activeIndex)
