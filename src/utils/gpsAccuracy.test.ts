@@ -1,8 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveGpsDistrictLabel } from './gpsAccuracy';
+import { resolveGpsDistrictLabel, LOW_ACCURACY_THRESHOLD_M } from './gpsAccuracy';
 
 const NEAREST = { cityName: 'Kocaeli', districtName: 'Çayırova' };
+
+test('LOW_ACCURACY_THRESHOLD_M is exported so other GPS call sites can reuse the same threshold', () => {
+  assert.equal(LOW_ACCURACY_THRESHOLD_M, 1000);
+});
 
 test('good accuracy (<=1000m) keeps the matched district name as-is', () => {
   assert.equal(resolveGpsDistrictLabel(NEAREST, 20), 'Çayırova');

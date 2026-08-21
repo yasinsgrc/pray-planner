@@ -6,6 +6,7 @@ import { formatDistance } from '../lib/places/formatDistance';
 import { buildGoogleMapsUrl } from '../lib/places/mapsLink';
 import { getGpsErrorMessage } from '../utils/gpsError';
 import { isNativePlatform } from '../utils/platform';
+import { LOW_ACCURACY_THRESHOLD_M } from '../utils/gpsAccuracy';
 
 const CATEGORY_CHIPS: { value: PlaceCategory; label: string; emptyNoun: string }[] = [
   { value: 'cami', label: 'Camiler', emptyNoun: 'cami' },
@@ -13,7 +14,7 @@ const CATEGORY_CHIPS: { value: PlaceCategory; label: string; emptyNoun: string }
   { value: 'tarihi', label: 'Tarihi', emptyNoun: 'tarihi yer' },
 ];
 
-const GEOLOCATION_OPTIONS: PositionOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 };
+const GEOLOCATION_OPTIONS: PositionOptions = { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 };
 
 type PermissionState = 'prompt' | 'denied';
 
@@ -68,7 +69,7 @@ function Skeleton() {
 
 export const NearbyView: React.FC = () => {
   const [category, setCategory] = useState<PlaceCategory>('cami');
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [permission, setPermission] = useState<PermissionState>('prompt');
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -100,7 +101,7 @@ export const NearbyView: React.FC = () => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setIsLocating(false);
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
       },
       (error) => {
         setIsLocating(false);
@@ -200,18 +201,30 @@ export const NearbyView: React.FC = () => {
         )
       ) : !places ? (
         <Skeleton />
-      ) : places.length === 0 ? (
-        <CenteredMessage
-          icon={<MapPinIcon className="w-8 h-8 text-gold/40" />}
-          title="Sonuç bulunamadı"
-          description={`Bu bölgede kayıtlı ${activeChip.emptyNoun} bulunamadı.`}
-        />
       ) : (
-        <div className="flex flex-col gap-2 px-4 pt-4 pb-4">
-          {places.map((place) => (
-            <PlaceRow key={`${place.lat},${place.lon},${place.name}`} place={place} />
-          ))}
-        </div>
+        <>
+          {coords.accuracy > LOW_ACCURACY_THRESHOLD_M && (
+            <div className="mx-4 mt-3 p-3 rounded-xl bg-danger/10 border border-danger/20 flex items-start gap-2 text-left">
+              <WarningCircleIcon className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
+              <p className="text-[11px] text-danger-ink">
+                Konum hassasiyeti düşük (±{Math.round(coords.accuracy)} m) — mesafeler yaklaşıktır.
+              </p>
+            </div>
+          )}
+          {places.length === 0 ? (
+            <CenteredMessage
+              icon={<MapPinIcon className="w-8 h-8 text-gold/40" />}
+              title="Sonuç bulunamadı"
+              description={`Bu bölgede kayıtlı ${activeChip.emptyNoun} bulunamadı.`}
+            />
+          ) : (
+            <div className="flex flex-col gap-2 px-4 pt-4 pb-4">
+              {places.map((place) => (
+                <PlaceRow key={`${place.lat},${place.lon},${place.name}`} place={place} />
+              ))}
+            </div>
+          )}
+        </>
       )}
       <p className="text-micro text-mist text-center py-2">
         Mekân verileri{' '}

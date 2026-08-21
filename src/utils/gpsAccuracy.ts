@@ -1,4 +1,4 @@
-const LOW_ACCURACY_THRESHOLD_M = 1000;
+export const LOW_ACCURACY_THRESHOLD_M = 1000;
 
 /**
  * findNearestLocation() picks the closest bundled centroid by straight-line
