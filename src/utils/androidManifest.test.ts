@@ -22,3 +22,11 @@ test('AndroidManifest.xml still declares INTERNET (regression guard)', () => {
 test('AndroidManifest.xml does not declare ACCESS_BACKGROUND_LOCATION (Play policy risk)', () => {
   assert.equal(manifest.includes('android.permission.ACCESS_BACKGROUND_LOCATION'), false);
 });
+
+// Keyboard resize is handled by exactly one layer: native adjustResize.
+// adjustNothing was a leftover experiment that left dvh un-shrunk, forcing
+// BottomSheet to compensate with a second (JS) and third (translateY) layer.
+test('regression: MainActivity uses windowSoftInputMode="adjustResize" (single-layer keyboard resize)', () => {
+  assert.equal(manifest.includes('android:windowSoftInputMode="adjustResize"'), true);
+  assert.equal(manifest.includes('android:windowSoftInputMode="adjustNothing"'), false);
+});

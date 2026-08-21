@@ -15,7 +15,7 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustNothing"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
 
             <intent-filter>
@@ -102,6 +102,26 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/vakit_ring_widget_minute_info" />
+        </receiver>
+
+        <!-- Günlük Esmâ-ül Hüsnâ widget'ı. Vakit widget'larından TAMAMEN
+             bağımsız: kendi alarm zinciri (EsmaWidgetProvider, request code 3),
+             BaseVakitWidgetProvider'dan türemez. -->
+        <receiver
+            android:name=".widget.EsmaWidgetProvider"
+            android:label="@string/widget_name_esma"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.vakit.widget.ACTION_REFRESH_ESMA" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/esma_widget_info" />
         </receiver>
     </application>
 

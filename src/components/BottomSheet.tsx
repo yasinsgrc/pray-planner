@@ -2,7 +2,6 @@ import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, PanInfo, useDragControls } from 'motion/react';
 import { XIcon } from './icons';
-import { useVisualViewportKeyboard } from '../hooks/useVisualViewportKeyboard';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -40,18 +39,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  // design-refresh-v3 Faz 24 Commit 4 — the virtual keyboard shrinks
-  // `visualViewport`, not the layout viewport; a `bottom-0`-pinned sheet
-  // stays where it is relative to the (now keyboard-obscured) layout
-  // viewport, so the focused input can end up hidden behind the keyboard.
-  // Tracks how far the visual viewport's bottom edge has risen above the
-  // layout viewport's, and feeds that into the sheet's own `animate.y` as a
-  // `transform: translateY(...)` — never touches `bottom`, which wouldn't
-  // react to visualViewport at all. The same value is also written onto
-  // `--kb-height` (see useVisualViewportKeyboard) so the sheet's max-height
-  // and bottom padding can shrink to fit above the keyboard instead of
-  // getting clipped at the top.
-  const keyboardOffset = useVisualViewportKeyboard(isOpen);
+  // Keyboard height is handled by native adjustResize alone; dvh already
+  // reflects the shrunk viewport, so no JS-side offset is needed here.
 
   useEffect(() => {
     if (!isOpen) return;
@@ -124,11 +113,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             dragElastic={{ top: 0, bottom: 0.4 }}
             onDragEnd={handleDragEnd}
             initial={{ y: '100%' }}
-            animate={{ y: -keyboardOffset }}
+            animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 320 }}
             className="fixed bottom-0 left-0 right-0 z-50 max-w-[var(--shell-w)] mx-auto bg-card rounded-t-[28px] shadow-2xl flex flex-col"
-            style={{ maxHeight: 'min(80dvh, calc(100dvh - var(--kb-height, 0px)))' }}
+            style={{ maxHeight: '80dvh' }}
           >
             {/* Sürükleme yalnızca bu tutamaçtan başlar; içerik alanı normal kaydırılabilir kalır. */}
             <div
@@ -152,7 +141,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             <div
               className="px-5 flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide"
               style={{
-                paddingBottom: 'max(0px, calc(env(safe-area-inset-bottom) + 24px - var(--kb-height, 0px)))',
+                paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
               }}
             >
               {children}

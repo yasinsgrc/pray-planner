@@ -12,20 +12,30 @@ import path from 'node:path';
 const source = readFileSync(path.join(import.meta.dirname, 'BottomSheet.tsx'), 'utf8');
 const cssSource = readFileSync(path.join(import.meta.dirname, '..', 'index.css'), 'utf8');
 
-test('BottomSheet tracks the keyboard via the shared useVisualViewportKeyboard hook', () => {
-  assert.match(source, /useVisualViewportKeyboard\(isOpen\)/);
-  assert.doesNotMatch(source, /window\.visualViewport/, 'raw visualViewport wiring should live in the hook, not duplicated here');
+// Keyboard resize is handled by a single layer: native android:windowSoftInputMode
+//="adjustResize" (see androidManifest.test.ts), which shrinks dvh directly.
+// The JS visualViewport hook, the --kb-height CSS var, and the translateY
+// offset were a second and third layer stacked on top of that, double- and
+// triple-counting the keyboard height. This rewritten test asserts they're
+// gone and stay gone, rather than asserting the old --kb-height contract.
+
+test('regression: no visualViewport-based keyboard offset hook or CSS var — native adjustResize is the only resize layer', () => {
+  assert.doesNotMatch(source, /useVisualViewportKeyboard/);
+  assert.doesNotMatch(source, /window\.visualViewport/);
+  assert.doesNotMatch(source, /--kb-height/);
 });
 
-test('sheet max-height backs off to fit the space left after the keyboard, not just a fixed dvh cap', () => {
-  assert.match(source, /min\(80dvh,\s*calc\(100dvh - var\(--kb-height, 0px\)\)\)/);
+test('regression: sheet max-height is plain 80dvh, no var(--kb-height) subtraction on top of native adjustResize', () => {
+  assert.match(source, /maxHeight: '80dvh'/);
+  assert.doesNotMatch(source, /calc\(100dvh - var\(--kb-height/);
 });
 
-test('bottom safe-area padding backs off once the keyboard opens instead of stacking on top of it', () => {
-  assert.match(
-    source,
-    /max\(0px, calc\(env\(safe-area-inset-bottom\) \+ 24px - var\(--kb-height, 0px\)\)\)/
-  );
+test('regression: sheet is not translated by a JS keyboard offset — native adjustResize already repositions it', () => {
+  assert.match(source, /animate=\{\{\s*y:\s*0\s*\}\}/);
+});
+
+test('bottom safe-area padding is a plain safe-area calc, no --kb-height back-off', () => {
+  assert.match(source, /paddingBottom: 'calc\(env\(safe-area-inset-bottom\) \+ 24px\)'/);
 });
 
 test('sheet root stays a single flex column with one flex:1 min-h-0 overflow-y-auto scroll container', () => {
@@ -37,6 +47,6 @@ test('no bare vh unit is used for the sheet — dvh only', () => {
   assert.doesNotMatch(source, /\dvh(?!\w)/);
 });
 
-test('--kb-height design token defaults to 0px in :root', () => {
-  assert.match(cssSource, /--kb-height:\s*0px;/);
+test('regression: --kb-height design token is removed from :root, not just unused', () => {
+  assert.doesNotMatch(cssSource, /--kb-height/);
 });
