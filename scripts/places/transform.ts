@@ -36,9 +36,13 @@ export interface PlaceEntry {
 const GENERIC_NAMES = new Set(["cami", "camii", "mescit", "mescid"]);
 const CAMI_NAME_PATTERN = /[CcÇç]ami|[Mm]escit|[Mm]escid/;
 
+function normalizeName(name: string): string {
+  return name.trim().replace(/İ/g, "i").toLowerCase().normalize("NFC");
+}
+
 export function classifyPlace(tags: OsmTags): PlaceKind | null {
   if (!tags.name) return null;
-  if (GENERIC_NAMES.has(tags.name.trim().toLowerCase())) return null;
+  if (GENERIC_NAMES.has(normalizeName(tags.name))) return null;
   if (tags.historic === "tomb" || tags.building === "mausoleum") return "turbe";
   if (tags.amenity === "place_of_worship" && tags.religion && tags.religion !== "muslim") return null;
   if (tags.building === "mosque") return "cami";

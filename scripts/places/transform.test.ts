@@ -77,6 +77,16 @@ test("classifyPlace jenerik isimler için null döner (cami, camii, mescit, mesc
   assert.equal(classifyPlace({ name: "mescid", amenity: "place_of_worship", religion: "muslim" }), null);
 });
 
+test("classifyPlace Türkçe büyük harf jenerik isimleri filtreler (İ/I edge case)", () => {
+  assert.equal(classifyPlace({ name: "CAMİ", building: "mosque" }), null);
+  assert.equal(
+    classifyPlace({ name: "MESCİT", amenity: "place_of_worship", religion: "muslim" }),
+    null,
+  );
+  assert.equal(classifyPlace({ name: "Camii", building: "mosque" }), null);
+  assert.equal(classifyPlace({ name: "Fatih Camii", building: "mosque" }), "cami");
+});
+
 test("transform aynı bucket'ta aynı isimli ve 100m'den yakın kayıtları eler (ilk gelen kalır)", () => {
   const data: OsmData = {
     elements: [
