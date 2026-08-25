@@ -66,14 +66,14 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     body:
       'Konumunuz iki şekilde belirlenebilir:\n\n' +
       '- Listeden seçim (varsayılan): Uygulamanın içine gömülü şehir/ilçe listesinden seçim yaparsınız. Bu işlem tamamen çevrimdışıdır, hiçbir veri dışarı çıkmaz.\n' +
-      '- "Konumumu Otomatik Kullan (GPS)": Yalnızca bu butona bastığınızda ve tarayıcı izni verdiğinizde cihazınızın konumu okunur. Koordinat, bulunduğunuz yerin adını belirlemek için tek seferlik olarak OpenStreetMap Nominatim servisine gönderilir. Koordinatınız tarafımızca kaydedilmez.\n\n' +
+      '- "Konumumu Otomatik Kullan (GPS)": Yalnızca bu butona bastığınızda ve tarayıcı izni verdiğinizde cihazınızın konumu okunur. GPS koordinatınız cihazınızdan hiçbir zaman çıkmaz; yer adı (şehir/ilçe), uygulamayla birlikte gelen çevrimdışı ilçe sınırı verisi kullanılarak tamamen cihazınızda belirlenir.\n\n' +
       'Uygulama arka planda konumunuzu takip etmez. Farklı bir şehre gittiğinizde bir öneri gösterilebilir; bu kontrol yalnızca uygulama ön plana geldiğinde ve daha önce konum izni vermişseniz yapılır, konumunuz hiçbir yere gönderilmez ve konum otomatik olarak değiştirilmez — kararı siz verirsiniz.\n\n' +
       'Keşfet sekmesindeki "Yakınımda" görünümü için okunan konum da sunucumuza hiçbir zaman gönderilmez; yakınınızdaki cami, türbe ve tarihi yer listesi, uygulamayla birlikte gelen çevrimdışı bir veri seti kullanılarak tamamen cihazınızda hesaplanır.',
   },
   {
     title: '6. Üçüncü Taraf Hizmetler',
     body:
-      '- OpenStreetMap Nominatim: Yerel listede bulunamayan bir yeri "İnternette Ara" ile aradığınızda veya GPS ile konum bulduğunuzda — arama metniniz veya koordinatınız ve sunucumuzun IP adresi (sizin IP\'niz değil) ona ulaşır.\n' +
+      '- OpenStreetMap Nominatim: Yerel listede bulunamayan bir yeri "İnternette Ara" ile aradığınızda — arama metniniz ve sunucumuzun IP adresi (sizin IP\'niz değil) ona ulaşır.\n' +
       '- Tarayıcı push servisi (Google FCM, Apple veya Mozilla): Bildirimleri açtığınızda — push abonelik adresiniz ve şifrelenmiş bildirim içeriği ona ulaşır.\n' +
       '- ummahapi.com: Maneviyat sekmesindeki günlük ayet çekilirken — yalnızca sunucumuzun isteği gider, size ait hiçbir bilgi gönderilmez.\n' +
       '- {{HOSTING_PROVIDER}}: Uygulamayı her açtığınızda — standart sunucu erişim kayıtları (IP adresi, tarih, istek yolu) ona ulaşır.\n\n' +

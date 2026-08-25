@@ -136,6 +136,27 @@ test('no section claims a specific server access-log retention period', () => {
   assert.doesNotMatch(fullText, /LOG_RETENTION_DAYS/);
 });
 
+// design-refresh-v3 Faz 27.15 — GPS coordinates never leave the device:
+// LocationModal.tsx's handleUseGPS makes no network request, and
+// /api/reverse-geocode was removed in Faz 16 (rejected by
+// server/app.ts:155, asserted by server/app.test.ts:338). Section 5
+// previously claimed the coordinate was sent to Nominatim to resolve the
+// place name — false since Faz 16, when on-device district boundary
+// resolution replaced that flow.
+test('section 5 (Konum Bilgisi) does not claim the GPS coordinate is sent to Nominatim', () => {
+  const body = sectionBody('5. Konum Bilgisi');
+  assert.doesNotMatch(body, /GPS[\s\S]{0,200}Nominatim/i);
+  assert.match(body, /GPS[\s\S]{0,200}(cihaz[ıi]n[ıi]zdan hiçbir zaman çıkmaz|çevrimdışı|tamamen cihaz)/i);
+});
+
+test('section 6 (Üçüncü Taraf Hizmetler) Nominatim bullet only describes text search, not GPS', () => {
+  const body = sectionBody('6. Üçüncü Taraf Hizmetler');
+  const nominatimLine = body.split('\n').find((line) => /Nominatim/i.test(line));
+  assert.ok(nominatimLine, 'expected a Nominatim bullet line');
+  assert.doesNotMatch(nominatimLine!, /GPS/i);
+  assert.doesNotMatch(nominatimLine!, /koordinat/i);
+});
+
 // Guards the {{TOKEN}} contract itself: PrivacyPolicyModal.tsx only knows
 // how to fill these five tokens (renderWithFields' `values` map) — an
 // unexpected token would silently render as a raw "[TOKEN — .env dosyasında
