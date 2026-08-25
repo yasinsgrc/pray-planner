@@ -2,7 +2,7 @@ import { haversineDistanceKm } from "../../utils/geo";
 import { neighborBuckets } from "./geo";
 
 export interface PlaceEntry {
-  n: string;
+  n?: string;
   y: number;
   x: number;
   c: 0 | 1;
@@ -14,7 +14,7 @@ export type PlaceIndex = Record<string, PlaceEntry[]>;
 export type PlaceCategory = "cami" | "turbe" | "tarihi";
 
 export interface Place {
-  name: string;
+  name: string | null;
   lat: number;
   lon: number;
   distanceMeters: number;
@@ -45,7 +45,7 @@ export function findNearby(
     for (const entry of entries) {
       if (!matchesCategory(entry, category)) continue;
       results.push({
-        name: entry.n,
+        name: entry.n ?? null,
         lat: entry.y,
         lon: entry.x,
         distanceMeters: haversineDistanceKm(lat, lon, entry.y, entry.x) * 1000,

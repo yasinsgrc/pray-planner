@@ -72,6 +72,16 @@ test("findNearby limit belirtilmezse varsayılan 30 kullanır", () => {
   assert.equal(result.length, 30);
 });
 
+test("findNearby isimsiz kayıtlar için name alanını null döner", () => {
+  const key = bucketKey(CENTER_LAT, CENTER_LON);
+  const index: PlaceIndex = {
+    [key]: [{ y: 41.001, x: 29.001, c: 0 }],
+  };
+  const result = findNearby(index, CENTER_LAT, CENTER_LON, "cami");
+  assert.equal(result.length, 1);
+  assert.equal(result[0].name, null);
+});
+
 test("findNearby 9 hücre dışında kalan girdileri görmezden gelir ve halka genişletmez", () => {
   const farKey = bucketKey(CENTER_LAT + 1, CENTER_LON + 1);
   const index: PlaceIndex = {

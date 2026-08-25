@@ -26,7 +26,7 @@ export interface OsmData {
 }
 
 export interface PlaceEntry {
-  n: string;
+  n?: string;
   y: number;
   x: number;
   c: 0 | 1;
@@ -40,14 +40,19 @@ function normalizeName(name: string): string {
   return name.trim().replace(/İ/g, "i").toLowerCase().normalize("NFC");
 }
 
+export function resolvePlaceName(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  if (GENERIC_NAMES.has(normalizeName(name))) return undefined;
+  return name;
+}
+
 export function classifyPlace(tags: OsmTags): PlaceKind | null {
-  if (!tags.name) return null;
-  if (GENERIC_NAMES.has(normalizeName(tags.name))) return null;
   if (tags.historic === "tomb" || tags.building === "mausoleum") return "turbe";
   if (tags.amenity === "place_of_worship" && tags.religion && tags.religion !== "muslim") return null;
   if (tags.building === "mosque") return "cami";
   if (tags.amenity === "place_of_worship" && tags.religion === "muslim") return "cami";
-  if (tags.amenity === "place_of_worship" && !tags.religion && CAMI_NAME_PATTERN.test(tags.name)) return "cami";
+  if (tags.amenity === "place_of_worship" && !tags.religion && tags.name && CAMI_NAME_PATTERN.test(tags.name))
+    return "cami";
   return null;
 }
 
@@ -59,15 +64,43 @@ function round5(value: number): number {
   return Math.round(value * 1e5) / 1e5;
 }
 
-const DEDUPE_DEGREE_THRESHOLD = 100 / 111_320; // ~100m, basit derece farkı
+const DEDUPE_NAMED_DEGREE_THRESHOLD = 100 / 111_320; // ~100m, basit derece farkı
+const DEDUPE_UNNAMED_DEGREE_THRESHOLD = 50 / 111_320; // ~50m, basit derece farkı
 
-function isNearDuplicate(entry: PlaceEntry, existing: PlaceEntry[]): boolean {
-  return existing.some(
-    (other) =>
-      other.n === entry.n &&
-      Math.abs(other.y - entry.y) < DEDUPE_DEGREE_THRESHOLD &&
-      Math.abs(other.x - entry.x) < DEDUPE_DEGREE_THRESHOLD,
+function isNear(a: PlaceEntry, b: PlaceEntry, thresholdDeg: number): boolean {
+  return Math.abs(a.y - b.y) < thresholdDeg && Math.abs(a.x - b.x) < thresholdDeg;
+}
+
+// İsimsiz bina poligonu genelde isimli node'u içerir, bu yüzden isimli+isimsiz
+// çakışmasında isimsiz olan her zaman elenir (hangisi önce geldiğinden bağımsız).
+function addEntry(bucket: PlaceEntry[], entry: PlaceEntry): void {
+  if (entry.n) {
+    const isDuplicateNamed = bucket.some(
+      (other) => other.n === entry.n && isNear(other, entry, DEDUPE_NAMED_DEGREE_THRESHOLD),
+    );
+    if (isDuplicateNamed) return;
+
+    for (let i = bucket.length - 1; i >= 0; i--) {
+      const other = bucket[i];
+      if (!other.n && other.c === entry.c && isNear(other, entry, DEDUPE_UNNAMED_DEGREE_THRESHOLD)) {
+        bucket.splice(i, 1);
+      }
+    }
+    bucket.push(entry);
+    return;
+  }
+
+  const hasNamedNeighbor = bucket.some(
+    (other) => other.n && other.c === entry.c && isNear(other, entry, DEDUPE_UNNAMED_DEGREE_THRESHOLD),
   );
+  if (hasNamedNeighbor) return;
+
+  const isDuplicateUnnamed = bucket.some(
+    (other) => !other.n && other.c === entry.c && isNear(other, entry, DEDUPE_UNNAMED_DEGREE_THRESHOLD),
+  );
+  if (isDuplicateUnnamed) return;
+
+  bucket.push(entry);
 }
 
 function elementCoords(element: OsmElement): { lat: number; lon: number } | null {
@@ -93,13 +126,14 @@ export function transform(data: OsmData): Record<string, PlaceEntry[]> {
 
     const y = round5(coords.lat);
     const x = round5(coords.lon);
-    const entry: PlaceEntry = { n: tags.name as string, y, x, c: KIND_CODE[kind] };
+    const name = resolvePlaceName(tags.name);
+    const entry: PlaceEntry = { y, x, c: KIND_CODE[kind] };
+    if (name) entry.n = name;
     if (isNotable(tags)) entry.w = 1;
 
     const key = bucketKey(y, x);
     const bucket = (buckets[key] ??= []);
-    if (isNearDuplicate(entry, bucket)) continue;
-    bucket.push(entry);
+    addEntry(bucket, entry);
   }
 
   return buckets;

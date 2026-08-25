@@ -18,7 +18,10 @@ const GEOLOCATION_OPTIONS: PositionOptions = { enableHighAccuracy: true, timeout
 
 type PermissionState = 'prompt' | 'denied';
 
+const CATEGORY_LABEL: Record<'cami' | 'turbe', string> = { cami: 'Cami', turbe: 'Türbe' };
+
 function PlaceRow({ place }: { place: Place }) {
+  const displayName = place.name ?? CATEGORY_LABEL[place.category];
   return (
     <button
       onClick={() => AppLauncher.openUrl({ url: buildGoogleMapsUrl(place.lat, place.lon) })}
@@ -28,7 +31,7 @@ function PlaceRow({ place }: { place: Place }) {
         <MapPinIcon className="w-5 h-5" />
       </div>
       <div className="min-w-0 flex-1 text-left">
-        <p className="text-base font-bold text-ink truncate">{place.name}</p>
+        <p className="text-base font-bold text-ink truncate">{displayName}</p>
         {place.category === 'turbe' && <p className="text-micro text-mist">Türbe</p>}
         <p className="text-micro text-mist mt-0.5">{formatDistance(place.distanceMeters)}</p>
       </div>
