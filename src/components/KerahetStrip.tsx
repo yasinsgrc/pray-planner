@@ -1,6 +1,7 @@
 import React from 'react';
 import { KerahetInfo } from '../types';
 import { KERAHET_SHORT_LABEL, formatKerahetRange } from '../utils/kerahetLabels';
+import { KERAHET_WINDOW_DESCRIPTION } from '../data/strings';
 
 interface KerahetStripProps {
   kerahetTimes: KerahetInfo[];
@@ -55,7 +56,7 @@ export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes, timeZo
 
       {active && (
         <p className="mt-1 text-micro text-mist text-center">
-          Şu an kerahet vaktidir — nafile namaz kılınmaz.
+          {KERAHET_WINDOW_DESCRIPTION[active.type]}
         </p>
       )}
     </div>

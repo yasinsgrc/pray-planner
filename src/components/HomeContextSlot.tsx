@@ -1,8 +1,6 @@
 import React from 'react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
 import { resolveHomeContextSlot } from '../utils/homeContextSlot';
-import { remainingMinutesCeil } from '../utils/remainingMinutes';
-import { KERAHET_SHORT_LABEL, KERAHET_WINDOW_TITLE, KERAHET_WINDOW_DESCRIPTION } from '../data/strings';
 import { PushNotificationHint } from './PushNotificationHint';
 
 interface HomeContextSlotProps {
@@ -41,21 +39,9 @@ export const HomeContextSlot: React.FC<HomeContextSlotProps> = ({
   }
 
   if (slot.kind === 'kerahet') {
-    const remainingMinutes = remainingMinutesCeil(slot.remainingSeconds);
-    return (
-      <button
-        onClick={onOpenKerahetInfo}
-        className="w-full mt-1 p-2.5 rounded-xl bg-card border border-hairline text-left cursor-pointer transition-colors hover:border-gold/40 min-h-[44px]"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-label font-bold text-ink">{KERAHET_WINDOW_TITLE[slot.kerahetType]}</span>
-          <span className="font-numbers text-label text-gold-ink shrink-0">
-            {KERAHET_SHORT_LABEL[slot.kerahetType]} · {remainingMinutes} dk {slot.isUpcoming ? 'sonra başlıyor' : 'kaldı'}
-          </span>
-        </div>
-        <p className="mt-1 text-micro text-mist leading-relaxed">{KERAHET_WINDOW_DESCRIPTION[slot.kerahetType]}</p>
-      </button>
-    );
+    // Kerahet bilgisi artık yalnızca KerahetStrip'te (chip'ler + aktif
+    // vaktin açıklaması) gösteriliyor — burada ayrı bir kart tekrar etmiyor.
+    return null;
   }
 
   // slot.kind === 'religiousDay' — kalan tek varyant.

@@ -5,7 +5,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { HomeContextSlot } from './HomeContextSlot';
 import { calculateDaySchedule, deriveLiveSchedule, DayPrayerSchedule } from '../utils/prayerCalculator';
 import { DEFAULT_LOCATION } from '../data/locations';
-import { KERAHET_WINDOW_TITLE, KERAHET_WINDOW_DESCRIPTION } from '../data/strings';
 
 const day = calculateDaySchedule(DEFAULT_LOCATION, new Date('2026-08-01T00:00:00'), 'Diyanet');
 const noop = () => {};
@@ -50,7 +49,11 @@ test('HomeContextSlot renders the push notification hint when nothing else match
   assert.match(html, /Vakit bildirimleri kapalı/);
 });
 
-test('HomeContextSlot renders the kerahet card with title, description and remaining time as a clickable button', () => {
+// Faz 27.14 — kerahet bilgisi artık yalnızca KerahetStrip'te (chip'ler +
+// aktif vaktin açıklaması) gösteriliyor; HomeContextSlot aynı bilgiyi ayrı
+// bir kartla tekrar etmiyor (eski "GURÛB VAKTİ" kartı — başlık + geri
+// sayım + açıklama — tamamen kaldırıldı).
+test('HomeContextSlot renders nothing during an active kerahet window (no duplicate card)', () => {
   const duringSunriseKerahet = new Date(day.sunrise.getTime() + 10 * 60 * 1000);
   const schedule = deriveLiveSchedule(day, duringSunriseKerahet);
 
@@ -65,13 +68,10 @@ test('HomeContextSlot renders the kerahet card with title, description and remai
     })
   );
 
-  assert.match(html, /<button/);
-  assert.match(html, new RegExp(KERAHET_WINDOW_TITLE.gunes_sonrasi));
-  assert.match(html, new RegExp(KERAHET_WINDOW_DESCRIPTION.gunes_sonrasi));
-  assert.match(html, /dk kaldı/);
+  assert.equal(html, '');
 });
 
-test('HomeContextSlot renders "sonra başlıyor" (not "kaldı") for an upcoming, not-yet-active kerahet', () => {
+test('HomeContextSlot renders nothing for an upcoming, not-yet-active kerahet either', () => {
   const settled = deriveLiveSchedule(day, day.dhuhr);
   const firstKerahet = settled.kerahetTimes[0];
   const tenMinBefore = new Date(firstKerahet.startTime.getTime() - 10 * 60 * 1000);
@@ -88,8 +88,7 @@ test('HomeContextSlot renders "sonra başlıyor" (not "kaldı") for an upcoming,
     })
   );
 
-  assert.match(html, /sonra başlıyor/);
-  assert.doesNotMatch(html, /dk kaldı/);
+  assert.equal(html, '');
 });
 
 test('HomeContextSlot renders the upcoming religious day when outside kerahet', () => {
