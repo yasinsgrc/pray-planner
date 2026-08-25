@@ -28,7 +28,8 @@
     "visual": "node scripts/visual-check.mjs",
     "generate:licenses": "node scripts/generate-licenses.mjs",
     "generate:privacy": "tsx scripts/generate-privacy-page.mjs",
-    "android:sync": "cross-env VAKIT_TARGET=native npm run build && tsx scripts/sync-android-version.mjs && npx cap sync android"
+    "android:sync": "cross-env VAKIT_TARGET=native npm run build && tsx scripts/sync-android-version.mjs && npx cap sync android",
+    "build:districts": "node scripts/build-district-boundaries.mjs"
   },
   "dependencies": {
     "@capacitor-community/safe-area": "^8.0.1",

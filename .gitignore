@@ -31,3 +31,6 @@ android/keystore.properties
 
 # OSM ham veri önbelleği (scripts/places/fetch-osm.ts) — üretilen veri, versiyonlanmaz.
 scripts/places/.cache/
+
+# İlçe sınırı Overpass önbelleği (scripts/build-district-boundaries.mjs) — üretilen veri, versiyonlanmaz.
+scripts/.cache/
