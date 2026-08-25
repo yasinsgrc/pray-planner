@@ -1158,18 +1158,22 @@ async function checkInteractionSweep(browser) {
     // suite). A fixed 300ms sleep here produced a false "didn't close"
     // under that load even though the close genuinely happened, just a
     // bit later.
-    // --- LocationModal: Escape and backdrop close ---
+    // --- LocationSearchScreen: Escape and back-button close ---
+    // No backdrop-corner tap check here: the screen is a full-screen
+    // fixed inset-0 takeover (not an overlay-with-visible-backdrop sheet),
+    // so there is no exposed backdrop area to tap — the back button is the
+    // only pointer-based close affordance by design.
     await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
     await page.waitForTimeout(400);
     await page.keyboard.press('Escape');
     if (!(await waitForDialogClosed(page))) {
-      violations.push('[sweep] LocationModal Escape ile kapanmadı');
+      violations.push('[sweep] LocationSearchScreen Escape ile kapanmadı');
     }
     await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
     await page.waitForTimeout(400);
-    await page.mouse.click(10, 10); // backdrop corner, outside the sheet
+    await page.getByRole('button', { name: 'Kapat' }).click();
     if (!(await waitForDialogClosed(page))) {
-      violations.push('[sweep] LocationModal backdrop tıklamasıyla kapanmadı');
+      violations.push('[sweep] LocationSearchScreen geri butonuyla kapanmadı');
     }
 
     // --- Kıble butonu: Pusula ekranı Keşfet sekmesine taşındığı için
@@ -1369,7 +1373,7 @@ async function checkGpsLocationLabelHonesty(browser) {
 
     await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
     await page.waitForTimeout(400);
-    await page.getByRole('button', { name: 'Mevcut Konumumu Otomatik Kullan (GPS)' }).click();
+    await page.getByRole('button', { name: 'Mevcut Konumumu Kullan (GPS)' }).click();
     await page.waitForTimeout(1200);
 
     const headerText = await page.evaluate(
@@ -1777,109 +1781,156 @@ async function checkBottomNavGap(browser) {
  * does NOT restructure the panels into an absolute-positioned overlay.
  */
 /**
- * design-refresh-v3 Faz 24 Commit 4 — measures, not eyeballs, that the
- * location-search sheet's sticky block (GPS button + search input) does
- * not visibly move when 3 characters are typed (mounting a results list
- * below it) at 360x640 / 390x844 / 412x915, and that the same holds when
- * the viewport height is squeezed 640->320 to simulate reduced available
- * height. Note: Playwright's setViewportSize() shrinks window.innerHeight
- * and visualViewport.height together (no real on-screen-keyboard divergence
- * between them), so this validates the sticky/flex layout's robustness
- * under a shorter viewport, not BottomSheet.tsx's visualViewport-offset
- * compensation itself — headless Chromium has no real virtual keyboard to
- * exercise that path; it can only be confirmed on a real device.
+ * Faz 27 Commit 13 — measures, not eyeballs, that LocationSearchScreen's
+ * search input and result rows stay reachable when the on-screen keyboard
+ * is up, under BOTH resize regimes a real Android device can be in:
+ *  - native resize: windowSoftInputMode=adjustResize actually shrinks
+ *    window.innerHeight (pre-Android-15 or when edge-to-edge isn't
+ *    forced) — simulated here with page.setViewportSize(), which shrinks
+ *    innerHeight and visualViewport.height together, matching that
+ *    regime's real browser behavior.
+ *  - overlay: Android 15+ edge-to-edge, where innerHeight stays full and
+ *    only visualViewport.height shrinks — simulated here by overriding
+ *    window.visualViewport.height/offsetTop directly and dispatching a
+ *    'resize' event. Headless Chromium has no real on-screen keyboard, so
+ *    this is not the actual OS keyboard, but it does exercise the real
+ *    useKeyboardOverlap listener and the real computeKeyboardOverlap math
+ *    deterministically, which is what actually needs covering — the two
+ *    regimes previously produced different (and differently broken)
+ *    layouts, and only one of them was ever exercised here before.
  */
-async function checkLocationSheetKeyboardStability(browser) {
-  console.log('\n=== Şehir arama sheet\'i: klavye/yazma sırasında sabit blok kararlılığı ===');
+async function checkLocationSearchKeyboardStability(browser) {
+  console.log(
+    '\n=== Konum arama ekranı: klavye altında erişilebilirlik (native resize + overlay rejimleri) ==='
+  );
   const viewports = [
     { width: 360, height: 640 },
     { width: 390, height: 844 },
     { width: 412, height: 915 },
   ];
+  const KEYBOARD_HEIGHT_PX = 260;
 
   const measure = (page) =>
     page.evaluate(() => {
-      const title = document.querySelector('[role="dialog"] h3');
       const input = document.querySelector('[role="dialog"] input[type="text"]');
+      const scrollRegion = document.querySelector('[role="dialog"] .overflow-y-auto');
+      const rows = Array.from(
+        document.querySelectorAll('[role="dialog"] .overflow-y-auto .space-y-1 button')
+      );
       return {
-        titleTop: title?.getBoundingClientRect().top ?? null,
         inputTop: input?.getBoundingClientRect().top ?? null,
+        inputBottom: input?.getBoundingClientRect().bottom ?? null,
+        scrollClientHeight: scrollRegion?.clientHeight ?? null,
+        rowCount: rows.length,
+        rowRects: rows.map((r) => {
+          const rect = r.getBoundingClientRect();
+          return { top: rect.top, bottom: rect.bottom, height: rect.height };
+        }),
       };
     });
 
   for (const viewport of viewports) {
-    const label = `${viewport.width}x${viewport.height}`;
-    const context = await browser.newContext({ viewport, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
-    const page = await context.newPage();
-    page.setDefaultTimeout(10000);
-    try {
-      await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
-      await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
-      await page.waitForTimeout(600);
-      await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
-      await page.waitForTimeout(500);
-
-      const before = await measure(page);
-      if (before.titleTop === null || before.inputTop === null) {
-        violations.push(`[${label}] konum sheet'i açılmadı veya başlık/arama kutusu bulunamadı`);
-        continue;
-      }
-
-      await page.locator('[role="dialog"] input[type="text"]').fill('Ank');
-      await page.waitForTimeout(200);
-      const afterTyping = await measure(page);
-      if (Math.abs(afterTyping.titleTop - before.titleTop) > 1) {
-        violations.push(
-          `[${label}] yazma sırasında başlık kaydı: ${before.titleTop.toFixed(1)} -> ${afterTyping.titleTop.toFixed(1)}`
-        );
-      }
-      if (Math.abs(afterTyping.inputTop - before.inputTop) > 1) {
-        violations.push(
-          `[${label}] yazma sırasında arama kutusu kaydı: ${before.inputTop.toFixed(1)} -> ${afterTyping.inputTop.toFixed(1)}`
-        );
-      }
-
-      // Klavye simülasyonu: viewport yüksekliğini daralt, aynı ölçümü tekrarla.
-      await page.setViewportSize({ width: viewport.width, height: 320 });
-      await page.waitForTimeout(200);
-      const beforeShrink = await measure(page);
-      await page.locator('[role="dialog"] input[type="text"]').fill('Ankara');
-      await page.waitForTimeout(200);
-      const afterShrink = await measure(page);
-      if (beforeShrink.titleTop !== null && afterShrink.titleTop !== null) {
-        if (Math.abs(afterShrink.titleTop - beforeShrink.titleTop) > 1) {
-          violations.push(
-            `[${label}/daraltılmış] yazma sırasında başlık kaydı: ${beforeShrink.titleTop.toFixed(1)} -> ${afterShrink.titleTop.toFixed(1)}`
-          );
-        }
-      }
-      if (beforeShrink.inputTop !== null && afterShrink.inputTop !== null) {
-        if (Math.abs(afterShrink.inputTop - beforeShrink.inputTop) > 1) {
-          violations.push(
-            `[${label}/daraltılmış] yazma sırasında arama kutusu kaydı: ${beforeShrink.inputTop.toFixed(1)} -> ${afterShrink.inputTop.toFixed(1)}`
-          );
-        }
-      }
-
-      // Liste kaydırıldığında sabit bloğun top'u değişmemeli.
-      const scrolled = await page.evaluate(() => {
-        const scrollRegion = document.querySelector('[role="dialog"] .overflow-y-auto');
-        const input = document.querySelector('[role="dialog"] input[type="text"]');
-        if (!scrollRegion || !input) return null;
-        scrollRegion.scrollTop = 200;
-        return input.getBoundingClientRect().top;
+    for (const regime of ['native-resize', 'overlay']) {
+      const label = `${viewport.width}x${viewport.height}/${regime}`;
+      const context = await browser.newContext({
+        viewport,
+        locale: 'tr-TR',
+        timezoneId: 'Europe/Istanbul',
       });
-      if (scrolled !== null && afterShrink.inputTop !== null && Math.abs(scrolled - afterShrink.inputTop) > 1) {
-        violations.push(
-          `[${label}/daraltılmış] liste kaydırıldığında arama kutusu kaydı: ${afterShrink.inputTop.toFixed(1)} -> ${scrolled.toFixed(1)}`
-        );
-      }
+      const page = await context.newPage();
+      page.setDefaultTimeout(10000);
+      try {
+        await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
+        await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
+        await page.waitForTimeout(600);
+        await page.getByRole('button', { name: 'Konumu Değiştir' }).click();
+        await page.waitForTimeout(500);
 
-      console.log(`  [${label}] sabit blok konumu yazma ve daraltma boyunca sabit kaldı.`);
-    } catch (err) {
-      violations.push(`[location-sheet-keyboard/${label}] check threw: ${err.message}`);
-    } finally {
-      await context.close();
+        const effectiveVisualHeight = viewport.height - KEYBOARD_HEIGHT_PX;
+
+        if (regime === 'native-resize') {
+          await page.setViewportSize({ width: viewport.width, height: effectiveVisualHeight });
+        } else {
+          await page.evaluate((h) => {
+            Object.defineProperty(window.visualViewport, 'height', {
+              get: () => h,
+              configurable: true,
+            });
+            Object.defineProperty(window.visualViewport, 'offsetTop', {
+              get: () => 0,
+              configurable: true,
+            });
+            window.visualViewport.dispatchEvent(new Event('resize'));
+          }, effectiveVisualHeight);
+        }
+        await page.waitForTimeout(200);
+
+        // Ölçüm 2: input'un top'u "Ank" yazılmadan önce ve sonra ±1px sabit.
+        const beforeType = await measure(page);
+        if (beforeType.inputTop === null) {
+          violations.push(`[${label}] konum ekranı açılmadı veya arama kutusu bulunamadı`);
+          continue;
+        }
+        await page.locator('[role="dialog"] input[type="text"]').fill('Ank');
+        await page.waitForTimeout(200);
+        const afterAnk = await measure(page);
+        if (afterAnk.inputTop === null || Math.abs(afterAnk.inputTop - beforeType.inputTop) > 1) {
+          violations.push(
+            `[${label}] yazma sırasında arama kutusu top'u kaydı: ${beforeType.inputTop.toFixed(1)} -> ${afterAnk.inputTop?.toFixed(1)}`
+          );
+        }
+
+        await page.locator('[role="dialog"] input[type="text"]').fill('Ankara');
+        await page.waitForTimeout(200);
+        const afterAnkara = await measure(page);
+
+        // Ölçüm 1: arama kutusu klavyenin altında kalmıyor.
+        if (afterAnkara.inputBottom === null || afterAnkara.inputBottom > effectiveVisualHeight) {
+          violations.push(
+            `[${label}] arama kutusu klavyenin altında kalıyor: bottom=${afterAnkara.inputBottom?.toFixed(1)} > visualViewport.height=${effectiveVisualHeight}`
+          );
+        }
+
+        // Ölçüm 3: scroll konteyneri en az 200px (bugünkü ~136px çökmesini yakalar).
+        if (afterAnkara.scrollClientHeight === null || afterAnkara.scrollClientHeight < 200) {
+          violations.push(
+            `[${label}] scroll konteyneri çok küçük: clientHeight=${afterAnkara.scrollClientHeight}px (< 200px)`
+          );
+        }
+
+        // Ölçüm 4: "Ankara" için en az 3 görünür sonuç satırı.
+        const visibleRows = afterAnkara.rowRects.filter(
+          (r) => r.height > 0 && r.bottom <= effectiveVisualHeight
+        );
+        if (afterAnkara.rowCount < 3 || visibleRows.length < 3) {
+          violations.push(
+            `[${label}] "Ankara" araması için en az 3 görünür sonuç satırı bekleniyordu: toplam=${afterAnkara.rowCount}, görünür=${visibleRows.length}`
+          );
+        }
+
+        // Ölçüm 5: konteyner sonuna kaydırıldığında son satır erişilebilir kalıyor.
+        const scrolledLastRowBottom = await page.evaluate(() => {
+          const scrollRegion = document.querySelector('[role="dialog"] .overflow-y-auto');
+          if (!scrollRegion) return null;
+          scrollRegion.scrollTop = scrollRegion.scrollHeight;
+          const rows = document.querySelectorAll(
+            '[role="dialog"] .overflow-y-auto .space-y-1 button'
+          );
+          const last = rows[rows.length - 1];
+          return last ? last.getBoundingClientRect().bottom : null;
+        });
+        if (scrolledLastRowBottom === null || scrolledLastRowBottom > effectiveVisualHeight) {
+          violations.push(
+            `[${label}] listenin sonuna kaydırıldığında son satır klavyenin altında kalıyor: bottom=${scrolledLastRowBottom?.toFixed(1)} > ${effectiveVisualHeight}`
+          );
+        }
+
+        console.log(`  [${label}] arama kutusu ve sonuç listesi klavye altında erişilebilir kaldı.`);
+      } catch (err) {
+        violations.push(`[location-search-keyboard/${label}] check threw: ${err.message}`);
+      } finally {
+        await context.close();
+      }
     }
   }
 }
@@ -2777,7 +2828,7 @@ async function main() {
       await checkMainScrollFunctional(browser);
       await checkTabScrollResetsOnTabChange(browser);
       await checkScrollbarInvisible(browser);
-      await checkLocationSheetKeyboardStability(browser);
+      await checkLocationSearchKeyboardStability(browser);
       await checkFocusScreenFitsWithoutScroll(browser);
       await checkRingContentFitsRing(browser);
       await checkRingEnlargement(browser);

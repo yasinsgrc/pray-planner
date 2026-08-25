@@ -14,7 +14,7 @@ import { SpiritualSettings } from './components/SpiritualSettings';
 import { SpiritualHub } from './components/SpiritualHub';
 import { ExploreHub } from './components/ExploreHub';
 import { Navbar, TabType } from './components/Navbar';
-import { LocationModal } from './components/LocationModal';
+import { LocationSearchScreen } from './components/LocationSearchScreen';
 import { ZikirmatikModal } from './components/ZikirmatikModal';
 import { KnowledgeSheet } from './components/KnowledgeSheet';
 import { KERAHET_KNOWLEDGE } from './data/knowledge';
@@ -745,7 +745,7 @@ export default function App() {
       <Navbar activeTab={activeTab} onChangeTab={handleChangeTab} />
 
       {/* Modallar */}
-      <LocationModal
+      <LocationSearchScreen
         currentLocation={settings.location}
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}

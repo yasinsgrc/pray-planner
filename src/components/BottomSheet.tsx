@@ -1,7 +1,8 @@
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, PanInfo, useDragControls } from 'motion/react';
 import { XIcon } from './icons';
+import { useModalShell } from '../hooks/useModalShell';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -9,9 +10,6 @@ interface BottomSheetProps {
   title: string;
   children: React.ReactNode;
 }
-
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
 /**
  * Shared bottom-sheet chrome for pickers and modals (replaces native
@@ -24,62 +22,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
 
-  // Read via a ref, not a dependency, inside the effect below. `onClose` is
-  // an inline arrow function at nearly every call site (e.g. App.tsx), so
-  // it gets a new identity on every parent render — and App re-renders
-  // every second from its countdown timer. If `onClose` were a dependency,
-  // this effect would tear down and re-run every second the sheet is open,
-  // including its `.focus()` call — silently yanking focus back to the
-  // sheet's first focusable element (e.g. LocationModal's GPS button) away
-  // from whatever the user had actually focused (e.g. its search input),
-  // making it look like the field stopped accepting keystrokes after ~1s
-  // (found via a real Playwright repro, bisected to 4c6a411).
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
   // Keyboard height is handled by native adjustResize alone; dvh already
   // reflects the shrunk viewport, so no JS-side offset is needed here.
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const root = document.getElementById('root');
-    root?.setAttribute('inert', '');
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const handleKeydown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onCloseRef.current();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      const node = sheetRef.current;
-      if (!node) return;
-      const focusable = node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener('keydown', handleKeydown);
-
-    sheetRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)?.focus();
-
-    return () => {
-      root?.removeAttribute('inert');
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleKeydown);
-    };
-  }, [isOpen]);
+  useModalShell(isOpen, onClose, sheetRef);
 
   const handleDragEnd = (_e: PointerEvent, info: PanInfo) => {
     if (info.offset.y > 80 || info.velocity.y > 500) {

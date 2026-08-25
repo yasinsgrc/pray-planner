@@ -47,6 +47,27 @@ async function main() {
 
   const data = await response.json();
 
+  if (data.remark) {
+    throw new Error(`Overpass API remark döndürdü: ${data.remark}`);
+  }
+
+  if (!Array.isArray(data.elements)) {
+    throw new Error("Overpass API yanıtında elements dizisi yok");
+  }
+
+  if (data.elements.length === 0) {
+    throw new Error("Overpass API elements dizisi boş");
+  }
+
+  const typeCounts = data.elements.reduce((counts: Record<string, number>, element: { type: string }) => {
+    counts[element.type] = (counts[element.type] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  console.log(`Toplam eleman: ${data.elements.length}`);
+  console.log(`Tür kırılımı: ${JSON.stringify(typeCounts)}`);
+  console.log(`osm3s timestamp: ${data.osm3s?.timestamp_osm_base}`);
+
   await mkdir(CACHE_DIR, { recursive: true });
   await writeFile(OUTPUT_PATH, JSON.stringify(data, null, 2), "utf-8");
 
