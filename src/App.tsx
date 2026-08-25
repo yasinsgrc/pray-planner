@@ -46,6 +46,7 @@ import { getHijriDate } from './utils/hijri';
 import { calculateDaySchedule, deriveLiveSchedule } from './utils/prayerCalculator';
 import { playEzanAudio } from './utils/audio';
 import { findNearestLocation } from './utils/geo';
+import { resolveDistrict } from './utils/districtLookup';
 import { shouldSuggestLocationChange, isLocationDriftCheckAllowed, LocationDriftPoint } from './utils/locationDrift';
 import {
   ZikirmatikState,
@@ -337,9 +338,15 @@ export default function App() {
 
       lastLocationDriftCheckRef.current = Date.now();
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
           const { latitude, longitude, accuracy } = pos.coords;
           const nearest = findNearestLocation(latitude, longitude);
+          // Point-in-polygon over real district boundaries — doesn't share
+          // findNearestLocation's nearest-centroid mistake, so prefer it
+          // over the centroid guess when it resolves.
+          const boundary = await resolveDistrict(latitude, longitude);
+          const detectedCityName = boundary?.il ?? nearest.cityName;
+          const detectedDistrictName = boundary?.ilce ?? nearest.districtName;
           const current = settingsLocationRef.current;
           const shouldSuggest = shouldSuggestLocationChange({
             current: {
@@ -348,12 +355,19 @@ export default function App() {
               label: current.districtName,
               source: current.isGpsDerived ? 'gps' : 'manual',
             },
-            detected: { lat: latitude, lng: longitude, label: nearest.districtName, accuracy },
+            detected: { lat: latitude, lng: longitude, label: detectedDistrictName, accuracy },
             dismissed: dismissedLocationRef.current,
             now: Date.now(),
           });
           if (shouldSuggest) {
-            setLocationSuggestion({ ...nearest, id: `gps-${Date.now()}`, lat: latitude, lng: longitude });
+            setLocationSuggestion({
+              ...nearest,
+              cityName: detectedCityName,
+              districtName: detectedDistrictName,
+              id: `gps-${Date.now()}`,
+              lat: latitude,
+              lng: longitude,
+            });
           }
         },
         () => {

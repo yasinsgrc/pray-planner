@@ -78,7 +78,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       '- ummahapi.com: Maneviyat sekmesindeki günlük ayet çekilirken — yalnızca sunucumuzun isteği gider, size ait hiçbir bilgi gönderilmez.\n' +
       '- {{HOSTING_PROVIDER}}: Uygulamayı her açtığınızda — standart sunucu erişim kayıtları (IP adresi, tarih, istek yolu) ona ulaşır.\n\n' +
       'Bu hizmetlerin kendi gizlilik politikaları geçerlidir.\n\n' +
-      'Konum arama sonuçları © OpenStreetMap katkıcıları, ODbL lisansı altında sunulmaktadır.',
+      'Konum arama sonuçları ve GPS ile bulunan ilçe sınırı verisi © OpenStreetMap katkıcıları, ODbL lisansı altında sunulmaktadır.',
   },
   {
     title: '7. Saklama Süresi',

@@ -13,6 +13,7 @@ import { LocationItem } from '../types';
 import { POPULAR_LOCATIONS, ALL_LOCATIONS } from '../data/locations';
 import { findNearestLocation } from '../utils/geo';
 import { resolveGpsDistrictLabel } from '../utils/gpsAccuracy';
+import { resolveDistrict } from '../utils/districtLookup';
 import { guessTimeZone } from '../utils/timezone';
 import { normalizeTurkish } from '../utils/turkishText';
 import { useApiAvailable } from '../hooks/useApiAvailable';
@@ -156,7 +157,7 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
     setGpsError(null);
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
         // Never sent to any server — reverse-geocoding was removed
         // entirely: it silently sent the user's exact GPS coordinate to
@@ -167,12 +168,16 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
         // what's actually used for prayer time calculation, entirely
         // on-device.
         const nearest = findNearestLocation(latitude, longitude);
+        // resolveDistrict does exact point-in-polygon against real district
+        // boundaries, so it doesn't share findNearestLocation's nearest-
+        // centroid mistake (Faz 14: GPS in Darıca matched "Çayırova"). When
+        // it matches, it's a definite answer — the accuracy-gated
+        // "(yaklaşık)" fallback below only applies when it doesn't.
+        const boundary = await resolveDistrict(latitude, longitude);
         const resolvedLoc: LocationItem = {
           ...nearest,
-          // A specific district guess is even less trustworthy than usual
-          // when the GPS fix itself is poor; resolveGpsDistrictLabel drops
-          // to the province name past 1000m.
-          districtName: resolveGpsDistrictLabel(nearest, accuracy),
+          cityName: boundary?.il ?? nearest.cityName,
+          districtName: boundary ? boundary.ilce : resolveGpsDistrictLabel(nearest, accuracy),
           id: `gps-${Date.now()}`,
           lat: latitude,
           lng: longitude,
