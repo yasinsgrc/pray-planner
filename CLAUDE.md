@@ -15,3 +15,7 @@ Temizse "temiz" yaz, çıktıyı özetleme.
 
 ## Oturum
 - Context %40'ı geçtiyse yeni iş başlatma.
+
+## Git güvenliği
+- Agent git stash, git checkout, git reset, git clean çalıştıramaz.
+  Çalışma ağacında ilgisiz değişiklik varsa DUR ve bildir.
