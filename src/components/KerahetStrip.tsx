@@ -41,10 +41,14 @@ export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes, timeZo
               key={k.type}
               onClick={onOpenInfo}
               className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer ${k.isActiveNow ? 'bg-accent/10' : 'hover:bg-paper'}`}
-              style={isPast ? { opacity: 0.4 } : undefined}
             >
+              {/* Faz 27.16 — geçmiş pencere daha önce inline opacity:0.4 ile
+                  soluklaştırılıyordu; bu, sınırda olan --mist'i (ör. açık
+                  temada 5.06:1) AA eşiğinin altına düşürüyordu (~1.7:1,
+                  ölçülen). Soluk görünüm artık AA'yı geçen --mist tokenına
+                  geçilerek korunuyor, saydamlık yerine renk değişimiyle. */}
               <span
-                className={`text-[10px] font-semibold ${k.isActiveNow ? 'text-accent-ink' : 'text-ink'}`}
+                className={`text-[10px] font-semibold ${k.isActiveNow ? 'text-accent-ink' : isPast ? 'text-mist' : 'text-ink'}`}
               >
                 {KERAHET_SHORT_LABEL[k.type]}
               </span>
