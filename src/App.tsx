@@ -61,6 +61,7 @@ import {
 } from './utils/zikirmatikStorage';
 import { loadAppSettings, saveAppSettings } from './utils/appSettingsStorage';
 import { dateKeyInZone } from './utils/timezone';
+import { applyStatusBarAppearance } from './utils/statusBarAppearance';
 
 // 30 günlük zamanlama penceresi sessizce dolarsa bildirimler de sessizce
 // durur — kullanıcı bunu Ayarlar'da "son güncelleme" olarak görüp fark
@@ -513,6 +514,13 @@ export default function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  }, [isDarkMode]);
+
+  // Edge-to-edge (targetSdk 36) altında durum çubuğu ikon rengi yalnızca bu
+  // yolla kontrol edilebiliyor; themeMode 'auto' iken akşam/imsak sınırında
+  // da tetiklenmesi gerektiği için isDarkMode'a bağlı ayrı bir efekt.
+  useEffect(() => {
+    void applyStatusBarAppearance(isDarkMode);
   }, [isDarkMode]);
 
   // Handlers
