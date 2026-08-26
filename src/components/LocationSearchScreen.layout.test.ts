@@ -44,3 +44,19 @@ test('regression: animate-spin-slow is applied only while isLocating, never unco
   assert.doesNotMatch(source, /className="[^"]*animate-spin-slow[^"]*"/);
   assert.match(source, /isLocating[\s\S]{0,60}animate-spin-slow/);
 });
+
+// Faz 27.17 — with the keyboard up, Android WebView renders a native
+// autofill/IME suggestion strip directly over the search input (its own
+// system-colored background, not ours), obscuring the GPS row and result
+// list beneath it even though both are correctly present and correctly
+// sized in the DOM (checkLocationSearchKeyboardStability already proves
+// that for both the native-resize and overlay keyboard regimes). Turning
+// off autofill on this field is what stops the OS from drawing that strip
+// at all, so this asserts the attribute rather than any DOM height/count,
+// which this bug never affected in the first place.
+test('search input opts out of autofill — a lookup-only field has no saved values, and the native suggestion strip Android draws over it on focus is what hides the list under the keyboard', () => {
+  const inputMatch = source.match(/<input[\s\S]*?\/>/);
+  assert.ok(inputMatch, 'arama input bulunamadı');
+  const inputBlock = inputMatch[0];
+  assert.match(inputBlock, /autoComplete="off"/);
+});
