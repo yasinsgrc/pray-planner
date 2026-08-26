@@ -235,7 +235,6 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
                 <MagnifyingGlassIcon className="w-4 h-4 text-mist absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  autoComplete="off"
                   placeholder="Şehir veya ilçe ara (örn: Üsküdar, Ankara, Mekke...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
