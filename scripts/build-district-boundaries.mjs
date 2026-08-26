@@ -1,10 +1,11 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = path.join(__dirname, ".cache");
 const OUTPUT_PATH = path.join(__dirname, "..", "src", "data", "districtBoundaries.json");
+const TMP_OUTPUT_PATH = `${OUTPUT_PATH}.tmp`;
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 const TIMEOUT_MS = 300_000;
 const REQUEST_DELAY_MS = 2_000;
@@ -12,6 +13,31 @@ const SIMPLIFY_TOLERANCE_METERS = 30;
 const MIN_DISTRICT_COUNT = 900;
 const MAX_DISTRICT_COUNT = 1_000;
 const MAX_OUTPUT_BYTES = 2 * 1024 * 1024;
+
+const TURKISH_PROVINCES = new Set([
+  "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Amasya", "Ankara", "Antalya",
+  "Artvin", "Aydın", "Balıkesir", "Bilecik", "Bingöl", "Bitlis", "Bolu",
+  "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır",
+  "Edirne", "Elazığ", "Elâzığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep",
+  "Giresun", "Gümüşhane", "Hakkari", "Hakkâri", "Hatay", "Isparta", "Mersin", "İstanbul",
+  "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir", "Kocaeli",
+  "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla",
+  "Muş", "Nevşehir", "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt",
+  "Sinop", "Sivas", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Şanlıurfa",
+  "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman",
+  "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova",
+  "Karabük", "Kilis", "Osmaniye", "Düzce",
+]);
+
+// ASCII + Türkçe alfabesine özgü karakterler dışında bir şey varsa (ör.
+// Yunanca Ege ilçe adları) kayıt yabancı kaynaklıdır.
+const NON_LATIN_ILCE_PATTERN = /[^\x00-\x7FÇĞİıŞÖÜçğıöşüÂâÎîÛû]/u;
+
+function isForeignDistrict(il, ilce) {
+  if (!TURKISH_PROVINCES.has(il)) return true;
+  if (NON_LATIN_ILCE_PATTERN.test(ilce)) return true;
+  return false;
+}
 
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -215,28 +241,66 @@ function simplifyRing(points, toleranceMeters) {
   return points.filter((_, i) => keep[i]);
 }
 
-function round5(value) {
-  return Math.round(value * 1e5) / 1e5;
+function round4(value) {
+  return Math.round(value * 1e4) / 1e4;
 }
 
-function encodeRing(points) {
-  const flat = [];
+// zigzag: negatif/pozitif deltaları işaretsiz tam sayıya çevirir, varint
+// kodlamasının küçük mutlak değerli sayılarda az bayt harcamasını sağlar.
+function zigzagEncode(n) {
+  return n >= 0 ? n * 2 : -n * 2 - 1;
+}
+
+// LEB128: 7 bit veri + devam biti (MSB). districtLookup.ts'teki decodeVarints
+// ile bire bir eşleşmeli.
+function encodeVarintUnsigned(value, out) {
+  let v = value;
+  while (v > 0x7f) {
+    out.push((v & 0x7f) | 0x80);
+    v >>>= 7;
+  }
+  out.push(v & 0x7f);
+}
+
+export function encodeRing(points) {
+  const bytes = [];
   let prevLat = 0;
   let prevLon = 0;
 
   points.forEach((p, i) => {
-    const lat = Math.round(p.lat * 1e5);
-    const lon = Math.round(p.lon * 1e5);
-    if (i === 0) {
-      flat.push(lat, lon);
-    } else {
-      flat.push(lat - prevLat, lon - prevLon);
-    }
+    const lat = Math.round(p.lat * 1e4);
+    const lon = Math.round(p.lon * 1e4);
+    const dLat = i === 0 ? lat : lat - prevLat;
+    const dLon = i === 0 ? lon : lon - prevLon;
+    encodeVarintUnsigned(zigzagEncode(dLat), bytes);
+    encodeVarintUnsigned(zigzagEncode(dLon), bytes);
     prevLat = lat;
     prevLon = lon;
   });
 
-  return flat;
+  return Buffer.from(bytes).toString('base64');
+}
+
+// Ring'in bbox köşegenini metre cinsinden hesaplar (dejenere ring politikası
+// için — 500 m altındaki ring'ler basitleştirilmeden olduğu gibi kullanılır).
+function ringBboxDiagonalMeters(points) {
+  let minLat = Infinity;
+  let minLon = Infinity;
+  let maxLat = -Infinity;
+  let maxLon = -Infinity;
+
+  for (const p of points) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lon < minLon) minLon = p.lon;
+    if (p.lon > maxLon) maxLon = p.lon;
+  }
+
+  const refLat = (((minLat + maxLat) / 2) * Math.PI) / 180;
+  const metersPerDegreeLon = Math.cos(refLat) * 111_320;
+  const dLat = (maxLat - minLat) * 111_320;
+  const dLon = (maxLon - minLon) * metersPerDegreeLon;
+  return Math.hypot(dLat, dLon);
 }
 
 function computeBbox(points) {
@@ -252,7 +316,7 @@ function computeBbox(points) {
     if (p.lon > maxLng) maxLng = p.lon;
   }
 
-  return [round5(minLat), round5(minLng), round5(maxLat), round5(maxLng)];
+  return [round4(minLat), round4(minLng), round4(maxLat), round4(maxLng)];
 }
 
 function validate(districts, fileSize) {
@@ -274,10 +338,11 @@ function validate(districts, fileSize) {
   if (!hasCayirova) errors.push("Kocaeli/Çayırova kaydı bulunamadı");
 
   for (const d of districts) {
-    for (const ring of d.rings) {
-      if (ring.length < 8) {
-        errors.push(`${d.il}/${d.ilce}: bir ring 4 noktadan az (${ring.length / 2} nokta)`);
-      }
+    if (isForeignDistrict(d.il, d.ilce)) {
+      errors.push(`Yabancı kayıt: il="${d.il}" ilce="${d.ilce}"`);
+    }
+    if (d.rings.length === 0) {
+      errors.push(`${d.il}/${d.ilce}: tüm ringler düştü, geçerli sınır verisi kalmadı`);
     }
   }
 
@@ -292,6 +357,8 @@ async function main() {
 
   const districts = [];
   let totalVertices = 0;
+  let droppedRingCount = 0;
+  const droppedRingDistricts = new Set();
 
   for (let i = 0; i < provinces.length; i++) {
     const province = provinces[i];
@@ -299,6 +366,11 @@ async function main() {
 
     for (const element of data.elements) {
       if (element.type !== "relation" || !element.tags?.name) continue;
+
+      if (isForeignDistrict(province.name, element.tags.name)) {
+        console.error(`Yabancı kayıt atlandı: il="${province.name}" ilce="${element.tags.name}" (id=${element.id})`);
+        continue;
+      }
 
       const rings = buildRings(element);
       if (!rings) {
@@ -309,10 +381,20 @@ async function main() {
       const encodedRings = [];
       const allPoints = [];
       for (const ring of [...rings.outer, ...rings.inner]) {
-        const simplified = simplifyRing(ring, SIMPLIFY_TOLERANCE_METERS);
-        allPoints.push(...simplified);
-        encodedRings.push(encodeRing(simplified));
-        totalVertices += simplified.length;
+        // 500 m altı ring'ler zaten küçük: basitleştirme adacıkları yutabilir,
+        // maliyeti ihmal edilebilir olduğundan olduğu gibi kullanılır.
+        const isDegenerateSize = ringBboxDiagonalMeters(ring) < 500;
+        const processed = isDegenerateSize ? ring : simplifyRing(ring, SIMPLIFY_TOLERANCE_METERS);
+
+        if (processed.length < 4) {
+          droppedRingCount += 1;
+          droppedRingDistricts.add(`${province.name}/${element.tags.name}`);
+          continue;
+        }
+
+        allPoints.push(...processed);
+        encodedRings.push(encodeRing(processed));
+        totalVertices += processed.length;
       }
 
       districts.push({
@@ -329,22 +411,31 @@ async function main() {
   }
 
   await mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
-  const output = { version: 1, attribution: "© OpenStreetMap contributors (ODbL)", districts };
-  await writeFile(OUTPUT_PATH, JSON.stringify(output), "utf-8");
+  const output = { version: 2, attribution: "© OpenStreetMap contributors (ODbL)", districts };
+  await writeFile(TMP_OUTPUT_PATH, JSON.stringify(output), "utf-8");
 
-  const stats = await stat(OUTPUT_PATH);
+  const stats = await stat(TMP_OUTPUT_PATH);
   console.log(`İlçe sayısı: ${districts.length}`);
   console.log(`Toplam vertex: ${totalVertices}`);
+  console.log(`Düşürülen ring sayısı: ${droppedRingCount}`);
+  if (droppedRingDistricts.size > 0) {
+    console.log(`Ring düşürülen ilçeler: ${[...droppedRingDistricts].join(", ")}`);
+  }
   console.log(`Dosya boyutu: ${(stats.size / 1024).toFixed(1)} KB`);
 
   const errors = validate(districts, stats.size);
   if (errors.length > 0) {
     for (const error of errors) console.error(error);
+    await rm(TMP_OUTPUT_PATH, { force: true });
     process.exit(1);
   }
+
+  await rename(TMP_OUTPUT_PATH, OUTPUT_PATH);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

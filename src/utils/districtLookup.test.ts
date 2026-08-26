@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveDistrict } from './districtLookup';
+import {
+  resolveDistrict,
+  __getDecodedDistrictCountForTest,
+  __getTotalDistrictCountForTest,
+  __parseBoundariesFileForTest,
+} from './districtLookup';
 import { findNearestLocation } from './geo';
 
 test('Emek Mah. Darıca koordinatı Darıca olarak çözümlenir', async () => {
@@ -27,4 +32,29 @@ test('Türkiye dışı koordinat null döner', async () => {
 test('denizdeki koordinat null döner', async () => {
   const result = await resolveDistrict(40.65, 28.7);
   assert.equal(result, null);
+});
+
+test('resolveDistrict sadece bbox eşleşen ilçeleri tembel çözer', async () => {
+  const totalDistricts = await __getTotalDistrictCountForTest();
+
+  await resolveDistrict(40.83, 29.38);
+
+  const decoded = __getDecodedDistrictCountForTest();
+  const maxExpectedDecoded = Math.ceil(totalDistricts * 0.05);
+
+  assert.ok(
+    decoded > 0,
+    'en az bir ilçe (bbox eşleşeni) çözülmüş olmalı',
+  );
+  assert.ok(
+    decoded <= maxExpectedDecoded,
+    `tembel çözümleme başarısız: ${decoded}/${totalDistricts} ilçe çözülmüş (beklenen en fazla ${maxExpectedDecoded})`,
+  );
+});
+
+test('sürüm 2 olmayan districtBoundaries.json açık hata fırlatır', () => {
+  assert.throws(
+    () => __parseBoundariesFileForTest({ version: 1, attribution: '', districts: [] }),
+    /sürüm 2 bekleniyor, 1 bulundu/,
+  );
 });
