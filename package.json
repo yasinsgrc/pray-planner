@@ -17,7 +17,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test:server": "node --import tsx --test \"server/**/*.test.ts\"",
-    "test:frontend": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test:frontend": "node --import tsx --experimental-test-module-mocks --test \"src/**/*.test.ts\"",
     "test:scripts": "node --import tsx --test \"scripts/**/*.test.ts\"",
     "test": "npm run test:server && npm run test:frontend && npm run test:scripts",
     "test:tz-utc": "cross-env TZ=UTC npm test",
