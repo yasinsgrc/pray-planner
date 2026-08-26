@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vakit widget'larından bağımsız: EsmaWidgetProvider kendi alarm zincirini
+     taşır, updatePeriodMillis=0 (gece yarısı yenilemesi Kotlin tarafında
+     setWindow ile planlanır, bkz. EsmaWidgetProvider.scheduleNextMidnightAlarm). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="70dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/esma_widget"
+    android:previewLayout="@layout/esma_widget_preview"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen|keyguard"
+    android:description="@string/widget_description_esma" />

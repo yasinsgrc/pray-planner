@@ -25,6 +25,14 @@
     <string name="widget_name_ring_minute">Vakit — Çember (dakika)</string>
     <string name="widget_description_ring_minute">Çemberde günün ilerleyişini ve dakika hassasiyetli geri sayımı gösterir.</string>
 
+    <!-- Günlük Esmâ-ül Hüsnâ widget'ı (EsmaWidgetProvider) — vakit
+         widget'larından tamamen bağımsız. -->
+    <string name="widget_name_esma">Vakit — Günün Esması</string>
+    <string name="widget_description_esma">Her gün Esmâ-ül Hüsnâ\'dan bir ismi, anlamıyla birlikte gösterir.</string>
+    <string name="widget_preview_esma_arabic">الرَّحْمَنُ</string>
+    <string name="widget_preview_esma_transliteration">Er-Rahmân</string>
+    <string name="widget_preview_esma_meaning">Dünyada bütün mahlukata merhamet eden</string>
+
     <!-- Yalnızca widget seçicide (vakit_widget_preview.xml) gösterilen
          statik örnek veriler — gerçek konum/saat değil, mevcut vakit
          adlarıyla (bkz. src/data/strings.ts) tutarlı örnek içerik. -->

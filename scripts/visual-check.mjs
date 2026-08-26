@@ -2018,11 +2018,14 @@ async function checkRingContentFitsRing(browser) {
     { width: 390, height: 844 },
     { width: 412, height: 915 },
   ];
-  // 2x: WebView textZoom'un rem tabanlı clamp() alt sınırlarını büyütmesini
+  // WebView textZoom'un rem tabanlı clamp() alt sınırlarını büyütmesini
   // taklit eder (html{font-size} tüm rem'i ölçekler). SINIRLAMA: gerçek
   // textZoom px tanımlı metni de ölçekler, bu simülasyon onu YAKALAMAZ —
-  // yalnızca rem tabanlı alt sınırları test eder.
-  const FONT_SCALES = [1, 2];
+  // yalnızca rem tabanlı alt sınırları test eder. 1.15 ve 1.5, Android'in
+  // ara font-ölçeği adımları (1.0/1.15/1.3/1.5/1.8/2.0) — showBelowRing'in
+  // (MainCountdownRing.tsx) hangi ölçekte tetiklendiğini her viewport için
+  // gözlemlemek amacıyla eklendi (bkz. o dosyadaki eşik yorumu).
+  const FONT_SCALES = [1, 1.15, 1.5, 2];
   for (const viewport of viewports) {
     for (const fontScale of FONT_SCALES) {
       const label = `${viewport.width}x${viewport.height}@${fontScale}x`;
@@ -2074,10 +2077,9 @@ async function checkRingContentFitsRing(browser) {
             `[ring-fit/${label}] SVG (${result.svgWidth.toFixed(1)}x${result.svgHeight.toFixed(1)}) halka kapsayıcısını (${result.shellWidth.toFixed(1)}x${result.shellHeight.toFixed(1)}) aşıyor`
           );
         }
-        const inscribedSquareSide = result.shellWidth / Math.SQRT2;
         if (result.isBelowRing) {
-          // Metin bilinçli olarak halkanın dışına (altına) taşındı — içten
-          // kare karşılaştırması artık bu geometriye uygulanmaz. Bunun
+          // Metin bilinçli olarak halkanın dışına (altına) taşındı — daire
+          // sığma karşılaştırması artık bu geometriye uygulanmaz. Bunun
           // yerine bloğun kendisi viewport'u yatayda taşmıyor mu diye
           // bakıyoruz (spesifikasyon: "2.0x'te taşma yok").
           if (result.belowBlockRect.right > viewport.width + TOLERANCE_PX || result.belowBlockRect.left < -TOLERANCE_PX) {
@@ -2086,34 +2088,27 @@ async function checkRingContentFitsRing(browser) {
             );
           }
         } else {
-          // Karşılaştırma kabuğa değil dairenin İÇTEN KARESİNE göre yapılıyor
-          // (kenar = shellWidth/√2): metin köşelere sığıp daireden taşabilir,
-          // doğru referans bu. Ölçülen artefakt da tek tek elemanlar değil,
-          // üç metnin (üst etiket + geri sayım + alt etiket) birleşik
-          // sınırlayıcı kutusu (union bbox).
-          //
-          // Bu eşik yaklaşık: içten kare kenarını sabit (shellWidth/√2) alıyor,
-          // oysa dairenin gerçek yatay genişliği düşey konuma göre değişir
-          // (merkezde tam çap, uçlara doğru daralır). Üst/alt etiketler
-          // merkezden uzakta olduğu için 1x'te bile küçük (~%5-12) bir yatay
-          // aşım ölçülüyor — bu, halihazırda onaylı 1x tasarımının bir kusuru
-          // değil, ölçüm yaklaşıklığının bir sınırlaması. Bu yüzden gate
-          // sadece büyütülmüş font ölçeğinde (2x) uygulanıyor; 1x sonucu
-          // bilgi amaçlı loglanıyor.
-          if (fontScale !== 1) {
-            if (result.unionWidth > inscribedSquareSide + TOLERANCE_PX) {
-              violations.push(
-                `[ring-fit/${label}] üç metnin birleşik kutusu (${result.unionWidth.toFixed(1)}px) halkanın içten karesini (${inscribedSquareSide.toFixed(1)}px) yatayda aşıyor`
-              );
-            }
-            if (result.unionHeight > inscribedSquareSide + TOLERANCE_PX) {
-              violations.push(
-                `[ring-fit/${label}] üç metnin birleşik kutusu (${result.unionHeight.toFixed(1)}px) halkanın içten karesini (${inscribedSquareSide.toFixed(1)}px) dikeyde aşıyor`
-              );
-            }
-          } else if (result.unionWidth > inscribedSquareSide + TOLERANCE_PX || result.unionHeight > inscribedSquareSide + TOLERANCE_PX) {
-            console.log(
-              `  [${label}] bilgi: üç metnin birleşik kutusu (${result.unionWidth.toFixed(1)}x${result.unionHeight.toFixed(1)}) içten kareyi (${inscribedSquareSide.toFixed(1)}px) aşıyor ama 1x'te gate edilmiyor (bkz. yukarıdaki yorum).`
+          // Karşılaştırma KESİN geometriyle yapılıyor: merkezlenmiş bir
+          // w×h dikdörtgeni, çapı d olan bir daireye ancak ve ancak
+          // w² + h² <= d² olduğunda tam olarak sığar (dikdörtgenin köşegeni
+          // dairenin çapını aşmamalı). shellWidth burada d — halka her
+          // zaman kare (w-[var(--ring-size)] h-[var(--ring-size)]), yani
+          // shellWidth === shellHeight. Bu, "içten kare" yaklaşıklığının
+          // (kenar = shellWidth/√2) yerini alıyor: içten kare yalnızca
+          // KARE bir metin bloğu için doğru sınırdı, geniş-alçak bir blok
+          // için (üç satırlık üst etiket + geri sayım + alt etiket, tipik
+          // olarak yükseklikten çok daha geniş) gereksiz sıkıydı ve bu
+          // yüzden 1x'te bile sahte ihlaller üretip gate'in 1x'te devre
+          // dışı bırakılmasına yol açmıştı — kesin koşul yaklaşıklık
+          // içermediği için hem 1x hem 2x'te uygulanabiliyor. Ölçülen
+          // artefakt tek tek elemanlar değil, üç metnin (üst etiket + geri
+          // sayım + alt etiket) birleşik sınırlayıcı kutusu (union bbox).
+          const diagonal = Math.sqrt(result.unionWidth ** 2 + result.unionHeight ** 2);
+          const diameter = result.shellWidth;
+          const geometryTolerance = diameter * 0.01; // sabit px değil, çapa oranlı pay
+          if (diagonal > diameter + geometryTolerance) {
+            violations.push(
+              `[ring-fit/${label}] üç metnin birleşik kutusunun köşegeni (${diagonal.toFixed(1)}px, ${result.unionWidth.toFixed(1)}x${result.unionHeight.toFixed(1)}) halkanın çapını (${diameter.toFixed(1)}px) aşıyor`
             );
           }
         }
@@ -2139,7 +2134,7 @@ async function checkRingContentFitsRing(browser) {
           console.log(
             result.isBelowRing
               ? `  [${label}] metin halkanın altına taşındı, viewport'u taşmıyor, metin "${result.countdownText}" kırpılmadan görünüyor.`
-              : `  [${label}] üç metin (${result.unionWidth.toFixed(1)}x${result.unionHeight.toFixed(1)}) içten kareye (${inscribedSquareSide.toFixed(1)}px) sığıyor, metin "${result.countdownText}" kırpılmadan görünüyor.`
+              : `  [${label}] üç metin (${result.unionWidth.toFixed(1)}x${result.unionHeight.toFixed(1)}) halka çapına (${result.shellWidth.toFixed(1)}px) sığıyor, metin "${result.countdownText}" kırpılmadan görünüyor.`
           );
         }
       } catch (err) {

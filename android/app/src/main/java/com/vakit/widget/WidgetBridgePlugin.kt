@@ -17,6 +17,7 @@ class WidgetBridgePlugin : Plugin() {
     @PluginMethod
     fun refresh(call: PluginCall) {
         BaseVakitWidgetProvider.updateAllWidgets(context)
+        EsmaWidgetProvider.updateAllWidgets(context)
         call.resolve()
     }
 }

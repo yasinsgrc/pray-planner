@@ -5,6 +5,7 @@ import { DailyInspirationCard } from './DailyInspirationCard';
 import { LocationItem } from '../types';
 import { PRESET_DHIKRS, ZikirmatikState, getCounterFor } from '../utils/zikirmatikStorage';
 import { ESMA_UL_HUSNA } from '../data/esmaulHusna';
+import { esmaIndexFor } from '../utils/esmaDaily';
 import { ReligiousDaysCard } from './ReligiousDaysCard';
 
 interface SpiritualHubProps {
@@ -28,9 +29,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
   const lastDhikr = PRESET_DHIKRS[zikirState.selectedDhikrIndex];
   const lastDhikrCounter = getCounterFor(zikirState, zikirState.selectedDhikrIndex);
 
-  const todayEsmaIndex = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
-  ) % ESMA_UL_HUSNA.length;
+  const todayEsmaIndex = esmaIndexFor(new Date(), ESMA_UL_HUSNA.length);
   const todayEsma = ESMA_UL_HUSNA[todayEsmaIndex];
 
   return (
