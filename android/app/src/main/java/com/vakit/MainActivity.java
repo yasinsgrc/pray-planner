@@ -10,21 +10,19 @@ import com.vakit.widget.WidgetBridgePlugin;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // App-local eklenti (npm paketi değil) — Bridge başlatılmadan önce
+        // App-local eklentiler (npm paketi değil) — Bridge başlatılmadan önce
         // kaydedilmeli (design-refresh-v3 Faz 23 Commit 4).
         registerPlugin(WidgetBridgePlugin.class);
+        registerPlugin(StatusBarAppearancePlugin.class);
         super.onCreate(savedInstanceState);
-        applyStatusBarAppearance();
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
         applyStatusBarAppearance();
     }
 
     // edge-to-edge (targetSdk 36) altında window.statusBarColor no-op olduğundan
     // ikon rengi yalnızca isAppearanceLightStatusBars ile kontrol edilebiliyor.
+    // Bu yalnızca WebView hidrate olmadan önceki ilk kare için varsayılan;
+    // hidrasyon sonrası tema kararı StatusBarAppearancePlugin üzerinden
+    // web katmanından geliyor.
     private void applyStatusBarAppearance() {
         boolean isNight = (getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
