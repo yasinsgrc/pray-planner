@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name">Vakit</string>
     <string name="title_activity_main">Vakit</string>
-    <string name="package_name">com.vakit</string>
-    <string name="custom_url_scheme">com.vakit</string>
+    <string name="package_name">com.app.vakit</string>
+    <string name="custom_url_scheme">com.app.vakit</string>
 
     <!-- VakitWidgetProvider (design-refresh-v3 Faz 23 Commit 4). Metinler
          web tarafındaki eşdeğerleriyle (src/data/strings.ts,

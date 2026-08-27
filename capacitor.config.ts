@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.vakit',
+  appId: 'com.app.vakit',
   appName: 'Vakit',
   webDir: 'dist',
   plugins: {
