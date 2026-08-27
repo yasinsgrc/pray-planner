@@ -30,3 +30,14 @@ test('ic_stat_vakit.xml has no gradient or multi-color paths', () => {
 test('capacitor.config.ts smallIcon matches the ic_stat_vakit drawable', () => {
   assert.equal(capacitorConfig.includes("smallIcon: 'ic_stat_vakit'"), true);
 });
+
+// Kubbe + kasnak siluetinin assets/logo/_v8/launcher-foreground.svg içindeki
+// kubbe ve kasnak alt-path'lerinin 0.14 ölçek + merkezleme dönüşümüyle
+// 24dp viewport'a taşınmış, birebir aynı hali olması gerekiyor.
+test('ic_stat_vakit.xml pathData is the scaled dome+drum silhouette from the v8 launcher foreground', () => {
+  const pathDataMatch = drawable.match(/android:pathData="([^"]+)"/);
+  assert.equal(
+    pathDataMatch?.[1],
+    'M12,1.95 C13.28,4.82 18.7,8.33 19.02,11.84 C19.02,13.76 19.02,15.35 17.75,16.31 L6.25,16.31 C4.98,15.35 4.98,13.76 4.98,11.84 C5.3,8.33 10.72,4.82 12,1.95 Z M6.09,16.31 L17.91,16.31 L17.91,22.05 L6.09,22.05 Z',
+  );
+});
