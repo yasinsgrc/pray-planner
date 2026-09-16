@@ -2,7 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { CompassIcon, WarningCircleIcon, CopyIcon, CheckIcon } from './icons';
 import { LocationItem } from '../types';
 import { useCompassHeading, CompassDebugInfo } from '../hooks/useCompassHeading';
-import { isAlignedWithBearing, getTurnInstruction, DriftCharacter } from '../utils/compassHeading';
+import {
+  isAlignedWithBearing,
+  getTurnInstruction,
+  computeRoseRotation,
+  getAngularDifference,
+  DriftCharacter,
+  HeadingReliability,
+} from '../utils/compassHeading';
 import { calculateQiblaBearing } from '../utils/qibla';
 
 interface QiblaCompassViewProps {
@@ -33,9 +40,17 @@ const DRIFT_CHARACTER_LABEL: Record<DriftCharacter, string> = {
   oscillating: 'salınımlı (gürültü, sürüklenme değil)',
 };
 
+const RELIABILITY_WARNING: Record<HeadingReliability, string | null> = {
+  ok: null,
+  unknown: null,
+  calibrate: 'Pusula kalibre değil. Telefonu havada 8 çizerek kalibre edin.',
+  interference:
+    'Yakında manyetik parazit var (metal, hoparlör, zemin demiri). Telefonu elinizde, metalden uzak tutun.',
+};
+
 export const QiblaCompassView: React.FC<QiblaCompassViewProps> = ({ location, active }) => {
-  const { heading, permissionState, requestPermission, needsCalibration, debug } =
-    useCompassHeading(active);
+  const { heading, permissionState, requestPermission, needsCalibration, reliability, debug } =
+    useCompassHeading(active, location.lat, location.lng);
   const wasAlignedRef = useRef(false);
   const [devPanelVisible, setDevPanelVisible] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -44,10 +59,18 @@ export const QiblaCompassView: React.FC<QiblaCompassViewProps> = ({ location, ac
   const qiblaBearing = calculateQiblaBearing(location);
   const qiblaFormatted = Math.round(qiblaBearing);
 
+  // Okuma güvenilir değilken yön göstermek, insanı emin bir şekilde yanlış
+  // yöne çevirir — hiç göstermemekten kötüdür. İbre ve "… dönün"
+  // yönlendirmesi yalnızca sensöre güvenilebildiğinde çizilir; açı değeri
+  // ve uyarı her hâlükârda kalır.
+  const headingTrusted = reliability !== 'calibrate' && reliability !== 'interference';
+  const reliabilityWarning = RELIABILITY_WARNING[reliability];
   const needleRotation =
     heading !== null ? (qiblaBearing - heading + 360) % 360 : qiblaBearing;
-  const aligned = heading !== null && isAlignedWithBearing(qiblaBearing, heading, 5);
-  const turnInstruction = heading !== null ? getTurnInstruction(qiblaBearing, heading, 5) : null;
+  const roseRotation = heading !== null ? computeRoseRotation(heading) : 0;
+  const aligned = headingTrusted && heading !== null && isAlignedWithBearing(qiblaBearing, heading, 5);
+  const turnInstruction =
+    headingTrusted && heading !== null ? getTurnInstruction(qiblaBearing, heading, 5) : null;
 
   useEffect(() => {
     if (aligned && !wasAlignedRef.current && navigator.vibrate) {
@@ -69,9 +92,24 @@ export const QiblaCompassView: React.FC<QiblaCompassViewProps> = ({ location, ac
     }
   };
 
+  // acc+mag ile ROTATION_VECTOR arasındaki dairesel fark — WebView'in
+  // kullandığı kaynak RV olduğu için bu sayı, sahadaki 35-58°'lik hatanın
+  // aynı cihazda hâlâ ölçülüp ölçülmediğini doğrudan gösterir.
+  const accMagVsRvDiff =
+    heading !== null && debug.rvHeadingTrue !== null
+      ? getAngularDifference(heading, debug.rvHeadingTrue)
+      : null;
+
   const buildDebugReportText = () =>
     [
       `platform: ${debug.userAgentSummary || 'bilinmiyor'}`,
+      `kaynak: ${debug.source}`,
+      `deklinasyon: ${debug.declination !== null ? `${debug.declination.toFixed(2)}°` : 'yok'}`,
+      `doğruluk: ${debug.accuracy ?? 'yok'}`,
+      `alan (µT): ${debug.fieldUt !== null ? debug.fieldUt.toFixed(1) : 'yok'}`,
+      `RV heading: ${debug.rvHeadingTrue !== null ? debug.rvHeadingTrue.toFixed(2) : 'yok'}`,
+      `fark (acc-mag − RV): ${accMagVsRvDiff !== null ? `${accMagVsRvDiff.toFixed(2)}°` : 'yok'}`,
+      `güvenilirlik: ${reliability}`,
       `aktif API: ${ACTIVE_EVENT_TYPE_LABEL[debug.activeEventType]}`,
       `absolute: ${debug.isAbsolute}`,
       `alpha: ${debug.alpha ?? 'null'}`,
@@ -112,33 +150,50 @@ export const QiblaCompassView: React.FC<QiblaCompassViewProps> = ({ location, ac
           aligned ? 'border-success/50' : 'border-gold/30'
         }`}
       >
-        {/* Kuzey / Güney / Doğu / Batı İşaretleri */}
-        <span className="absolute top-2 text-[10px] font-bold text-danger-ink">N (Kuzey)</span>
-        <span className="absolute bottom-2 text-[10px] font-bold text-mist">S (Güney)</span>
-        <span className="absolute right-2 text-[10px] font-bold text-mist">E (Doğu)</span>
-        <span className="absolute left-2 text-[10px] font-bold text-mist">W (Batı)</span>
-
-        {/* Dönen Kıble İbresi */}
+        {/* Kuzey / Güney / Doğu / Batı halkası — tek katman olarak heading'in
+            tersine döner, böylece "N" cihaz nereye bakarsa baksın gerçek
+            kuzeyi gösterir (etiketler sabit kalsaydı sadece süs olurdu). */}
         <div
-          className="absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-out"
-          style={{ transform: `rotate(${needleRotation}deg)` }}
+          className="absolute inset-0 transition-transform duration-700 ease-out"
+          style={{ transform: `rotate(${roseRotation}deg)` }}
         >
-          <div className="flex flex-col items-center justify-start h-full py-3">
-            {/* Kâbe Simgesi / Altın İbre Başı — bilerek temadan bağımsız koyu (gerçek Kâbe rengi) */}
-            <div
-              className={`w-7 h-7 rounded-lg bg-[#2D2D2D] border-2 flex items-center justify-center shadow-md transition-colors duration-300 ${
-                aligned ? 'border-success' : 'border-gold'
-              }`}
-            >
-              <span className={`text-[10px] font-bold ${needleColorClass}`}>KÂBE</span>
-            </div>
-            <div
-              className={`w-0.5 h-16 transition-colors duration-300 ${
-                aligned ? 'bg-success' : 'bg-gold'
-              }`}
-            />
-          </div>
+          <span className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-danger-ink">
+            N (Kuzey)
+          </span>
+          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-mist">
+            S (Güney)
+          </span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-mist">
+            E (Doğu)
+          </span>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-mist">
+            W (Batı)
+          </span>
         </div>
+
+        {/* Dönen Kıble İbresi — yalnızca okumaya güvenilebiliyorsa */}
+        {headingTrusted && (
+          <div
+            className="absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-out"
+            style={{ transform: `rotate(${needleRotation}deg)` }}
+          >
+            <div className="flex flex-col items-center justify-start h-full py-3">
+              {/* Kâbe Simgesi / Altın İbre Başı — bilerek temadan bağımsız koyu (gerçek Kâbe rengi) */}
+              <div
+                className={`w-7 h-7 rounded-lg bg-[#2D2D2D] border-2 flex items-center justify-center shadow-md transition-colors duration-300 ${
+                  aligned ? 'border-success' : 'border-gold'
+                }`}
+              >
+                <span className={`text-[10px] font-bold ${needleColorClass}`}>KÂBE</span>
+              </div>
+              <div
+                className={`w-0.5 h-16 transition-colors duration-300 ${
+                  aligned ? 'bg-success' : 'bg-gold'
+                }`}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Merkez Nokta */}
         <div
@@ -161,7 +216,7 @@ export const QiblaCompassView: React.FC<QiblaCompassViewProps> = ({ location, ac
           {qiblaFormatted}°
         </div>
         <p className="text-[10px] text-mist mt-1">
-          Telefonunuzu düz bir zemin üzerinde tutarak pusula ibresini Kâbe yönüne çeviriniz.
+          Telefonu elinizde yere paralel tutun ve üst kenarını Kâbe ibresine çevirin.
         </p>
       </div>
 
@@ -220,7 +275,18 @@ export const QiblaCompassView: React.FC<QiblaCompassViewProps> = ({ location, ac
         </p>
       )}
 
-      {needsCalibration && heading !== null && (
+      {/* Yerel sensör ölçümünden gelen kesin teşhis: ne olduğunu ve ne
+          yapılacağını söyler. İbrenin neden kaybolduğunun açıklaması da bu. */}
+      {reliabilityWarning && (
+        <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 flex items-start gap-2 text-left">
+          <WarningCircleIcon className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
+          <p className="text-[11px] text-danger-ink">{reliabilityWarning}</p>
+        </div>
+      )}
+
+      {/* Web yolu (iOS/tarayıcı): alan şiddeti ve doğruluk seviyesi yok,
+          elde yalnızca titreşim/accuracy çıkarımı var. */}
+      {!reliabilityWarning && needsCalibration && heading !== null && (
         <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 flex items-start gap-2 text-left">
           <WarningCircleIcon className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
           <p className="text-[11px] text-danger-ink">
@@ -246,6 +312,17 @@ export const QiblaCompassView: React.FC<QiblaCompassViewProps> = ({ location, ac
             </button>
           </div>
           <div>platform: {debug.userAgentSummary || 'bilinmiyor'}</div>
+          <div>kaynak: {debug.source}</div>
+          <div>
+            deklinasyon: {debug.declination !== null ? `${debug.declination.toFixed(2)}°` : 'yok'}
+          </div>
+          <div>doğruluk: {debug.accuracy ?? 'yok'}</div>
+          <div>alan (µT): {debug.fieldUt !== null ? debug.fieldUt.toFixed(1) : 'yok'}</div>
+          <div>RV heading: {debug.rvHeadingTrue !== null ? debug.rvHeadingTrue.toFixed(2) : 'yok'}</div>
+          <div>
+            fark (acc-mag − RV): {accMagVsRvDiff !== null ? `${accMagVsRvDiff.toFixed(2)}°` : 'yok'}
+          </div>
+          <div>güvenilirlik: {reliability}</div>
           <div>aktif API: {ACTIVE_EVENT_TYPE_LABEL[debug.activeEventType]}</div>
           <div>absolute: {String(debug.isAbsolute)}</div>
           <div>alpha: {debug.alpha ?? 'null'}</div>

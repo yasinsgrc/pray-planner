@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
         // kaydedilmeli (design-refresh-v3 Faz 23 Commit 4).
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(StatusBarAppearancePlugin.class);
+        registerPlugin(QiblaHeadingPlugin.class);
         super.onCreate(savedInstanceState);
         applyStatusBarAppearance();
     }

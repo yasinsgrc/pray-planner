@@ -12,6 +12,8 @@ import {
   classifyDriftCharacter,
   summarizePlatform,
   determineActiveEventType,
+  assessHeadingReliability,
+  computeRoseRotation,
 } from './compassHeading';
 
 test('computeHeadingFromOrientationEvent prefers webkitCompassHeading when present (iOS)', () => {
@@ -261,4 +263,64 @@ test('determineActiveEventType falls back to the event source name when there is
 
 test('determineActiveEventType treats NaN webkitCompassHeading as absent', () => {
   assert.equal(determineActiveEventType(NaN, 'deviceorientationabsolute'), 'deviceorientationabsolute');
+});
+
+// --- Yerel sensör güvenilirliği (Android acc+mag eklentisi) ---------------
+// Manyetik alan şiddeti Dünya üzerinde ~25-65 µT arasındadır. Bu aralığın
+// dışı, sensörün ne kadar "doğru" olduğunu iddia ettiğinden bağımsız olarak,
+// yakında bir parazit kaynağı (metal masa, hoparlör, zemin demiri) olduğu
+// anlamına gelir — bu yüzden accuracy'den önce bakılır.
+
+test('assessHeadingReliability: yüksek doğruluk + normal alan → ok', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 3, fieldUt: 46 }), 'ok');
+});
+
+test('assessHeadingReliability: orta doğruluk (2) hâlâ kullanılabilir → ok', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 2, fieldUt: 46 }), 'ok');
+});
+
+test('assessHeadingReliability: düşük doğruluk (1) → calibrate', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 1, fieldUt: 46 }), 'calibrate');
+});
+
+test('assessHeadingReliability: güvenilmez doğruluk (0) → calibrate', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 0, fieldUt: 46 }), 'calibrate');
+});
+
+test('assessHeadingReliability: alan çok güçlü (80 µT) → interference', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 3, fieldUt: 80 }), 'interference');
+});
+
+test('assessHeadingReliability: alan çok zayıf (20 µT) → interference', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 3, fieldUt: 20 }), 'interference');
+});
+
+test('assessHeadingReliability: parazit, kalibrasyon uyarısını bastırır (0, 90)', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 0, fieldUt: 90 }), 'interference');
+});
+
+test('assessHeadingReliability: 25 µT alt sınırı dahil → ok', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 3, fieldUt: 25 }), 'ok');
+});
+
+test('assessHeadingReliability: 65 µT üst sınırı dahil → ok', () => {
+  assert.equal(assessHeadingReliability({ accuracy: 3, fieldUt: 65 }), 'ok');
+});
+
+// Gül (N/E/S/W halkası) heading'in tersine döner: kuzeye bakarken 0°,
+// doğuya (90°) dönünce "N" etiketi ekranda 270°'ye kaymalıdır.
+test('computeRoseRotation: kuzeye bakarken gül dönmez', () => {
+  assert.equal(computeRoseRotation(0), 0);
+});
+
+test('computeRoseRotation: doğuya (90°) bakarken gül 270° döner', () => {
+  assert.equal(computeRoseRotation(90), 270);
+});
+
+test('computeRoseRotation: 184° heading için 176°', () => {
+  assert.equal(computeRoseRotation(184), 176);
+});
+
+test('computeRoseRotation: 360° heading 0° ile aynıdır (sarma)', () => {
+  assert.equal(computeRoseRotation(360), 0);
 });

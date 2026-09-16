@@ -208,6 +208,39 @@ export function determineActiveEventType(
   return Number.isFinite(webkitCompassHeading) ? 'webkitCompassHeading' : eventSourceName;
 }
 
+export type HeadingReliability = 'ok' | 'calibrate' | 'interference' | 'unknown';
+
+/** Dünya yüzeyindeki manyetik alan şiddeti bu aralıkta kalır (µT). */
+const MIN_EARTH_FIELD_UT = 25;
+const MAX_EARTH_FIELD_UT = 65;
+/** SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM. */
+const MIN_USABLE_ACCURACY = 2;
+
+/**
+ * Yerel acc+mag heading'ine güvenilip güvenilemeyeceği. Alan şiddeti
+ * doğruluktan önce gelir: ölçülen alan Dünya'nınkinden güçlü veya zayıfsa
+ * yakında bir parazit kaynağı (metal masa, hoparlör, zemin demiri) var
+ * demektir ve sensör kendini "yüksek doğruluk" ilan etse bile yön yanlıştır.
+ */
+export function assessHeadingReliability(input: {
+  accuracy: number;
+  fieldUt: number;
+}): Exclude<HeadingReliability, 'unknown'> {
+  if (input.fieldUt < MIN_EARTH_FIELD_UT || input.fieldUt > MAX_EARTH_FIELD_UT) {
+    return 'interference';
+  }
+  if (input.accuracy < MIN_USABLE_ACCURACY) return 'calibrate';
+  return 'ok';
+}
+
+/**
+ * N/E/S/W halkasının ekran dönüşü. Halka heading'in tersine döner ki
+ * "N" etiketi cihaz nereye bakarsa baksın gerçek kuzeyi göstersin.
+ */
+export function computeRoseRotation(headingDeg: number): number {
+  return (360 - headingDeg) % 360;
+}
+
 export interface TurnInstruction {
   /** 0-180, the short way around. */
   degrees: number;

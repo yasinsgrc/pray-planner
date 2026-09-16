@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
+import { QiblaHeading } from '../plugins/qiblaHeading';
+import { assessHeadingReliability, HeadingReliability } from '../utils/compassHeading';
 import {
   applyScreenOrientationCompensation,
   computeHeadingFromOrientationEvent,
@@ -17,6 +20,26 @@ import {
 } from '../utils/compassHeading';
 
 export type CompassPermissionState = 'idle' | 'granted' | 'denied' | 'unsupported';
+
+/** Yönü fiilen üreten katman. */
+export type HeadingSource = 'native-accmag' | 'web';
+
+/**
+ * Android WebView'in `deviceorientationabsolute` olayı (Chromium,
+ * ROTATION_VECTOR tabanlı) gerçek cihazda aynı noktada 35-58° yanlış yön
+ * veriyor — açı hesabı (adhan) doğru olduğu hâlde. Aynı konumda doğru
+ * çalışan başka uygulamalar yönü sensörlerden kendileri hesaplıyor; biz de
+ * Android'de yönü QiblaHeadingPlugin'den (accelerometer + magnetometer)
+ * alıyoruz ve web olaylarına hiç abone olmuyoruz: iki kaynağın aynı anda
+ * çalışması hatayı geri getirir.
+ */
+function isAndroidPlatform(): boolean {
+  try {
+    return Capacitor.getPlatform() === 'android';
+  } catch {
+    return false;
+  }
+}
 
 export interface CompassDebugInfo {
   alpha: number | null;
@@ -46,6 +69,19 @@ export interface CompassDebugInfo {
    * (sensor fusion issue), which a single number can't. */
   stats: HeadingStats | null;
   driftCharacter: DriftCharacter;
+  /** Yönü fiilen üreten katman — Android'de yerel eklenti, geri kalanda WebView. */
+  source: HeadingSource;
+  /** Yerel eklentinin uyguladığı manyetik sapma (derece); web yolunda null. */
+  declination: number | null;
+  /** SensorManager doğruluk seviyesi 0-3; web yolunda null. */
+  accuracy: number | null;
+  /** Ölçülen manyetik alan şiddeti (µT); web yolunda null. */
+  fieldUt: number | null;
+  /** ROTATION_VECTOR füzyonunun aynı andaki gerçek-kuzey yönü — WebView'in
+   * kullandığı kaynakla aynı; yalnızca acc+mag ile farkını görmek için
+   * taşınıyor. Okuma yoksa null. */
+  rvHeadingTrue: number | null;
+  reliability: HeadingReliability;
 }
 
 export interface CompassHeadingState {
@@ -57,6 +93,9 @@ export interface CompassHeadingState {
    * more than a real hand tremor would explain — both mean "the sensor
    * itself isn't trustworthy right now", not a code bug. */
   needsCalibration: boolean;
+  /** Yerel sensör okumasının kullanılabilirliği. Web yolunda ölçülemediği
+   * için 'unknown' kalır. */
+  reliability: HeadingReliability;
   debug: CompassDebugInfo;
 }
 
@@ -93,10 +132,16 @@ function getScreenAngle(): number {
   return window.screen.orientation?.angle ?? 0;
 }
 
-export function useCompassHeading(active: boolean): CompassHeadingState {
+export function useCompassHeading(active: boolean, lat: number, lng: number): CompassHeadingState {
+  const isAndroid = isAndroidPlatform();
   const [heading, setHeading] = useState<number | null>(null);
-  const [permissionState, setPermissionState] = useState<CompassPermissionState>('idle');
+  // Android'de yerel sensör okuması ayrı bir kullanıcı izni gerektirmediği
+  // için "Pusulayı Etkinleştir" adımı yok; izin akışı yalnızca iOS/web'de var.
+  const [permissionState, setPermissionState] = useState<CompassPermissionState>(() =>
+    isAndroidPlatform() ? 'granted' : 'idle'
+  );
   const [needsCalibration, setNeedsCalibration] = useState(false);
+  const [reliability, setReliability] = useState<HeadingReliability>('unknown');
   const [debug, setDebug] = useState<CompassDebugInfo>({
     alpha: null,
     webkitCompassHeading: undefined,
@@ -111,6 +156,12 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     userAgentSummary: '',
     stats: null,
     driftCharacter: 'insufficient-data',
+    source: isAndroidPlatform() ? 'native-accmag' : 'web',
+    declination: null,
+    accuracy: null,
+    fieldUt: null,
+    rvHeadingTrue: null,
+    reliability: 'unknown',
   });
   const hasUsableHeadingRef = useRef(false);
   const smootherRef = useRef<CircularSmootherState>(INITIAL_SMOOTHER_STATE);
@@ -119,6 +170,13 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
   const firstRawHeadingRef = useRef<number | null>(null);
 
   const requestPermission = useCallback(async () => {
+    // Android yerel yolu izin istemez; buraya yalnızca "Tekrar Dene"
+    // düğmesinden düşülebilir ve orada da yapılacak bir şey yok.
+    if (isAndroidPlatform()) {
+      setPermissionState('granted');
+      return;
+    }
+
     if (typeof DeviceOrientationEvent === 'undefined') {
       setPermissionState('unsupported');
       return;
@@ -138,8 +196,64 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
     }
   }, []);
 
+  // Android: yön yerel eklentiden gelir. Eklenti ekran dönüşünü zaten
+  // remapCoordinateSystem ile telafi ediyor ve okumayı alçak geçiren
+  // filtreden geçiriyor; burada ikinci kez yumuşatmak ya da ekran açısını
+  // tekrar eklemek yönü bozar.
   useEffect(() => {
-    if (!active || permissionState !== 'granted') return;
+    if (!active || !isAndroid) return;
+
+    let cancelled = false;
+    let handle: PluginListenerHandle | null = null;
+
+    const subscribe = async () => {
+      try {
+        const listener = await QiblaHeading.addListener('heading', (sample) => {
+          if (cancelled) return;
+          const sampleReliability = assessHeadingReliability({
+            accuracy: sample.accuracy,
+            fieldUt: sample.fieldUt,
+          });
+          setHeading(sample.headingTrue);
+          setReliability(sampleReliability);
+          setNeedsCalibration(sampleReliability === 'calibrate');
+          setDebug((prev) => ({
+            ...prev,
+            source: 'native-accmag',
+            rawHeading: sample.headingMagnetic,
+            smoothedHeading: null,
+            declination: sample.declination,
+            accuracy: sample.accuracy,
+            fieldUt: sample.fieldUt,
+            rvHeadingTrue: sample.rvHeadingTrue === -1 ? null : sample.rvHeadingTrue,
+            reliability: sampleReliability,
+          }));
+        });
+        if (cancelled) {
+          await listener.remove();
+          return;
+        }
+        handle = listener;
+        await QiblaHeading.start({ lat, lng });
+        if (!cancelled) setPermissionState('granted');
+      } catch {
+        // Eklenti yoksa ya da cihazda accelerometer/magnetometer yoksa:
+        // sessizce web yoluna düşmek, aynı yanlış yönü geri getirirdi.
+        if (!cancelled) setPermissionState('unsupported');
+      }
+    };
+
+    void subscribe();
+
+    return () => {
+      cancelled = true;
+      void handle?.remove();
+      void QiblaHeading.stop();
+    };
+  }, [active, isAndroid, lat, lng]);
+
+  useEffect(() => {
+    if (!active || isAndroid || permissionState !== 'granted') return;
 
     hasUsableHeadingRef.current = false;
     smootherRef.current = INITIAL_SMOOTHER_STATE;
@@ -219,7 +333,8 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
       const windowHeadings = buffer.filter((s) => now - s.t <= DRIFT_WINDOW_MS).map((s) => s.heading);
 
       setHeading(compensated);
-      setDebug({
+      setDebug((prev) => ({
+        ...prev,
         alpha: event.alpha,
         webkitCompassHeading: event.webkitCompassHeading,
         webkitCompassAccuracy: iosAccuracy,
@@ -233,7 +348,8 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
         userAgentSummary,
         stats: computeHeadingStats(windowHeadings),
         driftCharacter: classifyDriftCharacter(windowHeadings),
-      });
+        source: 'web',
+      }));
     }
 
     // deviceorientationabsolute is always north-referenced when it fires.
@@ -264,7 +380,7 @@ export function useCompassHeading(active: boolean): CompassHeadingState {
       window.removeEventListener('deviceorientation', handleOrientation);
       window.clearTimeout(timeoutId);
     };
-  }, [active, permissionState]);
+  }, [active, isAndroid, permissionState]);
 
-  return { heading, permissionState, requestPermission, needsCalibration, debug };
+  return { heading, permissionState, requestPermission, needsCalibration, reliability, debug };
 }
