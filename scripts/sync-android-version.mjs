@@ -14,13 +14,13 @@ const versionCode = computeAndroidVersionCode(version);
 const buildGradlePath = path.join(rootDir, 'android', 'app', 'build.gradle');
 const original = readFileSync(buildGradlePath, 'utf8');
 
+if (!/versionCode\s+\d+/.test(original) || !/versionName\s+"[^"]*"/.test(original)) {
+  throw new Error('sync-android-version: versionCode/versionName pattern not found in build.gradle — check for upstream format changes.');
+}
+
 const updated = original
   .replace(/versionCode\s+\d+/, `versionCode ${versionCode}`)
   .replace(/versionName\s+"[^"]*"/, `versionName "${version}"`);
-
-if (updated === original) {
-  throw new Error('sync-android-version: versionCode/versionName pattern not found in build.gradle — check for upstream format changes.');
-}
 
 writeFileSync(buildGradlePath, updated);
 console.log(`android/app/build.gradle synced: versionName=${version} versionCode=${versionCode}`);
