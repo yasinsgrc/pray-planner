@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import type { PushStore, ScheduleEntry } from './pushStore';
 import type { GeocodingClient } from './geocoding';
 import { GeocodingRateLimitedError } from './geocoding';
@@ -12,6 +13,34 @@ import { createRateLimiter } from './rateLimiter';
 // between the two independently-maintained numbers.
 const MAX_SCHEDULE_ENTRIES = 400;
 const SUBSCRIBE_RATE_LIMIT = { windowMs: 60_000, max: 10 };
+const STORE_UNAVAILABLE_MESSAGE = 'Kayıt şu an yapılamıyor, biraz sonra tekrar deneyin.';
+
+/**
+ * Express 4 does not forward a rejected promise from an async handler to
+ * error-handling middleware: it escapes as an unhandledRejection, which
+ * under Node's default mode kills the process. So a single Postgres
+ * hiccup on one user's subscribe call used to take down the server for
+ * everyone — and that user never got a response either, since nothing
+ * ever wrote one.
+ *
+ * Only the push-store writes go through this: they're the routes that
+ * touch a store whose failures are deliberately NOT caught internally
+ * (checkHealth is the one exception). 503 rather than 500 — the request
+ * was fine, the dependency is temporarily gone, and retrying later is
+ * exactly the right thing for the client to do.
+ */
+function pushStoreRoute(handler: (req: Request, res: Response) => Promise<void>): RequestHandler {
+  return (req, res, next) => {
+    handler(req, res).catch((err: unknown) => {
+      console.error('[server] bildirim deposu hatası:', err);
+      if (res.headersSent) {
+        next(err);
+        return;
+      }
+      res.status(503).json({ error: STORE_UNAVAILABLE_MESSAGE });
+    });
+  };
+}
 
 export interface CreateAppDeps {
   pushStore: PushStore;
@@ -74,7 +103,12 @@ function parseScheduleRequest(body: ScheduleRequestBody): ParsedScheduleRequest 
 
 export function createApp(deps: CreateAppDeps): Express {
   const app = express();
-  app.set('trust proxy', true);
+  // Exactly one hop (Railway's edge), not `true`. `true` trusts the whole
+  // X-Forwarded-For chain and takes its LEFTMOST entry — which the client
+  // writes, so rotating it handed out a fresh rate-limit bucket on every
+  // request and left a permanent key in the limiter's map each time. With
+  // `1`, req.ip is the address the trusted proxy itself observed.
+  app.set('trust proxy', 1);
   app.use(createCorsMiddleware(deps.corsAllowedOrigin));
   app.use(express.json({ limit: '256kb' }));
 
@@ -95,7 +129,17 @@ export function createApp(deps: CreateAppDeps): Express {
   // subscribe/schedule are meaningless without it, so treating the API as
   // "down" during a DB outage is the honest signal, not a false one.
   app.get('/health', async (_req, res) => {
-    const dbHealthy = await deps.pushStore.checkHealth();
+    // Both shipped stores catch internally and return false, but a health
+    // probe that throws instead of answering would make the platform's own
+    // restart logic blind — so a rejection is reported as "disconnected"
+    // here rather than being allowed to escape.
+    let dbHealthy: boolean;
+    try {
+      dbHealthy = await deps.pushStore.checkHealth();
+    } catch (err) {
+      console.error('[server] checkHealth hatası:', err);
+      dbHealthy = false;
+    }
     if (!dbHealthy) {
       res.status(503).json({ ok: false, service: 'vakit-api', db: 'disconnected' });
       return;
@@ -112,45 +156,60 @@ export function createApp(deps: CreateAppDeps): Express {
   // (src/utils/pushSchedule.ts, using the same prayerCalculator.ts the UI
   // does) and sends nothing but a list of future UTC instants + a label.
   // The server never sees a location, a city, or a calculation method.
-  app.post('/api/push/subscribe', subscribeRateLimiter, async (req, res) => {
-    const parsed = parseScheduleRequest(req.body);
-    if (parsed.status === 'error') {
-      res.status(400).json({ error: parsed.error });
-      return;
-    }
-    await deps.pushStore.upsertSubscriptionAndSchedule(
-      { endpoint: parsed.endpoint, p256dh: parsed.p256dh, auth: parsed.auth },
-      parsed.schedule
-    );
-    res.status(200).json({ ok: true });
-  });
+  app.post(
+    '/api/push/subscribe',
+    subscribeRateLimiter,
+    pushStoreRoute(async (req, res) => {
+      const parsed = parseScheduleRequest(req.body);
+      if (parsed.status === 'error') {
+        res.status(400).json({ error: parsed.error });
+        return;
+      }
+      await deps.pushStore.upsertSubscriptionAndSchedule(
+        { endpoint: parsed.endpoint, p256dh: parsed.p256dh, auth: parsed.auth },
+        parsed.schedule
+      );
+      res.status(200).json({ ok: true });
+    })
+  );
 
   // Same body shape and the same underlying operation as /subscribe — a
   // changed location or calculation method must REPLACE the schedule, not
   // merge with it, so both endpoints share this exact upsert-and-replace
   // behavior (design-refresh-v3 Faz 15).
-  app.post('/api/push/schedule', subscribeRateLimiter, async (req, res) => {
-    const parsed = parseScheduleRequest(req.body);
-    if (parsed.status === 'error') {
-      res.status(400).json({ error: parsed.error });
-      return;
-    }
-    await deps.pushStore.upsertSubscriptionAndSchedule(
-      { endpoint: parsed.endpoint, p256dh: parsed.p256dh, auth: parsed.auth },
-      parsed.schedule
-    );
-    res.status(200).json({ ok: true });
-  });
+  app.post(
+    '/api/push/schedule',
+    subscribeRateLimiter,
+    pushStoreRoute(async (req, res) => {
+      const parsed = parseScheduleRequest(req.body);
+      if (parsed.status === 'error') {
+        res.status(400).json({ error: parsed.error });
+        return;
+      }
+      await deps.pushStore.upsertSubscriptionAndSchedule(
+        { endpoint: parsed.endpoint, p256dh: parsed.p256dh, auth: parsed.auth },
+        parsed.schedule
+      );
+      res.status(200).json({ ok: true });
+    })
+  );
 
-  app.delete('/api/push/unsubscribe', async (req, res) => {
-    const { endpoint } = req.body ?? {};
-    if (typeof endpoint !== 'string' || !endpoint) {
-      res.status(400).json({ error: 'endpoint gerekli.' });
-      return;
-    }
-    await deps.pushStore.removeSubscription(endpoint);
-    res.status(200).json({ ok: true });
-  });
+  // Shares the limiter instance with the two routes above on purpose: all
+  // three are push-storage writes from the same client, so they draw from
+  // one budget rather than giving an unmetered third door into the store.
+  app.delete(
+    '/api/push/unsubscribe',
+    subscribeRateLimiter,
+    pushStoreRoute(async (req, res) => {
+      const { endpoint } = req.body ?? {};
+      if (typeof endpoint !== 'string' || !endpoint) {
+        res.status(400).json({ error: 'endpoint gerekli.' });
+        return;
+      }
+      await deps.pushStore.removeSubscription(endpoint);
+      res.status(200).json({ ok: true });
+    })
+  );
 
   // /api/reverse-geocode (GPS coordinate -> place name) was removed
   // entirely (design-refresh-v3 Faz 16): it silently sent the user's real
@@ -187,6 +246,17 @@ export function createApp(deps: CreateAppDeps): Express {
     } catch {
       res.status(502).json({ error: 'Günün ayeti alınamadı.' });
     }
+  });
+
+  // Backstop for anything the per-route handling above didn't already turn
+  // into a response — an express-recognized error handler (4 parameters)
+  // must come last. Without one, Express's default handler leaks the stack
+  // trace to the client outside production; this answers with nothing but
+  // a neutral message, and the detail goes to the server log instead.
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('[server] beklenmeyen hata:', err);
+    if (res.headersSent) return;
+    res.status(500).json({ error: 'Beklenmeyen bir hata oluştu.' });
   });
 
   return app;
