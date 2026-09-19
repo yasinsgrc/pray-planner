@@ -43,7 +43,7 @@ export function playSoftChime() {
       ctx.close().catch(() => {});
     }, totalDurationMs + 100);
   } catch (err) {
-    console.log('Audio playback error:', err);
+    console.warn('Audio playback error:', err);
   }
 }
 
@@ -72,7 +72,7 @@ export function playEzanAudio(onEnded?: () => void) {
     ezanAudioElement.pause();
     ezanAudioElement.currentTime = 0;
     ezanAudioElement.play().catch((err) => {
-      console.log('Ezan sesi çalınamadı:', err);
+      console.warn('Ezan sesi çalınamadı:', err);
     });
   } catch (err) {
     console.log('Ezan sesi çalınamadı:', err);
@@ -86,6 +86,6 @@ export function stopEzanAudio() {
       ezanAudioElement.currentTime = 0;
     }
   } catch (err) {
-    console.log('Ezan sesi durdurulamadı:', err);
+    console.warn('Ezan sesi durdurulamadı:', err);
   }
 }

@@ -4,7 +4,7 @@ import { formatTime } from './formatTime';
 import { resolveTimeZone, getCalendarDateInZone } from './timezone';
 import { PRAYER_LABELS, PRAYER_LABEL_DATIVE, KERAHET_WINDOW_TITLE, KERAHET_WINDOW_DESCRIPTION } from '../data/strings';
 
-export function getCalculationParameters(methodName: string): CalculationParameters {
+function getCalculationParameters(methodName: string): CalculationParameters {
   switch (methodName) {
     case 'MWL':
       return CalculationMethod.MuslimWorldLeague();
@@ -332,13 +332,4 @@ export function deriveLiveSchedule(
   now: Date = new Date()
 ): DayPrayerSchedule {
   return deriveFromDay(day, now);
-}
-
-export function calculatePrayerTimes(
-  location: LocationItem,
-  date: Date = new Date(),
-  methodName: string = 'Diyanet'
-): DayPrayerSchedule {
-  const day = buildDaySchedule(location, date, methodName);
-  return deriveFromDay(day, new Date());
 }

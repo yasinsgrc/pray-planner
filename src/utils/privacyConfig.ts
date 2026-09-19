@@ -1,5 +1,3 @@
-import { isPrivacyConfigured } from './privacyFieldsConfigured';
-
 /**
  * Deployer-specific identity fields for the Privacy Policy (design-refresh-v3
  * Faz 8) — the policy text itself is verified against this app's actual
@@ -17,10 +15,3 @@ export const PRIVACY_ENTITY_NAME = import.meta.env.VITE_PRIVACY_ENTITY_NAME as s
 export const PRIVACY_ADDRESS = import.meta.env.VITE_PRIVACY_ADDRESS as string | undefined;
 export const PRIVACY_CONTACT_EMAIL = import.meta.env.VITE_PRIVACY_CONTACT_EMAIL as string | undefined;
 export const PRIVACY_HOSTING_PROVIDER = import.meta.env.VITE_PRIVACY_HOSTING_PROVIDER as string | undefined;
-
-export const PRIVACY_FIELDS_CONFIGURED = isPrivacyConfigured({
-  entityName: PRIVACY_ENTITY_NAME,
-  address: PRIVACY_ADDRESS,
-  contactEmail: PRIVACY_CONTACT_EMAIL,
-  hostingProvider: PRIVACY_HOSTING_PROVIDER,
-});
