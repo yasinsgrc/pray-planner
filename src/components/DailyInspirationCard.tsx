@@ -3,6 +3,8 @@ import { BookOpenIcon, CopyIcon, CheckIcon, QuotesIcon, ShareNetworkIcon } from 
 import { DAILY_INSPIRATIONS } from '../data/dailyContent';
 import { useApiAvailable } from '../hooks/useApiAvailable';
 import { apiUrl } from '../utils/apiBaseUrl';
+import { Share } from '@capacitor/share';
+import { isNativePlatform } from '../utils/platform';
 
 export const DailyInspirationCard: React.FC = () => {
   const [tab, setTab] = useState<'verse' | 'hadith' | 'dua'>('verse');
@@ -70,9 +72,17 @@ export const DailyInspirationCard: React.FC = () => {
 
   const handleShare = async () => {
     const text = getTextToCopy();
-    if (navigator.share) {
+    const title = 'VAKİT — Günün Manevi Notu';
+    // Android WebView navigator.share sunmuyor; native'de Capacitor Share kullan
+    if (isNativePlatform()) {
       try {
-        await navigator.share({ text, title: 'VAKİT — Günün Manevi Notu' });
+        await Share.share({ text, title, dialogTitle: 'Paylaş' });
+      } catch {
+        // Kullanıcı paylaşımı iptal etti: sessizce yok say
+      }
+    } else if (navigator.share) {
+      try {
+        await navigator.share({ text, title });
       } catch {
         // Kullanıcı paylaşımı iptal etti: sessizce yok say
       }

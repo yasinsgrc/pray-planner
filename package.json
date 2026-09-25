@@ -39,6 +39,7 @@
     "@capacitor/core": "^8.5.0",
     "@capacitor/local-notifications": "^8.2.1",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.2",
     "@phosphor-icons/react": "^2.1.10",
     "adhan": "^4.4.4",
     "dotenv": "^17.2.3",
