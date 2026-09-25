@@ -38,7 +38,7 @@ import { useApiAvailable } from '../hooks/useApiAvailable';
 import { isIOSStandaloneNoticeNeeded } from '../utils/pushClient';
 import type { PushStatus } from '../utils/pushClient';
 import { isNativePlatform } from '../utils/platform';
-import { checkExactAlarmGranted, openExactAlarmSettings } from '../utils/nativeNotifications';
+import { checkExactAlarmGranted, openExactAlarmSettings, scheduleNativeNotifications } from '../utils/nativeNotifications';
 
 interface SpiritualSettingsProps {
   settings: AppSettings;
@@ -120,7 +120,11 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
   }, [pushStatus]);
 
   const handleOpenExactAlarmSettings = () => {
-    openExactAlarmSettings().then((granted) => setExactAlarmGranted(granted));
+    openExactAlarmSettings().then((granted) => {
+      setExactAlarmGranted(granted);
+      // İzinsizken kurulmuş alarmlar tam zamanlı değil — izin gelince yeniden kur.
+      if (granted) scheduleNativeNotifications(settings);
+    });
   };
 
   const handleConfirmPushConsent = () => {
@@ -252,8 +256,8 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   <DeviceMobileIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <span>
-                      Bildirimler birkaç dakika gecikebilir. Tam zamanlı bildirim için sistem ayarlarından izin
-                      verebilirsiniz.
+                      Telefon kilitliyken bildirimler ve ezan sesi gecikebilir. Tam zamanlı bildirim için
+                      "Alarmlar ve hatırlatıcılar" iznini verin.
                     </span>
                     <button
                       onClick={handleOpenExactAlarmSettings}

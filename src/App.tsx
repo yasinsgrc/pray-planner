@@ -37,6 +37,8 @@ import {
   cancelAllNativeNotifications,
   getNativeNotificationPermissionState,
   hasScheduledNativeNotifications,
+  checkExactAlarmGranted,
+  openExactAlarmSettings,
 } from './utils/nativeNotifications';
 import { writeWidgetPayload } from './utils/widgetStorage';
 import { useApiAvailable } from './hooks/useApiAvailable';
@@ -561,6 +563,13 @@ export default function App() {
         setPushStatus(permResult.reason === 'Bildirim izni verilmedi.' ? 'denied' : 'error');
         setPushError(permResult.reason);
         return;
+      }
+      // Android 14+ SCHEDULE_EXACT_ALARM'ı varsayılan olarak kapalı verir;
+      // izinsiz alarmlar Doze'da (kilitli ekran) ertelenir ve ezan çalmaz.
+      // Kullanıcının kendi dokunuşunun devamı olarak sistem ayarı açılır,
+      // zamanlama dönüşten sonra yapılır ki alarmlar tam zamanlı kurulsun.
+      if (!(await checkExactAlarmGranted())) {
+        await openExactAlarmSettings();
       }
       const scheduleResult = await scheduleNativeNotifications(settings);
       if ('reason' in scheduleResult) {
