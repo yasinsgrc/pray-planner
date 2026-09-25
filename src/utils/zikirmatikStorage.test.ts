@@ -6,6 +6,8 @@ import {
   pruneOldZikirLogEntries,
   addZikirCount,
   getDayTotal,
+  rollOverZikirmatikDay,
+  loadZikirmatikState,
   type ZikirmatikState,
   type ZikirLog,
 } from './zikirmatikStorage';
@@ -67,4 +69,40 @@ test('pruneOldZikirLogEntries drops entries older than 30 days but keeps the bou
   };
   const pruned = pruneOldZikirLogEntries(log, '2026-08-02');
   assert.deepEqual(Object.keys(pruned).sort(), ['2026-07-03', '2026-08-02']);
+});
+
+test('rollOverZikirmatikDay keeps counters on the same day', () => {
+  const state: ZikirmatikState = { selectedDhikrIndex: 2, counters: { 2: { counter: 10, lap: 1 } }, dayKey: '2026-09-26' };
+  assert.equal(rollOverZikirmatikDay(state, '2026-09-26'), state);
+});
+
+test('rollOverZikirmatikDay zeroes every counter on a new day but keeps the selected dhikr', () => {
+  const state: ZikirmatikState = { selectedDhikrIndex: 2, counters: { 2: { counter: 10, lap: 1 } }, dayKey: '2026-09-25' };
+  const next = rollOverZikirmatikDay(state, '2026-09-26');
+  assert.equal(next.selectedDhikrIndex, 2);
+  assert.equal(next.dayKey, '2026-09-26');
+  assert.deepEqual(getCounterFor(next, 2), { counter: 0, lap: 0 });
+});
+
+test('rollOverZikirmatikDay adopts a state saved without dayKey instead of wiping it', () => {
+  const state: ZikirmatikState = { selectedDhikrIndex: 0, counters: { 0: { counter: 7, lap: 0 } } };
+  const next = rollOverZikirmatikDay(state, '2026-09-26');
+  assert.equal(next.dayKey, '2026-09-26');
+  assert.deepEqual(getCounterFor(next, 0), { counter: 7, lap: 0 });
+});
+
+test('loadZikirmatikState keeps dayKey and falls back to dhikr 0 for an out-of-range index', () => {
+  const store = new Map<string, string>();
+  (globalThis as { localStorage?: unknown }).localStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+  };
+  try {
+    store.set('vakit_zikirmatik_state_v2', JSON.stringify({ selectedDhikrIndex: 9, counters: {}, dayKey: '2026-09-26' }));
+    const loaded = loadZikirmatikState();
+    assert.equal(loaded.selectedDhikrIndex, 0);
+    assert.equal(loaded.dayKey, '2026-09-26');
+  } finally {
+    delete (globalThis as { localStorage?: unknown }).localStorage;
+  }
 });

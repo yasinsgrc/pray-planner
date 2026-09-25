@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowCounterClockwiseIcon, CheckIcon } from './icons';
 import { playSoftChime } from '../utils/audio';
@@ -29,10 +29,19 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   const { selectedDhikrIndex } = state;
   const { counter, lap } = getCounterFor(state, selectedDhikrIndex);
   const [justCompleted, setJustCompleted] = useState(false);
+  // Tur tamamlama animasyonu zamanlayıcısı: art arda turlarda önceki
+  // zamanlayıcı yenisini erken kesmesin, unmount'ta da temizlensin.
+  const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
+  }, []);
   // Sıfırla iki adımlı onay ister (design-refresh-v3 Faz 7 F3) — bir tur
   // ilerlemeyi tek dokunuşla kaybetmek, sayacın "sakin" karakteriyle
   // çelişir. Zikir değiştirince veya sheet kapanınca otomatik iptal olur.
   const [confirmingReset, setConfirmingReset] = useState(false);
+  useEffect(() => {
+    if (!isOpen) setConfirmingReset(false);
+  }, [isOpen]);
 
   const currentDhikr = PRESET_DHIKRS[selectedDhikrIndex];
   const ringProgress = counter / currentDhikr.target;
@@ -56,7 +65,8 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
         counters: { ...state.counters, [selectedDhikrIndex]: { counter: 0, lap: lap + 1 } },
       });
       setJustCompleted(true);
-      setTimeout(() => setJustCompleted(false), 700);
+      if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
+      completeTimerRef.current = setTimeout(() => setJustCompleted(false), 700);
     } else {
       onChange({
         ...state,
@@ -135,8 +145,9 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
             onClick={handleIncrement}
             aria-label="Zikir say"
             animate={justCompleted ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+            whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-2 rounded-full bg-gradient-to-b from-gold to-gold-hover text-on-gold shadow-lg active:scale-95 transition-transform flex flex-col items-center justify-center cursor-pointer border-4 border-white dark:border-card"
+            className="absolute inset-2 rounded-full bg-gradient-to-b from-gold to-gold-hover text-on-gold shadow-lg flex flex-col items-center justify-center cursor-pointer border-4 border-white dark:border-card"
           >
             <span className="font-numbers text-5xl font-extrabold tracking-tight">
               {counter}

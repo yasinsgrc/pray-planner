@@ -29,6 +29,8 @@ export interface ZikirmatikCounter {
 export interface ZikirmatikState {
   selectedDhikrIndex: number;
   counters: Record<number, ZikirmatikCounter>;
+  /** "YYYY-MM-DD" (selected location's day) the counters belong to; counters restart at the next day. */
+  dayKey?: string;
 }
 
 const EMPTY_COUNTER: ZikirmatikCounter = { counter: 0, lap: 0 };
@@ -45,6 +47,22 @@ const DEFAULT_STATE: ZikirmatikState = { selectedDhikrIndex: 0, counters: defaul
 
 export function getCounterFor(state: ZikirmatikState, index: number): ZikirmatikCounter {
   return state.counters[index] ?? EMPTY_COUNTER;
+}
+
+/**
+ * Counters and laps live for one calendar day: a new `todayKey` zeroes them
+ * all (the selected dhikr is kept). A state without `dayKey` (saved before
+ * this field existed) is adopted into today rather than wiped, so an
+ * in-progress count survives the upgrade. Daily totals live in the ZikirLog.
+ */
+export function rollOverZikirmatikDay(state: ZikirmatikState, todayKey: string): ZikirmatikState {
+  if (state.dayKey === todayKey) return state;
+  if (!state.dayKey) return { ...state, dayKey: todayKey };
+  return { ...state, counters: defaultCounters(), dayKey: todayKey };
+}
+
+function validDhikrIndex(value: number): number {
+  return Number.isInteger(value) && value >= 0 && value < PRESET_DHIKRS.length ? value : 0;
 }
 
 /**
@@ -70,7 +88,11 @@ function migrate(raw: unknown): ZikirmatikState {
         };
       }
     }
-    return { selectedDhikrIndex: obj.selectedDhikrIndex, counters };
+    return {
+      selectedDhikrIndex: validDhikrIndex(obj.selectedDhikrIndex),
+      counters,
+      ...(typeof obj.dayKey === 'string' ? { dayKey: obj.dayKey } : {}),
+    };
   }
 
   // v1 shape: { selectedDhikrIndex, counter, lap }
@@ -80,8 +102,9 @@ function migrate(raw: unknown): ZikirmatikState {
     typeof obj.lap === 'number'
   ) {
     const counters = defaultCounters();
-    counters[obj.selectedDhikrIndex] = { counter: obj.counter, lap: obj.lap };
-    return { selectedDhikrIndex: obj.selectedDhikrIndex, counters };
+    const idx = validDhikrIndex(obj.selectedDhikrIndex);
+    if (idx === obj.selectedDhikrIndex) counters[idx] = { counter: obj.counter, lap: obj.lap };
+    return { selectedDhikrIndex: idx, counters };
   }
 
   return { ...DEFAULT_STATE, counters: defaultCounters() };

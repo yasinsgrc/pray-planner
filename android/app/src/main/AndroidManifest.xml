@@ -145,4 +145,9 @@
          teslimat moduna düşer — kod tarafında özel bir geri düşüş
          gerekmez. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- Zikirmatik dokunuş titreşimi: WebView navigator.vibrate() bu izin
+         olmadan hata vermeden hiçbir şey yapmıyor. Normal izin, çalışma
+         anında sorulmaz. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

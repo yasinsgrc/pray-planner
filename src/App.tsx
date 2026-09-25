@@ -59,6 +59,7 @@ import {
   saveZikirLog,
   addZikirCount,
   pruneOldZikirLogEntries,
+  rollOverZikirmatikDay,
   getDayTotal,
 } from './utils/zikirmatikStorage';
 import { loadAppSettings, saveAppSettings } from './utils/appSettingsStorage';
@@ -444,6 +445,13 @@ export default function App() {
   // Cheap per-tick derivation (active/next prayer, countdown, ring
   // progress, kerahet activity) from the memoized day schedule.
   const schedule = useMemo(() => deriveLiveSchedule(daySchedule, now), [daySchedule, now]);
+
+  // Zikir sayaçları gün boyu korunur, konumun gece yarısında sıfırlanır;
+  // günlük toplamlar zikirLog'da kalır.
+  const zikirTodayKey = dateKeyInZone(now, schedule.resolvedTimeZone);
+  useEffect(() => {
+    setZikirState((prev) => rollOverZikirmatikDay(prev, zikirTodayKey));
+  }, [zikirTodayKey]);
 
   // Widget verisi: uygulama ön plana geldiğinde takvim günü değiştiyse
   // yeniden yazar — 7 günlük veri birkaç gün açılmadan bayatlamasın diye
