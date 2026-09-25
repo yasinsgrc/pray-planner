@@ -6,6 +6,7 @@ import {
   isAlignedWithBearing,
   getTurnInstruction,
   computeRoseRotation,
+  unwrapRotation,
   getAngularDifference,
   DriftCharacter,
   HeadingReliability,
@@ -65,9 +66,18 @@ export const QiblaCompassView: React.FC<QiblaCompassViewProps> = ({ location, ac
   // ve uyarı her hâlükârda kalır.
   const headingTrusted = reliability !== 'calibrate' && reliability !== 'interference';
   const reliabilityWarning = RELIABILITY_WARNING[reliability];
+  // Dönüşler sınırsız tutulur: 359° → 1° geçişinde CSS transition'ın ibreyi
+  // ve halkayı ters yönden tam tur çevirmesini önler.
+  const needleRotationRef = useRef<number | null>(null);
+  const roseRotationRef = useRef<number | null>(null);
+  const needleTarget = heading !== null ? (qiblaBearing - heading + 360) % 360 : qiblaBearing;
+  const roseTarget = heading !== null ? computeRoseRotation(heading) : 0;
   const needleRotation =
-    heading !== null ? (qiblaBearing - heading + 360) % 360 : qiblaBearing;
-  const roseRotation = heading !== null ? computeRoseRotation(heading) : 0;
+    needleRotationRef.current === null ? needleTarget : unwrapRotation(needleRotationRef.current, needleTarget);
+  const roseRotation =
+    roseRotationRef.current === null ? roseTarget : unwrapRotation(roseRotationRef.current, roseTarget);
+  needleRotationRef.current = needleRotation;
+  roseRotationRef.current = roseRotation;
   const aligned = headingTrusted && heading !== null && isAlignedWithBearing(qiblaBearing, heading, 5);
   const turnInstruction =
     headingTrusted && heading !== null ? getTurnInstruction(qiblaBearing, heading, 5) : null;

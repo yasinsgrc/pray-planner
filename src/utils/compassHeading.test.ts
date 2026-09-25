@@ -14,6 +14,7 @@ import {
   determineActiveEventType,
   assessHeadingReliability,
   computeRoseRotation,
+  unwrapRotation,
 } from './compassHeading';
 
 test('computeHeadingFromOrientationEvent prefers webkitCompassHeading when present (iOS)', () => {
@@ -323,4 +324,16 @@ test('computeRoseRotation: 184° heading için 176°', () => {
 
 test('computeRoseRotation: 360° heading 0° ile aynıdır (sarma)', () => {
   assert.equal(computeRoseRotation(360), 0);
+});
+
+test('unwrapRotation: 359° → 1° geçişi en kısa yoldan (+2°)', () => {
+  assert.equal(unwrapRotation(359, 1), 361);
+});
+
+test('unwrapRotation: 1° → 359° geçişi en kısa yoldan (-2°)', () => {
+  assert.equal(unwrapRotation(361, 359), 359);
+});
+
+test('unwrapRotation: normal küçük değişim olduğu gibi eklenir', () => {
+  assert.equal(unwrapRotation(-710, 20), -700);
 });

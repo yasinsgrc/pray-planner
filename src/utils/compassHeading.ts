@@ -241,6 +241,16 @@ export function computeRoseRotation(headingDeg: number): number {
   return (360 - headingDeg) % 360;
 }
 
+/**
+ * 0-360 aralığındaki hedef açıyı önceki (sınırsız) dönüşe en kısa yoldan
+ * ekler. CSS transition 359° → 1° geçişinde ibreyi tam tur çevirmesin diye
+ * dönüş değeri sürekli tutulur.
+ */
+export function unwrapRotation(prevDeg: number, targetDeg: number): number {
+  const delta = ((((targetDeg - prevDeg) % 360) + 540) % 360) - 180;
+  return prevDeg + delta;
+}
+
 export interface TurnInstruction {
   /** 0-180, the short way around. */
   degrees: number;

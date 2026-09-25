@@ -79,6 +79,9 @@ class QiblaHeadingPlugin : Plugin(), SensorEventListener {
             Sensor.TYPE_ACCELEROMETER -> { lowPass(e.values, grav, hasGrav); hasGrav = true }
             Sensor.TYPE_MAGNETIC_FIELD -> {
                 lowPass(e.values, geo, hasGeo); hasGeo = true
+                // onAccuracyChanged bazı cihazlarda hiç çağrılmıyor; 0'da
+                // kalırsa ibre sürekli "kalibre et" durumunda gizlenir.
+                magAccuracy = e.accuracy
                 val x = e.values[0]; val y = e.values[1]; val z = e.values[2]
                 fieldUt = sqrt((x * x + y * y + z * z).toDouble())
             }
