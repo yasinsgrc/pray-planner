@@ -63,7 +63,7 @@ import {
   getDayTotal,
 } from './utils/zikirmatikStorage';
 import { loadAppSettings, saveAppSettings } from './utils/appSettingsStorage';
-import { dateKeyInZone } from './utils/timezone';
+import { dateKeyInZone, resolveTimeZone } from './utils/timezone';
 import { applyStatusBarAppearance } from './utils/statusBarAppearance';
 
 // 30 günlük zamanlama penceresi sessizce dolarsa bildirimler de sessizce
@@ -434,14 +434,18 @@ export default function App() {
 
   // Expensive adhan computation: only re-runs when location, method, or the
   // calendar day changes — not on every one-second tick (see B4 in the
-  // design-refresh-v2 spec).
+  // design-refresh-v2 spec). The day key is read in the location's own
+  // zone, not the device's — calculateDaySchedule picks the calendar day
+  // that way, so a device-local key would keep a stale day for hours after
+  // the location's midnight whenever the two zones differ.
+  const locationDayKey = dateKeyInZone(now, resolveTimeZone(settings.location));
   const daySchedule = useMemo(() => {
     return calculateDaySchedule(
       settings.location,
       now,
       settings.calculationMethod
     );
-  }, [settings.location, settings.calculationMethod, now.toDateString()]);
+  }, [settings.location, settings.calculationMethod, locationDayKey]);
 
   // Cheap per-tick derivation (active/next prayer, countdown, ring
   // progress, kerahet activity) from the memoized day schedule.
