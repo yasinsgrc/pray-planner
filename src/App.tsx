@@ -47,6 +47,7 @@ import { AppSettings, LocationItem, PrayerName, SoundMode } from './types';
 import { getHijriDate } from './utils/hijri';
 import { calculateDaySchedule, deriveLiveSchedule } from './utils/prayerCalculator';
 import { playEzanAudio } from './utils/audio';
+import { shouldPlayEzanOnTransition } from './utils/ezanTrigger';
 import { findNearestLocation } from './utils/geo';
 import { resolveDistrict } from './utils/districtLookup';
 import { shouldSuggestLocationChange, isLocationDriftCheckAllowed, LocationDriftPoint } from './utils/locationDrift';
@@ -488,9 +489,13 @@ export default function App() {
   useEffect(() => {
     const activeName = schedule.activePrayer.name;
     if (
-      previousActivePrayerRef.current !== null &&
-      previousActivePrayerRef.current !== activeName &&
-      settings.playEzanInForeground
+      settings.playEzanInForeground &&
+      shouldPlayEzanOnTransition({
+        previousName: previousActivePrayerRef.current,
+        activeName,
+        activeStartMs: schedule.activePrayer.dateObj.getTime(),
+        nowMs: now.getTime(),
+      })
     ) {
       playEzanAudio();
     }
