@@ -62,13 +62,13 @@ export const RamadanModeCard: React.FC<RamadanModeCardProps> = ({ schedule, now 
             <MoonStarsIcon className="w-3.5 h-3.5 text-gold-ink" />
             <span>Ramazan</span>
           </div>
-          <span className="font-numbers text-[11px] font-bold text-gold-ink">
+          <span className="font-numbers text-[0.6875rem] font-bold text-gold-ink">
             {ramadan.dayNumber}. gün / {ramadan.totalDays}
           </span>
         </div>
 
         <div className="text-center py-1">
-          <div className="text-[11px] text-mist">{countdownLabel}</div>
+          <div className="text-[0.6875rem] text-mist">{countdownLabel}</div>
           <div className="font-numbers text-3xl font-extrabold text-ink mt-0.5">{countdownValue}</div>
         </div>
 

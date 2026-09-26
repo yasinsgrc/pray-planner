@@ -49,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onChangeTab }) => {
               )}
               <tab.Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" />
               <span
-                className="text-[10px] tracking-wide uppercase transition-[font-variation-settings] duration-200"
+                className="text-[0.625rem] tracking-wide uppercase transition-[font-variation-settings] duration-200"
                 style={{ fontVariationSettings: `"wght" ${isActive ? 600 : 500}` }}
               >
                 {tab.label}

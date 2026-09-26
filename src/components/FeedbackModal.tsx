@@ -43,7 +43,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, l
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Geri Bildirim Gönder">
       <div className="space-y-3 pb-2">
-        <p className="text-[11px] text-mist leading-relaxed">
+        <p className="text-[0.6875rem] text-mist leading-relaxed">
           Yanlış gördüğünüz bir şeyi (vakit, metin, davranış) aşağıya yazın. Hiçbir şey sunucuya
           kaydedilmez — "Gönder"e bastığınızda e-posta uygulamanız açılır, siz göndermeden hiçbir
           veri gitmez. Aşağıdaki teşhis bilgisini (sürüm, tarayıcı, konum yöntemi) dilerseniz
@@ -53,7 +53,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, l
         {!email ? (
           <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 flex items-start gap-2 text-left">
             <WarningCircleIcon className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
-            <p className="text-[11px] text-danger-ink">
+            <p className="text-[0.6875rem] text-danger-ink">
               Geri bildirim adresi henüz yapılandırılmadı (VITE_PRIVACY_CONTACT_EMAIL tanımlı değil).
             </p>
           </div>

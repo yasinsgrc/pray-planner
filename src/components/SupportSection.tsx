@@ -98,7 +98,7 @@ export const SupportSection: React.FC = () => {
             <div className="text-sm font-bold text-ink">
               {hasAnyPaymentMethod ? 'Destek Ol' : 'Uygulamayı Paylaş'}
             </div>
-            <p className="text-[11px] text-mist leading-relaxed mt-0.5">
+            <p className="text-[0.6875rem] text-mist leading-relaxed mt-0.5">
               {hasAnyPaymentMethod
                 ? 'VAKİT reklamsız ve ücretsiz. Geliştirme ve sunucu masraflarına katkıda bulunmak isterseniz destek olabilirsiniz — tamamen isteğe bağlıdır.'
                 : 'VAKİT reklamsız ve ücretsiz. Beğendiyseniz paylaşarak destek olabilirsiniz.'}
@@ -118,7 +118,7 @@ export const SupportSection: React.FC = () => {
           {hasBankTransfer && (
             <div className="p-3.5 rounded-xl bg-paper border border-hairline">
               <div className="text-xs font-bold text-ink mb-1">Havale / EFT</div>
-              <div className="text-[11px] text-mist mb-2">{SUPPORT_NAME}</div>
+              <div className="text-[0.6875rem] text-mist mb-2">{SUPPORT_NAME}</div>
               <div className="min-h-[44px] w-full flex items-center justify-between gap-2 px-3 rounded-lg bg-card border border-hairline">
                 {/* select-text: IBAN her zaman elle seçilip kopyalanabilir,
                     yalnızca Clipboard API başarısız olduğunda değil — bazı
@@ -140,10 +140,10 @@ export const SupportSection: React.FC = () => {
                 </button>
               </div>
               {copied && (
-                <div className="text-[11px] text-success-ink font-medium mt-1.5">Kopyalandı</div>
+                <div className="text-[0.6875rem] text-success-ink font-medium mt-1.5">Kopyalandı</div>
               )}
               {copyUnavailable && (
-                <div className="text-[11px] text-mist mt-1.5">
+                <div className="text-[0.6875rem] text-mist mt-1.5">
                   Otomatik kopyalama kullanılamıyor — IBAN'ı yukarıdan elle seçip kopyalayabilirsiniz.
                 </div>
               )}

@@ -67,7 +67,7 @@ export const ReligiousDaysCard: React.FC<ReligiousDaysCardProps> = ({ location }
                 {rest.map((entry) => (
                   <li
                     key={`${entry.date}-${entry.name}`}
-                    className="flex items-center justify-between text-[11px]"
+                    className="flex items-center justify-between text-[0.6875rem]"
                   >
                     <span className="text-ink">{entry.name}</span>
                     <span className="text-mist font-numbers">

@@ -54,7 +54,7 @@ function CenteredMessage({
     <div className="flex-1 flex flex-col items-center justify-center px-4 pb-4 text-center">
       {icon}
       <p className="text-sm font-semibold text-ink mt-3">{title}</p>
-      <p className="text-[11px] text-mist mt-1 max-w-[240px]">{description}</p>
+      <p className="text-[0.6875rem] text-mist mt-1 max-w-[240px]">{description}</p>
       {action}
     </div>
   );
@@ -209,7 +209,7 @@ export const NearbyView: React.FC = () => {
           {coords.accuracy > LOW_ACCURACY_THRESHOLD_M && (
             <div className="mx-4 mt-3 p-3 rounded-xl bg-danger/10 border border-danger/20 flex items-start gap-2 text-left">
               <WarningCircleIcon className="w-4 h-4 text-danger-ink shrink-0 mt-0.5" />
-              <p className="text-[11px] text-danger-ink">
+              <p className="text-[0.6875rem] text-danger-ink">
                 Konum hassasiyeti düşük (±{Math.round(coords.accuracy)} m) — mesafeler yaklaşıktır.
               </p>
             </div>

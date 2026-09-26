@@ -351,7 +351,7 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
                           <button
                             onClick={triggerRemoteSearch}
                             disabled={remoteStatus === 'loading'}
-                            className="text-[11px] text-mist underline underline-offset-2 cursor-pointer disabled:opacity-60"
+                            className="text-[0.6875rem] text-mist underline underline-offset-2 cursor-pointer disabled:opacity-60"
                           >
                             {remoteStatus === 'loading'
                               ? 'Aranıyor...'

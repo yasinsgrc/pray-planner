@@ -69,7 +69,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Gizlilik Politikası">
       <div className="space-y-4 pb-2 text-sm text-ink">
-        <p className="text-[11px] text-mist">Son güncelleme: {PRIVACY_LAST_UPDATED}</p>
+        <p className="text-[0.6875rem] text-mist">Son güncelleme: {PRIVACY_LAST_UPDATED}</p>
         <p className="text-xs text-mist leading-relaxed pb-2 border-b border-hairline">
           {getPrivacySummary(isNativePlatform())}
         </p>
@@ -81,7 +81,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
           </section>
         ))}
 
-        <p className="text-[10px] text-mist pt-2 border-t border-hairline">{PRIVACY_DISCLAIMER}</p>
+        <p className="text-[0.625rem] text-mist pt-2 border-t border-hairline">{PRIVACY_DISCLAIMER}</p>
       </div>
     </BottomSheet>
   );

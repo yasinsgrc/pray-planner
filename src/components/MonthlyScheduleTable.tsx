@@ -85,7 +85,7 @@ export const MonthlyScheduleTable: React.FC<MonthlyScheduleTableProps> = ({
           p-4) so the fixed-layout table gets the card's full width to work
           with — every extra pixel matters at a 390px viewport with 7 columns. */}
       <div className="-mx-4">
-        <table className="w-full table-fixed border-collapse text-[10px]">
+        <table className="w-full table-fixed border-collapse text-[0.625rem]">
           <caption className="sr-only">
             {MONTH_NAMES_TR[viewed.month - 1]} {viewed.year} aylık vakit listesi ve hicri tarihler
           </caption>

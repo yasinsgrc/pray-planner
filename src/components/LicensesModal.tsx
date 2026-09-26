@@ -33,7 +33,7 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
       <div className="space-y-4 pb-2">
         <section>
           <h3 className="text-sm font-bold text-gold-ink mb-2">Ezan Sesi — CC BY-SA 4.0 Atfı</h3>
-          <div className="p-3 rounded-xl bg-card border border-hairline space-y-1.5 text-[11px]">
+          <div className="p-3 rounded-xl bg-card border border-hairline space-y-1.5 text-[0.6875rem]">
             <div>
               <span className="text-mist">Eser: </span>
               <span className="text-ink font-medium">{EZAN_ATTRIBUTION.workTitle}</span>
@@ -88,7 +88,7 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
                       {entry.name} <span className="text-mist font-normal">v{entry.version}</span>
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-gold-ink">{entry.license}</span>
+                      <span className="text-[0.625rem] font-bold text-gold-ink">{entry.license}</span>
                       <CaretDownIcon
                         className={`w-3.5 h-3.5 text-mist transition-transform ${isOpenRow ? 'rotate-180' : ''}`}
                       />
@@ -102,7 +102,7 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
                     // block is inherently harder for any pixel-sampling
                     // contrast check to measure precisely near dense glyph
                     // lines, so the wider margin is worth it regardless.
-                    <pre className="px-3 pb-3 text-[10px] text-ink whitespace-pre-wrap font-mono leading-relaxed">
+                    <pre className="px-3 pb-3 text-[0.625rem] text-ink whitespace-pre-wrap font-mono leading-relaxed">
                       {entry.licenseText}
                     </pre>
                   )}

@@ -131,12 +131,12 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                           {item.label}
                         </span>
                         {item.isActive && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gold/15 text-gold-ink tracking-wide">
+                          <span className="px-2 py-0.5 text-[0.625rem] font-bold rounded-full bg-gold/15 text-gold-ink tracking-wide">
                             ŞU ANKİ VAKİT
                           </span>
                         )}
                         {item.isNext && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-success/15 text-success-ink tracking-wide">
+                          <span className="px-2 py-0.5 text-[0.625rem] font-bold rounded-full bg-success/15 text-success-ink tracking-wide">
                             SIRADAKİ
                           </span>
                         )}

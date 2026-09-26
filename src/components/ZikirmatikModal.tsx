@@ -159,7 +159,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
               ))}
             </ul>
           )}
-          <p className="text-center text-[11px] text-mist">Son 30 gün saklanır.</p>
+          <p className="text-center text-[0.6875rem] text-mist">Son 30 gün saklanır.</p>
         </div>
       ) : (
       <div className="text-center space-y-4 pb-2">
@@ -271,7 +271,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
             </button>
           )}
 
-          <span className="text-[11px] text-mist">
+          <span className="text-[0.6875rem] text-mist">
             {currentDhikr.target - counter} kaldı
           </span>
         </div>

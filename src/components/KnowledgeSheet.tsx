@@ -26,10 +26,10 @@ export const KnowledgeSheet: React.FC<KnowledgeSheetProps> = ({ entry, isOpen, o
           </div>
         ))}
 
-        <p className="text-[11px] text-mist pt-2 border-t border-hairline">{entry.sourceCitation}</p>
+        <p className="text-[0.6875rem] text-mist pt-2 border-t border-hairline">{entry.sourceCitation}</p>
 
         <div className="p-3 rounded-xl bg-gold/10 border border-gold/20">
-          <p className="text-[11px] text-mist leading-relaxed">{entry.warningNote}</p>
+          <p className="text-[0.6875rem] text-mist leading-relaxed">{entry.warningNote}</p>
         </div>
       </div>
     </BottomSheet>

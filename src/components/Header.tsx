@@ -124,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Tarih Şeridi: hicri + miladi, her ekran boyutunda görünür */}
-      <div className="px-5 pb-3 flex items-center justify-between border-b border-hairline text-[11px]">
+      <div className="px-5 pb-3 flex items-center justify-between border-b border-hairline text-[0.6875rem]">
         <div className="flex items-center gap-1.5">
           <span className="text-mist capitalize">{gregorianFormatter.format(date)}</span>
           {isDifferentTimeZone && (

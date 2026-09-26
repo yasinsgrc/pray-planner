@@ -48,11 +48,11 @@ export const KerahetStrip: React.FC<KerahetStripProps> = ({ kerahetTimes, timeZo
                   ölçülen). Soluk görünüm artık AA'yı geçen --mist tokenına
                   geçilerek korunuyor, saydamlık yerine renk değişimiyle. */}
               <span
-                className={`text-[10px] font-semibold ${k.isActiveNow ? 'text-accent-ink' : isPast ? 'text-mist' : 'text-ink'}`}
+                className={`text-[0.625rem] font-semibold ${k.isActiveNow ? 'text-accent-ink' : isPast ? 'text-mist' : 'text-ink'}`}
               >
                 {KERAHET_SHORT_LABEL[k.type]}
               </span>
-              <span className="font-numbers text-[10px] text-mist">{formatKerahetRange(k, timeZone)}</span>
+              <span className="font-numbers text-[0.625rem] text-mist">{formatKerahetRange(k, timeZone)}</span>
             </button>
           );
         })}

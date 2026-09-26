@@ -113,7 +113,7 @@ export const DailyInspirationCard: React.FC = () => {
           <div className="flex items-center gap-1 bg-paper p-1 rounded-xl">
             <button
               onClick={() => setTab('verse')}
-              className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
+              className={`relative px-2.5 py-1 text-[0.6875rem] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'verse'
                   ? 'bg-gold text-on-gold'
                   : 'text-mist hover:text-ink'
@@ -123,7 +123,7 @@ export const DailyInspirationCard: React.FC = () => {
             </button>
             <button
               onClick={() => setTab('hadith')}
-              className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
+              className={`relative px-2.5 py-1 text-[0.6875rem] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'hadith'
                   ? 'bg-gold text-on-gold'
                   : 'text-mist hover:text-ink'
@@ -133,7 +133,7 @@ export const DailyInspirationCard: React.FC = () => {
             </button>
             <button
               onClick={() => setTab('dua')}
-              className={`relative px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
+              className={`relative px-2.5 py-1 text-[0.6875rem] font-semibold rounded-lg transition-colors cursor-pointer before:content-[''] before:absolute before:-top-3 before:-bottom-3 before:-left-0.5 before:-right-0.5 ${
                 tab === 'dua'
                   ? 'bg-gold text-on-gold'
                   : 'text-mist hover:text-ink'

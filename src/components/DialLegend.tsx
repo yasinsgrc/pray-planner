@@ -45,14 +45,14 @@ export const DialLegend: React.FC<DialLegendProps> = ({ schedule }) => {
             className="flex flex-col items-center gap-px text-center"
           >
             <span
-              className="text-[8px] font-medium uppercase tracking-wide leading-none"
+              className="text-[0.5rem] font-medium uppercase tracking-wide leading-none"
               style={{ color }}
             >
               {displayName}
             </span>
             <Icon weight={isActive ? 'fill' : 'regular'} className="w-3.5 h-3.5" style={{ color }} />
             <span
-              className="font-numbers text-[11px] leading-tight"
+              className="font-numbers text-[0.6875rem] leading-tight"
               style={{ color, fontWeight }}
             >
               {formatTime(p.dateObj, resolvedTimeZone)}

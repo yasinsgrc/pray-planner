@@ -30,7 +30,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onOpenF
           {ABOUT_VERIFIED_FACTS.map((fact) => (
             <section key={fact.title}>
               <h3 className="text-xs font-bold text-ink mb-1">{fact.title}</h3>
-              <p className="text-[11px] text-mist leading-relaxed">{fact.body}</p>
+              <p className="text-[0.6875rem] text-mist leading-relaxed">{fact.body}</p>
             </section>
           ))}
         </div>

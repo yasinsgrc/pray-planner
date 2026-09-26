@@ -182,7 +182,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   <div className="text-sm font-bold text-ink">
                     Bildirimleri Etkinleştir
                   </div>
-                  <div className="text-[11px] text-mist">
+                  <div className="text-[0.6875rem] text-mist">
                     {isNativePlatform()
                       ? 'Vakit girdiğinde bildirim alabilmek için izin verin'
                       : 'Vakit girdiğinde tarayıcı bildirimi alabilmek için izin verin'}
@@ -206,7 +206,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   {/* 30 günlük zamanlama penceresi sessizce dolarsa
                       bildirimler de sessizce durur (design-refresh-v3 Faz
                       15) — bu satır en azından görünür kılar. */}
-                  <p className="text-[10px] text-mist">
+                  <p className="text-[0.625rem] text-mist">
                     {pushLastSyncAt
                       ? `Son güncelleme: ${new Intl.DateTimeFormat('tr-TR', {
                           day: 'numeric',
@@ -228,18 +228,18 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               )}
 
               {pushStatus === 'denied' && (
-                <p className="text-[11px] text-danger-ink">
+                <p className="text-[0.6875rem] text-danger-ink">
                   {isNativePlatform()
                     ? 'Bildirim izni reddedildi. Sistem ayarlarından bu uygulama için bildirimlere izin verip tekrar deneyin.'
                     : 'Bildirim izni reddedildi. Tarayıcı ayarlarından bu site için bildirimlere izin verip tekrar deneyin.'}
                 </p>
               )}
               {pushStatus === 'error' && pushError && (
-                <p className="text-[11px] text-danger-ink">{pushError}</p>
+                <p className="text-[0.6875rem] text-danger-ink">{pushError}</p>
               )}
 
               {showIOSNotice && (
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-gold/10 text-[11px] text-mist">
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-gold/10 text-[0.6875rem] text-mist">
                   <DeviceMobileIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
                   <span>
                     iPhone'da bildirim alabilmek için Safari'de Paylaş → Ana Ekrana Ekle ile uygulamayı yükleyin.
@@ -252,7 +252,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   Faz 23 Commit 2). Otomatik izin isteme; buton yalnızca
                   sistem ayarına götürür. */}
               {isNativePlatform() && pushStatus === 'granted' && !exactAlarmGranted && (
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-gold/10 text-[11px] text-mist">
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-gold/10 text-[0.6875rem] text-mist">
                   <DeviceMobileIcon className="w-4 h-4 text-gold-ink shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <span>
@@ -261,7 +261,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                     </span>
                     <button
                       onClick={handleOpenExactAlarmSettings}
-                      className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"
+                      className="min-h-[44px] flex items-center text-[0.6875rem] font-semibold text-gold-ink cursor-pointer hover:underline"
                     >
                       Sistem ayarını aç →
                     </button>
@@ -313,7 +313,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               <SpeakerHighIcon className="w-4 h-4 text-gold-ink" />
               <div>
                 <div className="text-sm font-bold text-ink">Uygulama Açıkken Ezan Sesi Çal</div>
-                <div className="text-[11px] text-mist">
+                <div className="text-[0.6875rem] text-mist">
                   Uygulama bir sekmede açıkken vakit girdiğinde ezan sesi çalar
                 </div>
               </div>
@@ -372,7 +372,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             {isEzanPreviewPlaying ? 'Durdur' : 'Önizle'}
           </button>
 
-          <p className="text-[10px] text-mist pt-1">
+          <p className="text-[0.625rem] text-mist pt-1">
             {/* Düz metin atıf — bir bağlantı olarak 44px dokunma hedefine
                 büyütmek (134x12 bir kutu için) görsel olarak orantısız
                 olurdu; kaynağın kendisi kritik bir eylem değil (design-
@@ -390,7 +390,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
                   <div className="text-sm font-bold text-ink">
                     Abdest & Hazırlık Hatırlatıcı
                   </div>
-                  <div className="text-[11px] text-mist">
+                  <div className="text-[0.6875rem] text-mist">
                     Vaktin girmesinden önce huzurlu bir hazırlık uyarısı gönderir
                   </div>
                 </div>
@@ -429,7 +429,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               <div className="text-sm font-bold text-ink">
                 Gece Teması & Otomatik Dönüşüm
               </div>
-              <div className="text-[11px] text-mist">
+              <div className="text-[0.6875rem] text-mist">
                 Gün batımında krem zeminden koyu laciverte geçer
               </div>
             </div>
@@ -447,7 +447,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
           />
 
           {themeMode === 'auto' && (
-            <p className="text-[11px] text-mist">
+            <p className="text-[0.6875rem] text-mist">
               Bugün akşam vaktinde (<span className="font-semibold text-gold-ink">{aksamTime}</span>) koyu temaya geçecek.
             </p>
           )}
@@ -473,7 +473,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               <div className="text-sm font-bold text-ink">
                 Hesaplama Yöntemi
               </div>
-              <div className="text-[11px] text-mist">
+              <div className="text-[0.6875rem] text-mist">
                 Türkiye Diyanet İşleri Başkanlığı yöntemi
               </div>
             </div>
@@ -485,7 +485,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             Diyanet'in yayınladığı vakitlerden en fazla 1 dakika sapıyor, yani
             bu ayar yalnızca 1 dakikalık yuvarlama farkı için ±10 dakikalık
             YANLIŞ yapma yetkisi veriyordu, doğru yapma değil. */}
-        <p className="text-[11px] text-mist px-1">
+        <p className="text-[0.6875rem] text-mist px-1">
           Vakitler Diyanet yöntemiyle hesaplanır; resmî takvimle karşılaştırıldığında 1 dakikaya kadar yuvarlama farkı olabilir.
         </p>
       </div>
@@ -501,19 +501,19 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             <InfoIcon className="w-4 h-4 text-gold-ink" />
             <div className="text-sm font-bold text-ink">VAKİT Hakkında</div>
           </div>
-          <p className="text-[11px] text-mist leading-relaxed">
+          <p className="text-[0.6875rem] text-mist leading-relaxed">
             Uygulamanın amacı, vakit hesaplama yöntemi, dini gün/kandil takvimi ve ezan sesi kaynağı, kullanılan açık kaynak kütüphaneler.
           </p>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsAboutSheetOpen(true)}
-              className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"
+              className="min-h-[44px] flex items-center text-[0.6875rem] font-semibold text-gold-ink cursor-pointer hover:underline"
             >
               Hakkında sayfasını aç →
             </button>
             <button
               onClick={() => setIsFeedbackSheetOpen(true)}
-              className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"
+              className="min-h-[44px] flex items-center text-[0.6875rem] font-semibold text-gold-ink cursor-pointer hover:underline"
             >
               Geri bildirim gönder →
             </button>
@@ -527,7 +527,7 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
               Hicri Tarih Hakkında
             </div>
           </div>
-          <p className="text-[11px] text-mist leading-relaxed">
+          <p className="text-[0.6875rem] text-mist leading-relaxed">
             Uygulamadaki hicri tarih, Ümmü'l-Kura takvim verisine dayanan astronomik bir hesaplamadır. Diyanet İşleri Başkanlığı'nın resmi açıklamasından bazı aylarda ±1 gün farklı olabilir; kesin tarih için resmi Diyanet duyurularını esas alınız.
           </p>
         </FadeIn>
@@ -537,10 +537,10 @@ export const SpiritualSettings: React.FC<SpiritualSettingsProps> = ({
             <LockIcon className="w-4 h-4 text-gold-ink" />
             <div className="text-sm font-bold text-ink">Gizlilik ve Kişisel Veriler</div>
           </div>
-          <p className="text-[11px] text-mist leading-relaxed">{getPrivacySummary(isNativePlatform())}</p>
+          <p className="text-[0.6875rem] text-mist leading-relaxed">{getPrivacySummary(isNativePlatform())}</p>
           <button
             onClick={() => setIsPrivacySheetOpen(true)}
-            className="min-h-[44px] flex items-center text-[11px] font-semibold text-gold-ink cursor-pointer hover:underline"
+            className="min-h-[44px] flex items-center text-[0.6875rem] font-semibold text-gold-ink cursor-pointer hover:underline"
           >
             Gizlilik politikasının tamamı →
           </button>

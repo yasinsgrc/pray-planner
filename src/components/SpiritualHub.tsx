@@ -58,7 +58,7 @@ export const SpiritualHub: React.FC<SpiritualHubProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-ink">Kerahet Vakitleri Nedir?</div>
-            <p className="text-[11px] text-mist mt-0.5">
+            <p className="text-[0.6875rem] text-mist mt-0.5">
               İşrâk, İstivâ ve Gurûb vakitlerinin anlamı ve kaynağı
             </p>
           </div>
