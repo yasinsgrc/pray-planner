@@ -260,6 +260,20 @@ test('CORS: the configured origin is allowed on the real app', async () => {
   });
 });
 
+test('rate limiting: GET /api/geocode is limited per client', async () => {
+  // Every geocode call waits in one shared 1.1s Nominatim queue, so without
+  // a per-client limit a single client could flood it and stall search for
+  // everyone else.
+  await withServer(async (baseUrl) => {
+    let lastStatus = 200;
+    for (let i = 0; i < 25; i++) {
+      const res = await fetch(`${baseUrl}/api/geocode?q=${encodeURIComponent(`sorgu ${i}`)}`);
+      lastStatus = res.status;
+    }
+    assert.equal(lastStatus, 429);
+  });
+});
+
 test('rate limiting: POST /api/push/subscribe is limited on the real app', async () => {
   await withServer(async (baseUrl) => {
     let lastStatus = 200;

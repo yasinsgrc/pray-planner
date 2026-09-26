@@ -14,6 +14,11 @@ import { isAllowedPushEndpoint } from './pushEndpoint';
 // between the two independently-maintained numbers.
 const MAX_SCHEDULE_ENTRIES = 400;
 const SUBSCRIBE_RATE_LIMIT = { windowMs: 60_000, max: 10 };
+// Every geocode call waits in one shared, 1.1s-spaced Nominatim queue
+// (geocoding.ts) — without a per-client cap, one client could fill it and
+// stall search for everyone. A person typing and tapping "İnternette Ara"
+// stays far below this.
+const GEOCODE_RATE_LIMIT = { windowMs: 60_000, max: 20 };
 const STORE_UNAVAILABLE_MESSAGE = 'Kayıt şu an yapılamıyor, biraz sonra tekrar deneyin.';
 
 /**
@@ -117,6 +122,7 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use(express.json({ limit: '256kb' }));
 
   const subscribeRateLimiter = createRateLimiter(SUBSCRIBE_RATE_LIMIT);
+  const geocodeRateLimiter = createRateLimiter(GEOCODE_RATE_LIMIT);
 
   // Two purposes (design-refresh-v3 Faz 6 B4/B1): a target for the host
   // platform's own health check, and a fast, single one-time probe the
@@ -223,7 +229,7 @@ export function createApp(deps: CreateAppDeps): Express {
   // rule out. /api/geocode (below) is kept: it only ever carries a search
   // STRING the user deliberately typed after tapping "İnternette Ara" —
   // no coordinate, and a visibly opt-in action, not an automatic one.
-  app.get('/api/geocode', async (req, res) => {
+  app.get('/api/geocode', geocodeRateLimiter, async (req, res) => {
     const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
 
     if (query.length < 3) {
