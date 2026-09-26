@@ -64,8 +64,15 @@ export const DailyInspirationCard: React.FC = () => {
     return `"${content.dua}" — ${content.duaRef}`;
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(getTextToCopy());
+  const handleCopy = async () => {
+    // "Kopyalandı" only after the write actually succeeded — clipboard can
+    // be missing or refuse (permission), which used to show a false
+    // confirmation and leave an unhandled rejection behind.
+    try {
+      await navigator.clipboard.writeText(getTextToCopy());
+    } catch {
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

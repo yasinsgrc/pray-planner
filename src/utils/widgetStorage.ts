@@ -54,8 +54,15 @@ export function buildEsmaPayload(): EsmaWidgetPayload {
  */
 export async function writeWidgetPayload(settings: AppSettings, now: Date = new Date()): Promise<void> {
   if (!isNativePlatform()) return;
-  const payload = buildWidgetPayload(settings.location, settings.calculationMethod, now);
-  await Preferences.set({ key: WIDGET_PAYLOAD_KEY, value: JSON.stringify(payload) });
-  await Preferences.set({ key: ESMA_PAYLOAD_KEY, value: JSON.stringify(buildEsmaPayload()) });
-  await WidgetBridge.refresh();
+  // Callers fire-and-forget this from effects — a failed native write must
+  // be logged here, not escape as an unhandled rejection. The widget keeps
+  // its previous payload until the next successful write.
+  try {
+    const payload = buildWidgetPayload(settings.location, settings.calculationMethod, now);
+    await Preferences.set({ key: WIDGET_PAYLOAD_KEY, value: JSON.stringify(payload) });
+    await Preferences.set({ key: ESMA_PAYLOAD_KEY, value: JSON.stringify(buildEsmaPayload()) });
+    await WidgetBridge.refresh();
+  } catch (err) {
+    console.warn('[widget] yük yazılamadı:', err);
+  }
 }
