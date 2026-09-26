@@ -91,3 +91,14 @@ test('throws when the Turkish translation is missing', async () => {
   const service = createDailyVerseService({ fetchImpl: fakeFetch });
   await assert.rejects(() => service.getVerseOfTheDay());
 });
+
+test('the UmmahAPI request carries an abort signal, so a hung upstream cannot hang the request forever', async () => {
+  let capturedSignal: AbortSignal | null | undefined;
+  const fakeFetch = (async (_url: string | URL, init?: RequestInit) => {
+    capturedSignal = init?.signal;
+    return fakeResponse(makeApiBody(1, 1, 'Test'));
+  }) as typeof fetch;
+  const service = createDailyVerseService({ fetchImpl: fakeFetch });
+  await service.getVerseOfTheDay();
+  assert.ok(capturedSignal instanceof AbortSignal);
+});

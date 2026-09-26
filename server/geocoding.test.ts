@@ -188,3 +188,13 @@ test('withCacheAndRateLimit evicts the least-recently-used entry once the cache 
   await wrapped.searchLocations('query-0');
   assert.equal(calls, 1);
 });
+
+test('searchLocations passes an abort signal, so a hung Nominatim cannot stall the shared queue forever', async () => {
+  let capturedSignal: AbortSignal | null | undefined;
+  const fakeFetch = (async (_url: string | URL, init?: RequestInit) => {
+    capturedSignal = init?.signal;
+    return fakeResponse([]);
+  }) as typeof fetch;
+  await createGeocodingClient(fakeFetch).searchLocations('üsküdar');
+  assert.ok(capturedSignal instanceof AbortSignal);
+});

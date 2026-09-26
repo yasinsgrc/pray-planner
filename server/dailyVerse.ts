@@ -15,6 +15,8 @@ const TURKISH_SURAH_NAMES: string[] = [
   'Tebbet', 'İhlâs', 'Felak', 'Nâs',
 ];
 
+const UPSTREAM_TIMEOUT_MS = 8000;
+
 export interface DailyVerse {
   verse: string;
   verseRef: string;
@@ -56,7 +58,11 @@ export function createDailyVerseService(deps: DailyVerseServiceDeps = {}): Daily
       return cachedVerse;
     }
 
-    const res = await fetchImpl('https://ummahapi.com/api/quran/random');
+    // Without a timeout a hung upstream would leave this request (and the
+    // client waiting on it) open indefinitely.
+    const res = await fetchImpl('https://ummahapi.com/api/quran/random', {
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
     if (!res.ok) {
       throw new Error(`UmmahAPI isteği başarısız: ${res.status}`);
     }

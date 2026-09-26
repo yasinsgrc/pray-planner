@@ -66,11 +66,17 @@ export class GeocodingRateLimitedError extends Error {}
 
 const USER_AGENT = 'VAKIT-Namaz-App/1.0 (https://github.com/yasinsgrc/pray-planner)';
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
+const UPSTREAM_TIMEOUT_MS = 8000;
 
 export function createGeocodingClient(fetchImpl: typeof fetch = fetch): GeocodingClient {
   async function searchLocations(query: string): Promise<GeocodedLocation[]> {
     const url = `${NOMINATIM_BASE_URL}/search?q=${encodeURIComponent(query)}&format=jsonv2&addressdetails=1&limit=8&accept-language=tr`;
-    const res = await fetchImpl(url, { headers: { 'User-Agent': USER_AGENT } });
+    // Every search waits in one shared queue (withCacheAndRateLimit), so a
+    // single hung Nominatim request would stall search for everyone.
+    const res = await fetchImpl(url, {
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
 
     if (!res.ok) {
       if (res.status === 429 || res.status === 503) {
