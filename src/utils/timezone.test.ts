@@ -17,6 +17,25 @@ test('guessTimeZone identifies Mecca coordinates as Asia/Riyadh', () => {
   assert.equal(guessTimeZone(21.4225, 39.8262), 'Asia/Riyadh');
 });
 
+// Regions are scanned in order, so a broad box listed first used to swallow
+// a narrower one inside it (Dubai -> Riyadh, Kuala Lumpur -> Jakarta, Delhi
+// -> Karachi — 30 to 60 minutes off).
+for (const [name, lat, lng, tz] of [
+  ['Dubai', 25.2, 55.27, 'Asia/Dubai'],
+  ['Riyadh', 24.71, 46.68, 'Asia/Riyadh'],
+  ['Kuala Lumpur', 3.14, 101.69, 'Asia/Kuala_Lumpur'],
+  ['Singapore', 1.35, 103.82, 'Asia/Kuala_Lumpur'],
+  ['Jakarta', -6.2, 106.85, 'Asia/Jakarta'],
+  ['Delhi', 28.61, 77.21, 'Asia/Kolkata'],
+  ['Mumbai', 19.08, 72.88, 'Asia/Kolkata'],
+  ['Karachi', 24.86, 67.0, 'Asia/Karachi'],
+  ['Lahore', 31.55, 74.34, 'Asia/Karachi'],
+] as const) {
+  test(`guessTimeZone maps ${name} to ${tz}`, () => {
+    assert.equal(guessTimeZone(lat, lng), tz);
+  });
+}
+
 test('guessTimeZone falls back to the device zone for an unmapped location', () => {
   // Deep in the Pacific — not covered by any region box.
   const result = guessTimeZone(-10, -150);

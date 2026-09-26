@@ -19,15 +19,20 @@ interface TimeZoneRegion {
   maxLng: number;
 }
 
+// First match wins — a narrower box must come BEFORE any broader box that
+// contains it (Dubai inside Riyadh's, Kuala Lumpur/Singapore inside
+// Jakarta's), or it is never reached.
 const REGIONS: TimeZoneRegion[] = [
   { tz: 'Europe/Istanbul', minLat: 35.8, maxLat: 42.2, minLng: 25.6, maxLng: 44.8 },
+  { tz: 'Asia/Dubai', minLat: 22.6, maxLat: 26.5, minLng: 51.6, maxLng: 56.4 },
   { tz: 'Asia/Riyadh', minLat: 16, maxLat: 32.2, minLng: 34.5, maxLng: 55.7 },
-  { tz: 'Asia/Dubai', minLat: 22.6, maxLat: 26.5, minLng: 51, maxLng: 56.4 },
   { tz: 'Africa/Cairo', minLat: 22, maxLat: 31.7, minLng: 25, maxLng: 35 },
   { tz: 'Africa/Casablanca', minLat: 27.6, maxLat: 35.9, minLng: -13.2, maxLng: -1 },
-  { tz: 'Asia/Karachi', minLat: 23.6, maxLat: 37.1, minLng: 60.9, maxLng: 77.8 },
-  { tz: 'Asia/Jakarta', minLat: -11, maxLat: 6, minLng: 95, maxLng: 114 },
+  // Karachi's eastern edge stops short of Amritsar/Delhi; India follows it.
+  { tz: 'Asia/Karachi', minLat: 23.6, maxLat: 37.1, minLng: 60.9, maxLng: 74.6 },
+  { tz: 'Asia/Kolkata', minLat: 6.5, maxLat: 35.5, minLng: 68, maxLng: 89 },
   { tz: 'Asia/Kuala_Lumpur', minLat: 0.8, maxLat: 7.4, minLng: 99.6, maxLng: 119.3 },
+  { tz: 'Asia/Jakarta', minLat: -11, maxLat: 6, minLng: 95, maxLng: 114 },
   { tz: 'Europe/Sarajevo', minLat: 42.5, maxLat: 45.3, minLng: 15.7, maxLng: 19.6 },
   { tz: 'Europe/London', minLat: 49.9, maxLat: 60.9, minLng: -8.6, maxLng: 1.8 },
   { tz: 'Europe/Paris', minLat: 41.3, maxLat: 51.1, minLng: -5.2, maxLng: 9.6 },
