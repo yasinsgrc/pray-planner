@@ -423,7 +423,10 @@ export default function App() {
     refreshPushSchedule(settings).then((result) => {
       if (result.ok) recordPushSync();
     });
-  }, [settings, pushStatus]);
+    // Yalnızca zamanlamayı gerçekten belirleyen alanlar — tema, ipucu
+    // kapatma gibi ilgisiz değişiklikler 360 girdilik yeniden zamanlamayı
+    // tetiklememeli (hızlı ardışık istekler rate limit'e takılıyordu).
+  }, [settings.location, settings.calculationMethod, settings.notifications, pushStatus]);
 
   // Widget veri köprüsü: yalnızca native'de yazar (writeWidgetPayload kendi
   // içinde no-op). Açılışta ve konum/hesaplama yöntemi değiştiğinde yazar
