@@ -273,6 +273,12 @@
     overflow: hidden;
   }
 
+  /* Overscroll'da <html> zemini görünür; .dark <html>'de olduğu için
+     var(--bg-current) burada da doğru temayı çözer. */
+  html {
+    background-color: var(--bg-current);
+  }
+
   body {
     background-color: var(--bg-current);
     color: var(--text-current);

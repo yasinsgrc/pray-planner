@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Hidrasyon öncesi ilk kare için pencere zemini — src/utils/themeColors.ts
+         THEME_BG.dark ile birebir (themeColors.test.ts kilitler). -->
+    <color name="vakit_bg">#1A1B1E</color>
+</resources>

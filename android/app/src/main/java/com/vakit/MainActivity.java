@@ -3,6 +3,7 @@ package com.vakit;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.webkit.WebSettings;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
@@ -41,5 +42,8 @@ public class MainActivity extends BridgeActivity {
                 WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         controller.setAppearanceLightStatusBars(!isNight);
         controller.setAppearanceLightNavigationBars(!isNight);
+        // values/values-night vakit_bg — web tarafı hidrate olunca
+        // StatusBarAppearancePlugin uygulama temasıyla yeniden boyar.
+        getWindow().getDecorView().setBackgroundColor(ContextCompat.getColor(this, R.color.vakit_bg));
     }
 }

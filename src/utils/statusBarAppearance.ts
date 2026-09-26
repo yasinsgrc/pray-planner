@@ -1,12 +1,24 @@
 import { registerPlugin } from '@capacitor/core';
 import { isNativePlatform } from './platform';
+import { THEME_BG } from './themeColors';
 
-export function resolveStatusBarAppearance(isDarkMode: boolean): { lightStatusBarIcons: boolean } {
-  return { lightStatusBarIcons: isDarkMode };
+export interface StatusBarAppearance {
+  lightStatusBarIcons: boolean;
+  // safe-area eklentisi eski WebView'lerde inset'i native padding olarak
+  // veriyor; o şeridi CSS boyayamadığı için pencere/WebView zemini de
+  // temaya göre native tarafta boyanmalı.
+  backgroundColor: string;
+}
+
+export function resolveStatusBarAppearance(isDarkMode: boolean): StatusBarAppearance {
+  return {
+    lightStatusBarIcons: isDarkMode,
+    backgroundColor: isDarkMode ? THEME_BG.dark : THEME_BG.light,
+  };
 }
 
 interface StatusBarAppearancePlugin {
-  setAppearance(options: { lightStatusBarIcons: boolean }): Promise<void>;
+  setAppearance(options: StatusBarAppearance): Promise<void>;
 }
 
 const StatusBarAppearance = registerPlugin<StatusBarAppearancePlugin>('StatusBarAppearance');

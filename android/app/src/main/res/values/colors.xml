@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Hidrasyon öncesi ilk kare için pencere zemini — src/utils/themeColors.ts
+         THEME_BG.light ile birebir; koyu karşılığı values-night/colors.xml. -->
+    <color name="vakit_bg">#F9F7F2</color>
+
     <!-- Faz 23 Commit 4 — VakitWidgetProvider için, uygulamanın koyu tema
          renk tokenlarının (src/index.css .dark) statik bir aynası. Widget
          her zaman koyu zeminde çizilir; ana ekran/kilit ekranı arka planı

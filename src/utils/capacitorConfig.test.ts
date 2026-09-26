@@ -8,3 +8,9 @@ import config from '../../capacitor.config';
 test('capacitor.config.ts appId is com.app.vakit', () => {
   assert.equal(config.appId, 'com.app.vakit');
 });
+
+// @capacitor-community/safe-area v8 README'si: Capacitor 8'in kendi
+// SystemBars inset işlemesi eklentiyle çakışmasın diye kapatılmalı.
+test('capacitor.config.ts SystemBars.insetsHandling is disable', () => {
+  assert.equal(config.plugins?.SystemBars?.insetsHandling, 'disable');
+});
