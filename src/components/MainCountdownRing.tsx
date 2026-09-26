@@ -8,6 +8,7 @@ import { DuaCard } from './DuaCard';
 import { HomeContextSlot } from './HomeContextSlot';
 import { useDialLegendVisibility } from '../hooks/useDialLegendVisibility';
 import { formatRemainingMinutes } from '../utils/remainingMinutes';
+import { ringInnerDiameter, contentFitsRing } from '../utils/ringFit';
 
 interface MainCountdownRingProps {
   schedule: DayPrayerSchedule;
@@ -43,39 +44,36 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
 
   const showDialLegend = useDialLegendVisibility();
 
-  // Faz 27.17 — büyük sistem font ölçeğinde (WebView textZoom / OS font
-  // büyütme) üç satırlık geri sayım bloğu halkayı taşırıyordu. Bloğun
-  // kendi boyutunu ölçüp karar vermek salınıma yol açar (taşınca genişler,
-  // sığar, geri döner, tekrar taşar). Bunun yerine görünmez, sabit 1rem'lik
-  // bir prob elemanının GERÇEK render yüksekliğini ölçüyoruz — WebView
-  // textZoom'u getComputedStyle güvenilir yansıtmayabilir, render ölçümü
-  // güvenilir — ve halkanın index.css .ring-metrics'teki tier tabanına
-  // (150px / 220px, aynı min-height:720px eşiği) oranlıyoruz. Eşik (0.12),
-  // 360x640/390x844/412x915'te 1x ve 2x font ölçeğinde `npm run visual` ile
-  // ölçülen gerçek oranlar arasındaki boşluğa (küçük tier: 0.107–0.213,
-  // büyük tier: 0.073–0.146) oturacak şekilde kalibre edildi.
-  const remProbeRef = React.useRef<HTMLSpanElement>(null);
+  // Büyük sistem font ölçeğinde (--ui-scale) üç satırlık geri sayım bloğu
+  // halkaya sığmayabilir; sığmıyorsa halkanın altına taşınır. Karar gerçek
+  // içerik ölçümüyle verilir: halkadan bağımsız, görünmez bir kopyanın
+  // (aynı metin + stiller, halka içiyle aynı satır genişliği) boyutu iç çapla
+  // karşılaştırılır. Kopya taşıma kararından etkilenmediği için karar
+  // kendi sonucunu değiştirip salınıma yol açmaz.
+  const ringShellRef = React.useRef<HTMLDivElement>(null);
+  const measureRef = React.useRef<HTMLDivElement>(null);
   const [showBelowRing, setShowBelowRing] = React.useState(false);
 
-  React.useEffect(() => {
-    const probeEl = remProbeRef.current;
-    if (!probeEl || typeof window.matchMedia !== 'function') return;
-
-    const expandedTierQuery = window.matchMedia('(min-height: 720px)'); // index.css .ring-metrics ile aynı eşik
+  React.useLayoutEffect(() => {
+    const shellEl = ringShellRef.current;
+    const measureEl = measureRef.current;
+    if (!shellEl || !measureEl || typeof ResizeObserver === 'undefined') return;
 
     const measure = () => {
-      const remPx = probeEl.getBoundingClientRect().height;
-      const tierFloorPx = expandedTierQuery.matches ? 220 : 150; // index.css .ring-metrics clamp() alt sınırları
-      setShowBelowRing(remPx / tierFloorPx > 0.12);
+      const diameter = ringInnerDiameter(shellEl.getBoundingClientRect().width);
+      setShowBelowRing(!contentFitsRing(measureEl.scrollWidth, measureEl.scrollHeight, diameter));
     };
 
     measure();
     const resizeObserver = new ResizeObserver(measure);
-    resizeObserver.observe(probeEl);
-    expandedTierQuery.addEventListener('change', measure);
+    resizeObserver.observe(shellEl);
+    resizeObserver.observe(measureEl);
+    // Web fontu yüklenince kopyanın kutusu max-width'te sabit kalıp yalnızca
+    // scrollWidth değişebilir; ResizeObserver bunu görmez.
+    document.fonts?.addEventListener('loadingdone', measure);
     return () => {
       resizeObserver.disconnect();
-      expandedTierQuery.removeEventListener('change', measure);
+      document.fonts?.removeEventListener('loadingdone', measure);
     };
   }, []);
 
@@ -86,19 +84,49 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
     fontSize: 'clamp(1.75rem, calc(var(--ring-size) * 0.175), 3.75rem)',
     letterSpacing: '-0.02em',
     fontWeight: 800,
+    // 1.25: font-numbers'ın içerik alanı ~1.24em, daha azı satır kutusunu
+    // taşırır; gövde satır yüksekliği (1.45) ise en küçük halkada
+    // (360x640) bloğu iç çapın dışına itiyordu.
+    lineHeight: 1.25,
   };
+  // Halka içi, halka altı ve ölçüm kopyası aynı sınıfları kullanmalı —
+  // aksi halde ölçülen blok gösterilenden farklı olur.
+  const labelTopClass = 'font-medium text-mist block text-center uppercase tracking-[0.08em] leading-tight';
+  const countdownClass = 'font-numbers text-ink';
+  const bottomRowClass = 'mt-1 flex items-center gap-1.5 font-medium text-accent-ink leading-tight';
 
   return (
     <div className="flex-1 flex flex-col items-center px-4 home-shell-py max-w-[var(--shell-w)] mx-auto w-full text-center">
       <h1 className="sr-only">Ana Ekran</h1>
-      <span
-        ref={remProbeRef}
-        aria-hidden="true"
-        style={{ position: 'absolute', width: 0, height: '1rem', overflow: 'hidden', visibility: 'hidden', pointerEvents: 'none' }}
-      />
       {/* Gün Kavisi Kadranı: ekranın büyük bölümünü kaplar, optik olarak ortalı */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
         <div className="relative flex flex-col items-center justify-center animate-blur-up ring-metrics">
+          {/* Görünmez ölçüm kopyası (bkz. showBelowRing yorumu). --ring-size
+              bu kapsayıcıda tanımlı olduğu için fontlar halka içindekiyle
+              aynı çözülür; max-width halka içindeki px-4'lü kutuyla aynı
+              yerde satır kırar. 0x0 overflow:hidden sarmalayıcı kopyanın
+              sayfaya taşma eklemesini engeller. */}
+          <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden' }}>
+            <div
+              ref={measureRef}
+              data-testid="ring-measure"
+              aria-hidden="true"
+              className="flex flex-col items-center"
+              style={{ position: 'absolute', top: 0, left: 0, width: 'max-content', maxWidth: 'calc(var(--ring-size) - 2rem)', visibility: 'hidden', pointerEvents: 'none' }}
+            >
+              <span className={labelTopClass} style={ringLabelStyle}>
+                {nextPrayer.label} vaktine kalan süre
+              </span>
+              <div className={countdownClass} style={countdownStyle}>
+                {timeRemainingFormatted}
+              </div>
+              <div className={bottomRowClass}>
+                <span className="w-1.5 h-1.5 rounded-full" />
+                <span style={ringLabelStyle}>{activePrayer.label} vaktindesiniz</span>
+              </div>
+            </div>
+          </div>
+
           {/* --ring-size artık src/index.css'teki .ring-metrics'ten geliyor
               (Faz 26): kısa/boxy telefonlarda (360x640, Faz 25 Commit 3'ün
               ölçtüğü scroll-fit sınırı) aynı clamp(150px, min(60vw,24dvh),
@@ -129,7 +157,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
               checkFocusScreenFitsWithoutScroll). 25dvh, 360x640'ta tam o
               160px sınırına oturuyor; 160px alt sınır da bununla aynı
               değer (daha kısa/olağandışı viewport'lar için). */}
-          <div data-testid="ring-shell" className="relative w-[var(--ring-size)] h-[var(--ring-size)] flex items-center justify-center">
+          <div ref={ringShellRef} data-testid="ring-shell" className="relative w-[var(--ring-size)] h-[var(--ring-size)] flex items-center justify-center">
             <SunArcDial schedule={schedule} />
 
             {/* Sayacın İçi — yalnızca metin halkanın içine sığdığında
@@ -142,7 +170,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
                       geri sayımla aynı ölçek). */}
                   <span
                     data-testid="ring-label-top"
-                    className="font-medium text-mist mb-1 block text-center uppercase tracking-[0.08em]"
+                    className={labelTopClass}
                     style={ringLabelStyle}
                   >
                     {nextPrayer.label} vaktine kalan süre
@@ -153,7 +181,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
                       referansa bağlı kalmıyor). */}
                   <div
                     data-testid="countdown"
-                    className="font-numbers text-ink my-1"
+                    className={countdownClass}
                     style={countdownStyle}
                   >
                     {timeRemainingFormatted}
@@ -162,7 +190,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
                 <span className="sr-only" aria-live="polite">{srCountdownText}</span>
 
                 {/* Alt Bilgi Etiketi — aynı ölçeğe bağlı */}
-                <div className="mt-1 flex items-center gap-1.5 font-medium text-accent-ink">
+                <div className={bottomRowClass}>
                   <motion.span
                     key={activePrayer.name}
                     initial={{ scale: 0 }}
@@ -193,21 +221,21 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
             <div aria-hidden="true" className="w-full">
               <span
                 data-testid="ring-label-top"
-                className="font-medium text-mist mb-1 block text-center uppercase tracking-[0.08em]"
+                className={labelTopClass}
                 style={ringLabelStyle}
               >
                 {nextPrayer.label} vaktine kalan süre
               </span>
               <div
                 data-testid="countdown"
-                className="font-numbers text-ink my-1"
+                className={countdownClass}
                 style={countdownStyle}
               >
                 {timeRemainingFormatted}
               </div>
             </div>
             <span className="sr-only" aria-live="polite">{srCountdownText}</span>
-            <div className="mt-1 flex items-center gap-1.5 font-medium text-accent-ink">
+            <div className={bottomRowClass}>
               <motion.span
                 key={activePrayer.name}
                 initial={{ scale: 0 }}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { DayPrayerSchedule } from '../utils/prayerCalculator';
-import { polarPoint, arcPath } from '../utils/dialGeometry';
+import { polarPoint, arcPath, DIAL_STROKE, DIAL_VIEWBOX } from '../utils/dialGeometry';
 
 interface SunArcDialProps {
   schedule: DayPrayerSchedule;
@@ -28,7 +28,7 @@ const NEXT_MARKER_MERGE_THRESHOLD_MS = 15 * 60 * 1000;
  * Faz 1: "tam etiket modu" / next-prayer chip removed for exactly this
  * reason).
  */
-export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) => {
+export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = DIAL_VIEWBOX }) => {
   const prefersReducedMotion = useReducedMotion();
   const { dayCycleStart, dayCycleEnd, dayCyclePrayers, dayProgress, activePrayer, nextPrayer } = schedule;
 
@@ -37,7 +37,7 @@ export const SunArcDial: React.FC<SunArcDialProps> = ({ schedule, size = 288 }) 
   // .ring-metrics), bu da viewBox koordinatlarını otomatik olarak >1
   // oranında ölçekliyor; 5px'lik eski stroke o boyutlarda bile ince
   // okunuyordu — 6'ya çıkarıldı.
-  const strokeWidth = 6;
+  const strokeWidth = DIAL_STROKE;
   const radius = (size - strokeWidth) / 2;
   const cx = size / 2;
   const cy = size / 2;

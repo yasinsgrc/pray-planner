@@ -1,3 +1,8 @@
+// SunArcDial viewBox kenarı ve yay kalınlığı (viewBox birimi) — ringFit.ts
+// halka iç çapını aynı değerlerden türetir.
+export const DIAL_VIEWBOX = 288;
+export const DIAL_STROKE = 6;
+
 /**
  * Point on a circle at `fraction` of a full turn (0..1), measured clockwise
  * from 12 o'clock. No CSS transforms involved — every angle SunArcDial
