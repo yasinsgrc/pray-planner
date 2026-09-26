@@ -371,6 +371,7 @@ export default function App() {
               id: `gps-${Date.now()}`,
               lat: latitude,
               lng: longitude,
+              isGpsDerived: true,
             });
           }
         },
