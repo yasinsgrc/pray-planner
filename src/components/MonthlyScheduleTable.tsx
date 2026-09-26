@@ -84,14 +84,19 @@ export const MonthlyScheduleTable: React.FC<MonthlyScheduleTableProps> = ({
       {/* -mx-4 bleeds back out to the card's own edges (cancelling the card's
           p-4) so the fixed-layout table gets the card's full width to work
           with — every extra pixel matters at a 390px viewport with 7 columns. */}
-      <div className="-mx-4">
-        <table className="w-full table-fixed border-collapse text-[0.625rem]">
+      {/* Dar viewport + büyük yazı ölçeğinde 7 sütun sığmazsa tablo kendi
+          içinde yatay kayar (sayfa taşmaz); hicri ay adları tek kelime ve
+          uzun (Cemaziyelevvel), bölünemez — tarih sütunu rem genişlikte.
+          relative: başlıktaki sr-only (absolute) span'ler bu kapta kırpılsın,
+          yoksa ilk konumlu ataya kaçıp sayfayı yatayda uzatıyorlar. */}
+      <div className="relative -mx-4 overflow-x-auto">
+        <table className="w-full min-w-[18rem] table-fixed border-collapse text-[0.625rem]">
           <caption className="sr-only">
             {MONTH_NAMES_TR[viewed.month - 1]} {viewed.year} aylık vakit listesi ve hicri tarihler
           </caption>
           <colgroup>
-            <col style={{ width: '22%' }} />
-            {monthlySchedule.days[0]?.prayers.map((p) => <col key={p.name} style={{ width: `${78 / 6}%` }} />)}
+            <col style={{ width: '6rem' }} />
+            {monthlySchedule.days[0]?.prayers.map((p) => <col key={p.name} />)}
           </colgroup>
           <thead>
             <tr className="border-b border-hairline/50">

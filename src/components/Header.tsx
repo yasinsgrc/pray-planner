@@ -53,10 +53,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Sol: Konum */}
         <button
           onClick={onOpenLocationModal}
-          className="relative flex items-center gap-2 group text-left cursor-pointer transition-all hover:opacity-80 before:content-[''] before:absolute before:-top-2.5 before:-bottom-2.5 before:inset-x-0"
+          className="relative min-w-0 flex items-center gap-2 group text-left cursor-pointer transition-all hover:opacity-80 before:content-[''] before:absolute before:-top-2.5 before:-bottom-2.5 before:inset-x-0"
           aria-label="Konumu Değiştir"
         >
-          <div className="w-7 h-7 rounded-full bg-gold/10 flex items-center justify-center text-gold-ink group-hover:bg-gold/20 transition-colors">
+          <div className="w-7 h-7 shrink-0 rounded-full bg-gold/10 flex items-center justify-center text-gold-ink group-hover:bg-gold/20 transition-colors">
             <MapPinIcon className="w-4 h-4" />
           </div>
           {/* GPS'ten gelen bir konum, kullanıcının hiç onaylamadığı bir
@@ -66,22 +66,23 @@ export const Header: React.FC<HeaderProps> = ({
               çok yakın bir ilçe). Listeden elle seçilen bir konum içinse
               kullanıcı zaten o ismi onayladığı için ana başlık olarak kalır. */}
           {location.isGpsDerived ? (
-            <div>
+            <div className="min-w-0">
               <div className="text-xs font-semibold tracking-wide text-ink">
                 Mevcut Konum
               </div>
-              <div className="text-label text-mist font-medium">
+              {/* Uzun konum metni ikon butonlarını sıkıştırmasın: kısaltılır. */}
+              <div data-truncate="header-location" className="text-label text-mist font-medium truncate">
                 {location.lat.toFixed(2)}, {location.lng.toFixed(2)} · en yakın merkez: {location.districtName || location.cityName}
               </div>
             </div>
           ) : (
-            <div>
-              <div className="text-xs font-semibold tracking-wide text-ink flex items-center gap-1">
-                <span>{location.districtName}</span>
-                <span className="text-gold-ink">•</span>
+            <div className="min-w-0">
+              {/* Uzun ilçe/il adı ikon butonlarını sıkıştırmasın: kısaltılır. */}
+              <div data-truncate="header-location" className="text-xs font-semibold tracking-wide text-ink truncate">
+                {location.districtName} <span className="text-gold-ink">•</span>{' '}
                 <span className="opacity-80">{location.cityName}</span>
               </div>
-              <div className="text-label text-mist font-medium">
+              <div data-truncate="header-location" className="text-label text-mist font-medium truncate">
                 {location.country}
               </div>
             </div>
@@ -89,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Sağ: İkonlar */}
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           {/* Kıble Butonu */}
           <button
             onClick={onOpenExplore}

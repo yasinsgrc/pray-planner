@@ -99,17 +99,18 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                 </div>
 
                 <div
-                  className={`flex-1 my-1.5 rounded-xl p-4 transition-all flex items-center justify-between ${
+                  className={`flex-1 min-w-0 my-1.5 rounded-xl p-4 transition-all flex flex-wrap items-center justify-between gap-x-2 gap-y-1 ${
                     item.isActive
                       ? 'glass-panel shadow-md border-t border-r border-b border-t-hairline border-r-hairline border-b-hairline'
                       : 'bg-card/70 border border-hairline/50'
                   }`}
                   style={item.isActive ? { borderLeft: `3px solid var(--v-${item.name})` } : undefined}
                 >
-                  {/* Sol: İkon ve İsim */}
-                  <div className="flex items-center gap-3.5">
+                  {/* Sol: İkon ve İsim — min-w-0: dar ekran + büyük yazıda
+                      rozet/alt metin sarılsın, kart main'den taşıp kırpılmasın. */}
+                  <div className="flex min-w-0 items-center gap-3.5">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                      className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition-colors ${
                         item.isActive ? 'shadow-sm' : 'bg-gold/10 text-gold-ink'
                       }`}
                       style={
@@ -121,8 +122,8 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                       {React.createElement(PRAYER_ICON_COMPONENTS[item.name], { className: 'w-5 h-5' })}
                     </div>
 
-                    <div className="text-left">
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0 text-left">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         <span
                           className={`font-bold text-base ${
                             item.isActive ? 'text-gold-ink' : item.isPast ? 'text-mist' : 'text-ink'
@@ -152,7 +153,8 @@ export const DailyFlowList: React.FC<DailyFlowListProps> = ({
                   </div>
 
                   {/* Sağ: Saat ve Bildirim Butonu */}
-                  <div className="flex items-center gap-3 text-right">
+                  {/* Sığmazsa (dar ekran + büyük yazı) alt satıra, sağa hizalı geçer. */}
+                  <div className="flex shrink-0 ml-auto items-center gap-3 text-right">
                     <div>
                       <div className={`font-numbers text-lg font-bold ${item.isActive ? 'text-gold-ink' : 'text-ink'}`}>
                         {item.timeString}

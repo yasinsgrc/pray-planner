@@ -31,7 +31,7 @@ function PlaceRow({ place }: { place: Place }) {
         <MapPinIcon className="w-5 h-5" />
       </div>
       <div className="min-w-0 flex-1 text-left">
-        <p className="text-base font-bold text-ink truncate">{displayName}</p>
+        <p data-truncate="nearby-place-name" className="text-base font-bold text-ink truncate">{displayName}</p>
         {place.category === 'turbe' && <p className="text-micro text-mist">Türbe</p>}
         <p className="text-micro text-mist mt-0.5">{formatDistance(place.distanceMeters)}</p>
       </div>

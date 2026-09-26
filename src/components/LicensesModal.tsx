@@ -65,7 +65,7 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
                 {EZAN_ATTRIBUTION.licenseUrl}
               </a>
             </div>
-            <div>
+            <div className="[overflow-wrap:anywhere]">
               <span className="text-mist">Değişiklik: </span>
               <span className="text-ink">{EZAN_ATTRIBUTION.modificationStatement}</span>
             </div>

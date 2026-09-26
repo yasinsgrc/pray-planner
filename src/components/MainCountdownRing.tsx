@@ -100,7 +100,7 @@ export const MainCountdownRing: React.FC<MainCountdownRingProps> = ({
       <h1 className="sr-only">Ana Ekran</h1>
       {/* Gün Kavisi Kadranı: ekranın büyük bölümünü kaplar, optik olarak ortalı */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full">
-        <div className="relative flex flex-col items-center justify-center animate-blur-up ring-metrics">
+        <div className="relative shrink-0 flex flex-col items-center justify-center animate-blur-up ring-metrics">
           {/* Görünmez ölçüm kopyası (bkz. showBelowRing yorumu). --ring-size
               bu kapsayıcıda tanımlı olduğu için fontlar halka içindekiyle
               aynı çözülür; max-width halka içindeki px-4'lü kutuyla aynı

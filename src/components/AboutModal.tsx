@@ -17,7 +17,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onOpenF
           <section key={section.title}>
             <h3 className="text-sm font-bold text-gold-ink mb-2">{section.title}</h3>
             {section.body ? (
-              <p className="text-xs leading-relaxed">{section.body}</p>
+              <p className="text-xs leading-relaxed [overflow-wrap:anywhere]">{section.body}</p>
             ) : (
               <p className="text-xs text-danger-ink font-semibold">
                 [Bu bölüm henüz doldurulmadı — src/data/about.ts içindeki ABOUT_USER_SECTIONS]
@@ -30,7 +30,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onOpenF
           {ABOUT_VERIFIED_FACTS.map((fact) => (
             <section key={fact.title}>
               <h3 className="text-xs font-bold text-ink mb-1">{fact.title}</h3>
-              <p className="text-[0.6875rem] text-mist leading-relaxed">{fact.body}</p>
+              <p className="text-[0.6875rem] text-mist leading-relaxed [overflow-wrap:anywhere]">{fact.body}</p>
             </section>
           ))}
         </div>

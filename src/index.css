@@ -190,8 +190,9 @@
        .app-shell-padding adds that separately. Measured against the real
        rendered Navbar (py-1.5 wrapper + min-h-[48px] tab buttons): ~67.5px;
        68px keeps a hairline margin against subpixel/font-metric variance
-       without reopening the gap this token exists to prevent. */
-    --nav-h: 68px;
+       without reopening the gap this token exists to prevent. rem (4.25rem
+       = 68px at 1x) so it grows with --ui-scale like the Navbar content. */
+    --nav-h: 4.25rem;
     /* Single source of truth for the app's mobile-shell max-width, so the
        fixed Navbar and every screen's content container always agree —
        previously Navbar used max-w-[430px] while screens used max-w-md
