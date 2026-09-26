@@ -44,6 +44,12 @@ configureWebPush(VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT);
 let pushStore: PushStore;
 if (process.env.DATABASE_URL) {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  // Boştaki bir bağlantı koparsa (ör. DB yeniden başlarsa) Pool 'error'
+  // yayar; dinleyici yoksa bu tüm süreci çökertir. Pool kopan istemciyi
+  // kendisi atar, sonraki sorgu yeni bağlantı açar — loglamak yeterli.
+  pool.on('error', (err) => {
+    console.error('[server] Postgres havuzu hatası:', err);
+  });
   pushStore = await createPostgresPushStore(pool);
   console.log('[server] Bildirim zamanlama deposu: Postgres (DATABASE_URL).');
 } else {
