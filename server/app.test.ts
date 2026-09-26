@@ -52,7 +52,7 @@ async function withServer(
 }
 
 const validScheduleBody = {
-  endpoint: 'https://push.example.com/a',
+  endpoint: 'https://fcm.googleapis.com/fcm/send/a',
   keys: { p256dh: 'p', auth: 'a' },
   schedule: [{ fireAt: '2026-08-10T02:30:00.000Z', prayerKey: 'imsak' }],
 };
@@ -94,6 +94,20 @@ test('GET /api/vapid-public-key returns the configured key', async () => {
     const body = await res.json();
     assert.equal(res.status, 200);
     assert.equal(body.publicKey, 'test-public-key');
+  });
+});
+
+test('POST /api/push/subscribe and /schedule reject an endpoint outside the known push services (SSRF)', async () => {
+  await withServer(async (baseUrl, pushStore) => {
+    for (const path of ['/api/push/subscribe', '/api/push/schedule']) {
+      const res = await fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...validScheduleBody, endpoint: 'http://169.254.169.254/latest/meta-data' }),
+      });
+      assert.equal(res.status, 400);
+    }
+    assert.deepEqual(await pushStore.listSubscriptions(), []);
   });
 });
 
@@ -223,7 +237,7 @@ test('DELETE /api/push/unsubscribe does not throw for an endpoint that was never
     const res = await fetch(`${baseUrl}/api/push/unsubscribe`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: 'https://push.example.com/never-existed' }),
+      body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/never-existed' }),
     });
     assert.equal(res.status, 200);
   });
@@ -253,7 +267,7 @@ test('rate limiting: POST /api/push/subscribe is limited on the real app', async
       const res = await fetch(`${baseUrl}/api/push/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...validScheduleBody, endpoint: `https://push.example.com/${i}` }),
+        body: JSON.stringify({ ...validScheduleBody, endpoint: `https://fcm.googleapis.com/fcm/send/${i}` }),
       });
       lastStatus = res.status;
     }

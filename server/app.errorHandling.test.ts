@@ -73,7 +73,7 @@ async function recordingUnhandledRejections(body: () => Promise<void>): Promise<
 }
 
 const validScheduleBody = {
-  endpoint: 'https://push.example.com/a',
+  endpoint: 'https://fcm.googleapis.com/fcm/send/a',
   keys: { p256dh: 'p', auth: 'a' },
   schedule: [{ fireAt: '2026-08-10T02:30:00.000Z', prayerKey: 'imsak' }],
 };
@@ -117,7 +117,7 @@ test('DELETE /api/push/unsubscribe answers 503 when the store fails, instead of 
   const escaped = await recordingUnhandledRejections(async () => {
     await withFailingServer(async (baseUrl) => {
       const res = await send(baseUrl, '/api/push/unsubscribe', 'DELETE', {
-        endpoint: 'https://push.example.com/a',
+        endpoint: 'https://fcm.googleapis.com/fcm/send/a',
       });
       assert.equal(res.status, 503);
       assert.deepEqual(await res.json(), STORE_FAILURE_BODY);

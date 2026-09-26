@@ -6,6 +6,7 @@ import { GeocodingRateLimitedError } from './geocoding';
 import type { DailyVerseService } from './dailyVerse';
 import { createCorsMiddleware } from './corsMiddleware';
 import { createRateLimiter } from './rateLimiter';
+import { isAllowedPushEndpoint } from './pushEndpoint';
 
 // 30 days x 6 prayers x 2 (main + early-warning) = 360, the client's own
 // upper bound (src/utils/pushSchedule.ts) — a margin above that, not an
@@ -73,6 +74,9 @@ function parseScheduleRequest(body: ScheduleRequestBody): ParsedScheduleRequest 
 
   if (typeof endpoint !== 'string' || !endpoint) {
     return { status: 'error', error: 'endpoint gerekli.' };
+  }
+  if (!isAllowedPushEndpoint(endpoint)) {
+    return { status: 'error', error: 'endpoint tanınan bir push servisine ait değil.' };
   }
   if (typeof keys?.p256dh !== 'string' || !keys.p256dh || typeof keys?.auth !== 'string' || !keys.auth) {
     return { status: 'error', error: 'keys.p256dh ve keys.auth gerekli.' };

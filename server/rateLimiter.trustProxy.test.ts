@@ -49,7 +49,7 @@ async function withServer(run: (baseUrl: string) => Promise<void>) {
 }
 
 const validScheduleBody = {
-  endpoint: 'https://push.example.com/a',
+  endpoint: 'https://fcm.googleapis.com/fcm/send/a',
   keys: { p256dh: 'p', auth: 'a' },
   schedule: [{ fireAt: '2026-08-10T02:30:00.000Z', prayerKey: 'imsak' }],
 };
