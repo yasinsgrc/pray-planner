@@ -2,6 +2,7 @@ package com.vakit;
 
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.webkit.WebSettings;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
@@ -17,6 +18,15 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(QiblaHeadingPlugin.class);
         super.onCreate(savedInstanceState);
         applyStatusBarAppearance();
+        capTextZoom();
+    }
+
+    // WebView sistem yazı boyutunu textZoom olarak uyguluyor (%150 ayarında
+    // tüm font-size'lar 1.5x) ve sabit boyutlu kutular taşıyor. Erişilebilirlik
+    // için biraz büyümeye izin verip %111'de kesiyoruz.
+    private void capTextZoom() {
+        WebSettings settings = getBridge().getWebView().getSettings();
+        settings.setTextZoom(Math.min(settings.getTextZoom(), 111));
     }
 
     // edge-to-edge (targetSdk 36) altında window.statusBarColor no-op olduğundan
