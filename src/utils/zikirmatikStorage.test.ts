@@ -6,6 +6,7 @@ import {
   pruneOldZikirLogEntries,
   addZikirCount,
   getDayTotal,
+  getZikirHistory,
   rollOverZikirmatikDay,
   loadZikirmatikState,
   type ZikirmatikState,
@@ -105,4 +106,16 @@ test('loadZikirmatikState keeps dayKey and falls back to dhikr 0 for an out-of-r
   } finally {
     delete (globalThis as { localStorage?: unknown }).localStorage;
   }
+});
+
+test('getZikirHistory lists days newest first with totals, skipping empty days', () => {
+  const log: ZikirLog = {
+    '2026-09-24': { Subhânallah: 33, 'Allâhu Akbar': 10 },
+    '2026-09-26': { Estagfirullâh: 100 },
+    '2026-09-25': { Subhânallah: 0 },
+  };
+  assert.deepEqual(getZikirHistory(log), [
+    { dateKey: '2026-09-26', total: 100, entries: [['Estagfirullâh', 100]] },
+    { dateKey: '2026-09-24', total: 43, entries: [['Subhânallah', 33], ['Allâhu Akbar', 10]] },
+  ]);
 });

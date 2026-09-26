@@ -196,3 +196,23 @@ export function getDayTotal(log: ZikirLog, dateKey: string): number {
   if (!day) return 0;
   return Object.values(day).reduce((sum, n) => sum + n, 0);
 }
+
+export interface ZikirHistoryDay {
+  dateKey: string;
+  total: number;
+  /** [dhikr title, count] pairs with count > 0, highest first. */
+  entries: [string, number][];
+}
+
+/** Logged days newest first (keys are "YYYY-MM-DD", so string order is chronological); days with nothing counted are skipped. */
+export function getZikirHistory(log: ZikirLog): ZikirHistoryDay[] {
+  return Object.keys(log)
+    .sort((a, b) => (a < b ? 1 : -1))
+    .map((dateKey) => {
+      const entries = Object.entries(log[dateKey])
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1]);
+      return { dateKey, total: entries.reduce((sum, [, n]) => sum + n, 0), entries };
+    })
+    .filter((day) => day.total > 0);
+}

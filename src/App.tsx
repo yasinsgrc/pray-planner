@@ -813,6 +813,8 @@ export default function App() {
         state={zikirState}
         onChange={setZikirState}
         onDhikrTap={handleDhikrTap}
+        zikirLog={zikirLog}
+        todayKey={dateKeyInZone(now, schedule.resolvedTimeZone)}
       />
 
       <KnowledgeSheet
