@@ -146,11 +146,15 @@ function createFakePgPool(): PgPoolLike {
   const subsById = new Map<number, { id: number; endpoint: string; p256dh: string; auth: string }>();
   const schedules: Array<{ id: number; subscription_id: number; fire_at: string; prayer_key: string; sent_at: string | null }> = [];
 
-  return {
-    async query(text: string, params: unknown[] = []) {
+  async function query(text: string, params: unknown[] = []) {
       const sql = text.trim().toUpperCase();
 
       if (sql.startsWith('CREATE TABLE') || sql.includes('CREATE TABLE IF NOT EXISTS')) {
+        return { rows: [] };
+      }
+      // No real transaction isolation here — the recording tests below
+      // check that the transaction is issued; this fake only has to accept it.
+      if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
         return { rows: [] };
       }
       if (sql.startsWith('SELECT 1')) {
@@ -177,8 +181,10 @@ function createFakePgPool(): PgPoolLike {
         return { rows: [] };
       }
       if (sql.startsWith('INSERT INTO PUSH_SCHEDULES')) {
-        const [subscriptionId, fireAt, prayerKey] = params as [number, string, string];
-        schedules.push({ id: nextScheduleId++, subscription_id: subscriptionId, fire_at: fireAt, prayer_key: prayerKey, sent_at: null });
+        const [subscriptionId, fireAts, prayerKeys] = params as [number, string[], string[]];
+        fireAts.forEach((fireAt, i) => {
+          schedules.push({ id: nextScheduleId++, subscription_id: subscriptionId, fire_at: fireAt, prayer_key: prayerKeys[i], sent_at: null });
+        });
         return { rows: [] };
       }
       if (sql.startsWith('DELETE FROM PUSH_SUBSCRIPTIONS')) {
@@ -226,9 +232,74 @@ function createFakePgPool(): PgPoolLike {
         return { rows: [...subsByEndpoint.values()] };
       }
       throw new Error(`fake pg pool: unhandled query: ${text}`);
+  }
+
+  return {
+    query,
+    async connect() {
+      return { query, release() {} };
     },
   };
 }
+
+/** A pool that records which client issued each query, and can be told to
+ * fail on the first query matching `failOn`. */
+function createRecordingPgPool(failOn?: string) {
+  const log: string[] = [];
+  let released = 0;
+  const run = async (who: string, text: string) => {
+    const sql = text.trim().split(/\s+/).slice(0, 3).join(' ').toUpperCase();
+    log.push(`${who}:${sql}`);
+    if (failOn && sql.startsWith(failOn)) throw new Error('simulated failure');
+    return { rows: sql.startsWith('INSERT INTO PUSH_SUBSCRIPTIONS') ? [{ id: 7 }] : [] };
+  };
+  const pool: PgPoolLike = {
+    query: (text) => run('pool', text),
+    async connect() {
+      return {
+        query: (text: string) => run('client', text),
+        release: () => {
+          released++;
+        },
+      };
+    },
+  };
+  return { pool, log, released: () => released };
+}
+
+const ONE_ENTRY = [{ fireAt: new Date('2026-08-10T02:30:00.000Z'), prayerKey: 'imsak' }];
+
+test('postgres store: upsert replaces the schedule inside one transaction on one client', async () => {
+  // Without a transaction, two concurrent upserts for the same endpoint
+  // could interleave their DELETE and INSERTs and leave every entry stored
+  // twice — i.e. every notification sent twice.
+  const { pool, log, released } = createRecordingPgPool();
+  const store = await createPostgresPushStore(pool);
+  log.length = 0;
+
+  await store.upsertSubscriptionAndSchedule(SUB_A, ONE_ENTRY);
+
+  assert.deepEqual(log, [
+    'client:BEGIN',
+    'client:INSERT INTO PUSH_SUBSCRIPTIONS',
+    'client:DELETE FROM PUSH_SCHEDULES',
+    'client:INSERT INTO PUSH_SCHEDULES',
+    'client:COMMIT',
+  ]);
+  assert.equal(released(), 1);
+});
+
+test('postgres store: a failed upsert rolls back, releases the client and rethrows', async () => {
+  const { pool, log, released } = createRecordingPgPool('INSERT INTO PUSH_SCHEDULES');
+  const store = await createPostgresPushStore(pool);
+  log.length = 0;
+
+  await assert.rejects(store.upsertSubscriptionAndSchedule(SUB_A, ONE_ENTRY), /simulated failure/);
+
+  assert.equal(log.at(-1), 'client:ROLLBACK');
+  assert.ok(!log.includes('client:COMMIT'));
+  assert.equal(released(), 1);
+});
 
 definePushStoreContractTests('postgres (fake pool)', async () => createPostgresPushStore(createFakePgPool()));
 
@@ -238,6 +309,9 @@ test('postgres store: creates its tables on construction', async () => {
     async query(text) {
       queries.push(text.trim());
       return { rows: [] };
+    },
+    async connect() {
+      throw new Error('not used by this test');
     },
   };
 

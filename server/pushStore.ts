@@ -52,8 +52,16 @@ export interface PushStore {
   checkHealth(): Promise<boolean>;
 }
 
+export interface PgClientLike {
+  query(text: string, params?: unknown[]): Promise<{ rows: Array<Record<string, unknown>> }>;
+  release(): void;
+}
+
 export interface PgPoolLike {
   query(text: string, params?: unknown[]): Promise<{ rows: Array<Record<string, unknown>> }>;
+  /** A dedicated client — a transaction must run on one connection, which
+   * pool.query() (a possibly different connection per call) can't give. */
+  connect(): Promise<PgClientLike>;
 }
 
 const CREATE_TABLES_SQL = `
@@ -81,24 +89,43 @@ export async function createPostgresPushStore(pool: PgPoolLike): Promise<PushSto
     subscription: { endpoint: string; p256dh: string; auth: string },
     schedule: ScheduleEntry[]
   ): Promise<void> {
-    const { rows } = await pool.query(
-      `INSERT INTO push_subscriptions (endpoint, p256dh, auth)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (endpoint) DO UPDATE SET p256dh = $2, auth = $3
-       RETURNING id`,
-      [subscription.endpoint, subscription.p256dh, subscription.auth]
-    );
-    const subscriptionId = rows[0].id;
-
-    // Replace, not merge — a stale schedule from a since-changed location
-    // or calculation method must never linger (design-refresh-v3 Faz 15).
-    await pool.query('DELETE FROM push_schedules WHERE subscription_id = $1', [subscriptionId]);
-
-    for (const entry of schedule) {
-      await pool.query(
-        'INSERT INTO push_schedules (subscription_id, fire_at, prayer_key) VALUES ($1, $2, $3)',
-        [subscriptionId, entry.fireAt.toISOString(), entry.prayerKey]
+    // One transaction on one client: a failure midway can't leave a
+    // half-written schedule, and the subscription row lock taken by the
+    // upsert below makes a second concurrent upsert for the same endpoint
+    // wait for this one to commit — without it, two overlapping requests
+    // interleaved their DELETE/INSERTs and stored every entry twice
+    // (= every notification sent twice).
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query(
+        `INSERT INTO push_subscriptions (endpoint, p256dh, auth)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (endpoint) DO UPDATE SET p256dh = $2, auth = $3
+         RETURNING id`,
+        [subscription.endpoint, subscription.p256dh, subscription.auth]
       );
+      const subscriptionId = rows[0].id;
+
+      // Replace, not merge — a stale schedule from a since-changed location
+      // or calculation method must never linger (design-refresh-v3 Faz 15).
+      await client.query('DELETE FROM push_schedules WHERE subscription_id = $1', [subscriptionId]);
+
+      // A single statement for the whole schedule (up to 400 rows) instead
+      // of one round trip per row.
+      if (schedule.length > 0) {
+        await client.query(
+          `INSERT INTO push_schedules (subscription_id, fire_at, prayer_key)
+           SELECT $1, fire_at, prayer_key FROM unnest($2::timestamptz[], $3::text[]) AS t(fire_at, prayer_key)`,
+          [subscriptionId, schedule.map((e) => e.fireAt.toISOString()), schedule.map((e) => e.prayerKey)]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
     }
   }
 
