@@ -102,3 +102,21 @@ test('the UmmahAPI request carries an abort signal, so a hung upstream cannot ha
   await service.getVerseOfTheDay();
   assert.ok(capturedSignal instanceof AbortSignal);
 });
+
+test('the verse day rolls over at Turkish midnight, not UTC midnight', async () => {
+  // 2026-08-01T21:30Z is already 00:30 on 2 August in Türkiye (UTC+3) but
+  // still 1 August in UTC — the audience's new day must bring a new verse.
+  let callCount = 0;
+  let current = new Date('2026-08-01T20:30:00Z'); // 23:30 in Türkiye
+  const fakeFetch = (async () => {
+    callCount++;
+    return fakeResponse(makeApiBody(1, 1, 'Metin'));
+  }) as typeof fetch;
+  const service = createDailyVerseService({ fetchImpl: fakeFetch, now: () => current });
+
+  await service.getVerseOfTheDay();
+  current = new Date('2026-08-01T21:30:00Z'); // 00:30 in Türkiye
+  await service.getVerseOfTheDay();
+
+  assert.equal(callCount, 2);
+});

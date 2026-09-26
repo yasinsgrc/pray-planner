@@ -48,8 +48,16 @@ export function createDailyVerseService(deps: DailyVerseServiceDeps = {}): Daily
   let cachedDateKey: string | null = null;
   let cachedVerse: DailyVerse | null = null;
 
+  // The audience's day, not UTC's — a UTC key changed the verse at 03:00
+  // in Türkiye. en-CA formats as YYYY-MM-DD.
+  const dateKeyFormat = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
   function dateKey(date: Date): string {
-    return date.toISOString().slice(0, 10);
+    return dateKeyFormat.format(date);
   }
 
   async function getVerseOfTheDay(): Promise<DailyVerse> {
