@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { guessTimeZone, resolveTimeZone, isFridayInZone } from './timezone';
+import { guessTimeZone, resolveTimeZone, isFridayInZone, gpsTimeZone } from './timezone';
+
+test('gpsTimeZone uses the device zone, not a guess or a nearby city\'s zone', () => {
+  // Amsterdam: the nearest bundled location is London (Europe/London), which
+  // GPS locations used to inherit. A GPS fix means the device is physically
+  // there, so its own zone is the right one.
+  assert.equal(gpsTimeZone(52.37, 4.9), Intl.DateTimeFormat().resolvedOptions().timeZone);
+});
 
 test('guessTimeZone identifies Istanbul coordinates as Europe/Istanbul', () => {
   assert.equal(guessTimeZone(41.0264, 29.0152), 'Europe/Istanbul');

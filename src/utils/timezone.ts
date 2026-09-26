@@ -50,6 +50,23 @@ export function guessTimeZone(lat: number, lng: number): string {
   }
 }
 
+/**
+ * Zone for a GPS-derived location. A GPS fix means the device is physically
+ * at that coordinate, so the device's own zone is authoritative — far more
+ * accurate than the bounding boxes above, and never the zone of whichever
+ * bundled city happens to be nearest (Amsterdam used to inherit London's).
+ * Falls back to guessTimeZone only if Intl can't report a zone.
+ */
+export function gpsTimeZone(lat: number, lng: number): string {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (zone) return zone;
+  } catch {
+    // fall through
+  }
+  return guessTimeZone(lat, lng);
+}
+
 /** A LocationItem's time zone, resolved via guessTimeZone if it wasn't already set. */
 export function resolveTimeZone(location: { lat: number; lng: number; timeZone?: string }): string {
   return location.timeZone ?? guessTimeZone(location.lat, location.lng);

@@ -63,7 +63,7 @@ import {
   getDayTotal,
 } from './utils/zikirmatikStorage';
 import { loadAppSettings, saveAppSettings } from './utils/appSettingsStorage';
-import { dateKeyInZone, resolveTimeZone } from './utils/timezone';
+import { dateKeyInZone, resolveTimeZone, gpsTimeZone } from './utils/timezone';
 import { applyStatusBarAppearance } from './utils/statusBarAppearance';
 
 // 30 günlük zamanlama penceresi sessizce dolarsa bildirimler de sessizce
@@ -371,6 +371,7 @@ export default function App() {
               id: `gps-${Date.now()}`,
               lat: latitude,
               lng: longitude,
+              timeZone: gpsTimeZone(latitude, longitude),
               isGpsDerived: true,
             });
           }

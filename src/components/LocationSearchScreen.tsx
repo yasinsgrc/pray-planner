@@ -14,7 +14,7 @@ import { POPULAR_LOCATIONS, ALL_LOCATIONS } from '../data/locations';
 import { findNearestLocation } from '../utils/geo';
 import { resolveGpsDistrictLabel } from '../utils/gpsAccuracy';
 import { resolveDistrict } from '../utils/districtLookup';
-import { guessTimeZone } from '../utils/timezone';
+import { guessTimeZone, gpsTimeZone } from '../utils/timezone';
 import { normalizeTurkish } from '../utils/turkishText';
 import { useApiAvailable } from '../hooks/useApiAvailable';
 import { apiUrl } from '../utils/apiBaseUrl';
@@ -181,6 +181,8 @@ export const LocationSearchScreen: React.FC<LocationSearchScreenProps> = ({
           id: `gps-${Date.now()}`,
           lat: latitude,
           lng: longitude,
+          // Not `nearest`'s zone (spread above) — see gpsTimeZone.
+          timeZone: gpsTimeZone(latitude, longitude),
           isGpsDerived: true,
         };
 
