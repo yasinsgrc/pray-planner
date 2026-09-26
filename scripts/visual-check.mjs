@@ -9,6 +9,7 @@ import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 import sharp from 'sharp';
+import { checkScaleMatrix } from './visual-scale-matrix.mjs';
 
 const PORT = 4174;
 const BASE_URL = `http://localhost:${PORT}`;
@@ -2018,26 +2019,26 @@ async function checkRingContentFitsRing(browser) {
     { width: 390, height: 844 },
     { width: 412, height: 915 },
   ];
-  // WebView textZoom'un rem tabanlı clamp() alt sınırlarını büyütmesini
-  // taklit eder (html{font-size} tüm rem'i ölçekler). SINIRLAMA: gerçek
-  // textZoom px tanımlı metni de ölçekler, bu simülasyon onu YAKALAMAZ —
-  // yalnızca rem tabanlı alt sınırları test eder. 1.15 ve 1.5, Android'in
-  // ara font-ölçeği adımları (1.0/1.15/1.3/1.5/1.8/2.0) — showBelowRing'in
-  // (MainCountdownRing.tsx) hangi ölçekte tetiklendiğini her viewport için
-  // gözlemlemek amacıyla eklendi (bkz. o dosyadaki eşik yorumu).
+  // Sistem yazı ölçeği cihazdakiyle aynı yoldan verilir: --os-font-scale
+  // (Android'de FontScalePlugin document-start script'i yazar), index.css
+  // --ui-scale = clamp(1, os, 1.3) ile rem'i ölçekler. 1.15 / 1.5 / 2,
+  // Android'in font-ölçeği adımları; 1.5 ve 2 clamp'in 1.3'te durduğunu
+  // da kapsar.
   const FONT_SCALES = [1, 1.15, 1.5, 2];
   for (const viewport of viewports) {
     for (const fontScale of FONT_SCALES) {
       const label = `${viewport.width}x${viewport.height}@${fontScale}x`;
       const context = await browser.newContext({ viewport, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
+      await context.addInitScript((s) => {
+        const apply = () => document.documentElement.style.setProperty('--os-font-scale', String(s));
+        if (document.documentElement) apply();
+        else new MutationObserver((_, o) => { if (document.documentElement) { apply(); o.disconnect(); } }).observe(document, { childList: true });
+      }, fontScale);
       const page = await context.newPage();
       page.setDefaultTimeout(10000);
       try {
         await page.clock.install({ time: new Date(SCENARIOS[0].time).getTime() });
         await page.goto(BASE_URL, { waitUntil: 'load', timeout: 20000 });
-        if (fontScale !== 1) {
-          await page.addStyleTag({ content: `html { font-size: ${16 * fontScale}px }` });
-        }
         await page.waitForTimeout(600);
 
         const result = await page.evaluate(() => {
@@ -2879,6 +2880,15 @@ async function main() {
       await checkRingContentFitsRing(browser);
       await checkRingEnlargement(browser);
       await checkDuaCardAlignment(browser);
+      await checkScaleMatrix(browser, {
+        baseUrl: BASE_URL,
+        violations,
+        time: SCENARIOS[0].time,
+        outDir: path.resolve('visual-output'),
+        // Halka iç çapı / kabuk: (viewBox - 2·stroke) / viewBox — src/utils/dialGeometry.ts
+        // DIAL_VIEWBOX=288, DIAL_STROKE=6 (ringFit.ts ile aynı geometri).
+        dialInnerRatio: (288 - 2 * 6) / 288,
+      });
     } finally {
       await browser.close();
     }
