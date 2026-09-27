@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowCounterClockwiseIcon, CaretLeftIcon, CheckIcon, ClockIcon } from './icons';
+import { ArrowCounterClockwiseIcon, CheckIcon, ClockIcon } from './icons';
 import { playSoftChime } from '../utils/audio';
 import {
   PRESET_DHIKRS,
   ZikirLog,
   ZikirmatikState,
   getCounterFor,
-  getZikirHistory,
+  getResetAmount,
 } from '../utils/zikirmatikStorage';
 import { BottomSheet } from './BottomSheet';
+import { ZikirHistoryView } from './ZikirHistoryView';
 
 interface ZikirmatikModalProps {
   isOpen: boolean;
@@ -18,32 +19,12 @@ interface ZikirmatikModalProps {
   onChange: (state: ZikirmatikState) => void;
   /** Called once per tap (not just on lap completion) so the caller can add it to the daily total (design-refresh-v3 Faz 7 F3). */
   onDhikrTap: (dhikrTitle: string) => void;
+  /** Called on a confirmed reset with the taps being erased, so the caller drops them from today's log. */
+  onDhikrReset: (dhikrTitle: string, amount: number) => void;
   /** Daily totals (last 30 days) shown in the history view. */
   zikirLog: ZikirLog;
   /** "YYYY-MM-DD" of today in the selected location's zone, to label today/yesterday. */
   todayKey: string;
-}
-
-// dateKey'ler "YYYY-MM-DD" takvim günü; UTC gece yarısına kurup UTC'de
-// biçimlendirmek cihaz dilimi ne olursa olsun günü kaydırmaz.
-const historyDateFormat = new Intl.DateTimeFormat('tr-TR', {
-  day: 'numeric',
-  month: 'long',
-  weekday: 'long',
-  timeZone: 'UTC',
-});
-
-function keyToUtcDate(dateKey: string): Date {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d));
-}
-
-function formatHistoryDay(dateKey: string, todayKey: string): string {
-  if (dateKey === todayKey) return 'Bugün';
-  const yesterday = keyToUtcDate(todayKey);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-  if (keyToUtcDate(dateKey).getTime() === yesterday.getTime()) return 'Dün';
-  return historyDateFormat.format(keyToUtcDate(dateKey));
 }
 
 const RING_SIZE = 176;
@@ -57,6 +38,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   state,
   onChange,
   onDhikrTap,
+  onDhikrReset,
   zikirLog,
   todayKey,
 }) => {
@@ -68,7 +50,6 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   useEffect(() => {
     if (!isOpen) setShowHistory(false);
   }, [isOpen]);
-  const history = showHistory ? getZikirHistory(zikirLog) : [];
   // Tur tamamlama animasyonu zamanlayıcısı: art arda turlarda önceki
   // zamanlayıcı yenisini erken kesmesin, unmount'ta da temizlensin.
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,6 +101,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
       setConfirmingReset(true);
       return;
     }
+    onDhikrReset(currentDhikr.title, getResetAmount(selectedDhikrIndex, { counter, lap }));
     onChange({ ...state, counters: { ...state.counters, [selectedDhikrIndex]: { counter: 0, lap: 0 } } });
     setConfirmingReset(false);
   };
@@ -130,37 +112,7 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
           useModalShell üst üste binen modalları desteklemiyor (Escape ikisini
           birden kapatır, iç sheet kapanınca #root inert'i erken kalkar). */}
       {showHistory ? (
-        <div className="space-y-3 pb-2">
-          <button
-            onClick={() => setShowHistory(false)}
-            className="relative flex items-center gap-1 text-xs text-mist hover:text-ink transition-colors cursor-pointer before:content-[''] before:absolute before:-inset-3"
-          >
-            <CaretLeftIcon className="w-3.5 h-3.5" /> Zikirmatiğe dön
-          </button>
-          {history.length === 0 ? (
-            <p className="text-center text-sm text-mist py-8">Henüz kayıtlı zikir yok.</p>
-          ) : (
-            <ul className="space-y-2">
-              {history.map((day) => (
-                <li key={day.dateKey} className="rounded-xl bg-paper border border-hairline px-3 py-2.5">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-sm font-semibold text-ink">{formatHistoryDay(day.dateKey, todayKey)}</span>
-                    <span className="font-numbers text-sm font-bold text-gold-ink">{day.total}</span>
-                  </div>
-                  <ul className="mt-1 space-y-0.5">
-                    {day.entries.map(([title, count]) => (
-                      <li key={title} className="flex justify-between text-xs text-mist">
-                        <span>{title}</span>
-                        <span className="font-numbers">{count}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="text-center text-[0.6875rem] text-mist">Son 30 gün saklanır.</p>
-        </div>
+        <ZikirHistoryView zikirLog={zikirLog} todayKey={todayKey} onBack={() => setShowHistory(false)} />
       ) : (
       <div className="text-center space-y-4 pb-2">
         {/* Zikir Seçimi: yatay kaydırma yerine flex-wrap — 5 öğe 390px'te

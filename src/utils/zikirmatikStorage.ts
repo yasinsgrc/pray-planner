@@ -216,3 +216,51 @@ export function getZikirHistory(log: ZikirLog): ZikirHistoryDay[] {
     })
     .filter((day) => day.total > 0);
 }
+
+/**
+ * How many taps a reset erases for `dhikrIndex`: every completed lap plus
+ * the in-progress count. Counters live for one calendar day (see
+ * rollOverZikirmatikDay), so this is exactly what today's log holds for it.
+ */
+export function getResetAmount(dhikrIndex: number, counter: ZikirmatikCounter): number {
+  const target = PRESET_DHIKRS[dhikrIndex]?.target ?? 0;
+  return counter.lap * target + counter.counter;
+}
+
+/**
+ * Removes a reset dhikr's taps from `dateKey` (pure). Never goes below 0 —
+ * a counter carried over from before the log existed may exceed what was
+ * logged. A dhikr that reaches 0 is dropped, and so is a day left empty,
+ * so the history never lists a reset dhikr.
+ */
+export function subtractZikirCount(log: ZikirLog, dateKey: string, dhikrTitle: string, amount: number): ZikirLog {
+  const day = log[dateKey];
+  if (!day || !(dhikrTitle in day) || amount <= 0) return log;
+  const remaining = day[dhikrTitle] - amount;
+  const nextDay = { ...day };
+  if (remaining > 0) nextDay[dhikrTitle] = remaining;
+  else delete nextDay[dhikrTitle];
+  const next = { ...log };
+  if (Object.keys(nextDay).length > 0) next[dateKey] = nextDay;
+  else delete next[dateKey];
+  return next;
+}
+
+export interface ZikirTrendDay {
+  dateKey: string;
+  total: number;
+}
+
+/** Last `days` calendar days ending at `todayKey`, oldest first; days without zikir are 0 (UTC arithmetic, no device-zone drift). */
+export function getZikirTrend(log: ZikirLog, todayKey: string, days: number): ZikirTrendDay[] {
+  const [y, m, d] = todayKey.split('-').map(Number);
+  const result: ZikirTrendDay[] = [];
+  for (let offset = days - 1; offset >= 0; offset--) {
+    const date = new Date(Date.UTC(y, m - 1, d - offset));
+    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(
+      date.getUTCDate()
+    ).padStart(2, '0')}`;
+    result.push({ dateKey: key, total: getDayTotal(log, key) });
+  }
+  return result;
+}

@@ -61,6 +61,7 @@ import {
   addZikirCount,
   pruneOldZikirLogEntries,
   rollOverZikirmatikDay,
+  subtractZikirCount,
   getDayTotal,
 } from './utils/zikirmatikStorage';
 import { loadAppSettings, saveAppSettings } from './utils/appSettingsStorage';
@@ -143,6 +144,15 @@ export default function App() {
     setZikirLog((prev) => {
       const key = dateKeyInZone(new Date(), schedule.resolvedTimeZone);
       return addZikirCount(pruneOldZikirLogEntries(prev, key), key, dhikrTitle, 1);
+    });
+  };
+
+  // Sıfırlanan zikir bugünkü kayıttan da düşer: sayaçlar günlük olduğundan
+  // sıfırlanan miktar tam olarak bugün o zikir için loglanan dokunuşlardır.
+  const handleDhikrReset = (dhikrTitle: string, amount: number) => {
+    setZikirLog((prev) => {
+      const key = dateKeyInZone(new Date(), schedule.resolvedTimeZone);
+      return subtractZikirCount(prev, key, dhikrTitle, amount);
     });
   };
 
@@ -813,6 +823,7 @@ export default function App() {
         state={zikirState}
         onChange={setZikirState}
         onDhikrTap={handleDhikrTap}
+        onDhikrReset={handleDhikrReset}
         zikirLog={zikirLog}
         todayKey={dateKeyInZone(now, schedule.resolvedTimeZone)}
       />
