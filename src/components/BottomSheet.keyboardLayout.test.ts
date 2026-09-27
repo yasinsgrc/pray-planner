@@ -34,8 +34,17 @@ test('regression: sheet is not translated by a JS keyboard offset — native adj
   assert.match(source, /animate=\{\{\s*y:\s*0\s*\}\}/);
 });
 
-test('bottom safe-area padding is a plain safe-area calc, no --kb-height back-off', () => {
-  assert.match(source, /paddingBottom: 'calc\(env\(safe-area-inset-bottom\) \+ 24px\)'/);
+test('bottom safe-area inset sits on the sheet frame, outside the scroll area, so the gesture bar never overlaps scrollable content', () => {
+  // Sheet frame reserves the inset (not scrollable) …
+  assert.match(source, /maxHeight: '80dvh',\s*paddingBottom: 'env\(safe-area-inset-bottom\)'/);
+  // … and the scroll area only keeps its own 24px breathing room, no --kb-height back-off.
+  assert.match(source, /paddingBottom: '24px'/);
+  assert.equal((source.match(/safe-area-inset-bottom/g) ?? []).length, 1);
+});
+
+test('scrollResetKey change scrolls the sheet content back to the top', () => {
+  assert.match(source, /scrollResetKey\?: string \| number;/);
+  assert.match(source, /scrollRef\.current\.scrollTop = 0;[\s\S]*\}, \[scrollResetKey\]\);/);
 });
 
 test('sheet root stays a single flex column with one flex:1 min-h-0 overflow-y-auto scroll container', () => {

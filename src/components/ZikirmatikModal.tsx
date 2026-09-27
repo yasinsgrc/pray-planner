@@ -107,7 +107,9 @@ export const ZikirmatikModal: React.FC<ZikirmatikModalProps> = ({
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title={showHistory ? 'Zikir Geçmişi' : 'Sakin Zikirmatik'}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title={showHistory ? 'Zikir Geçmişi' : 'Sakin Zikirmatik'}
+      scrollResetKey={showHistory ? 'history' : 'counter'}
+    >
       {/* Geçmiş, ikinci bir sheet yerine aynı sheet içinde açılır:
           useModalShell üst üste binen modalları desteklemiyor (Escape ikisini
           birden kapatır, iç sheet kapanınca #root inert'i erken kalkar). */}

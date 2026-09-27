@@ -1,4 +1,4 @@
-import React, { useId, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, PanInfo, useDragControls } from 'motion/react';
 import { XIcon } from './icons';
@@ -9,6 +9,8 @@ interface BottomSheetProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  /** When this changes (e.g. switching to another view inside the same sheet), the content scrolls back to the top. */
+  scrollResetKey?: string | number;
 }
 
 /**
@@ -17,15 +19,24 @@ interface BottomSheetProps {
  * via a portal to document.body so `inert` on #root doesn't also disable
  * the sheet itself, since the sheet is then a sibling, not a descendant.
  */
-export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, children }) => {
+export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, children, scrollResetKey }) => {
   const titleId = useId();
   const sheetRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
 
   // Keyboard height is handled by native adjustResize alone; dvh already
   // reflects the shrunk viewport, so no JS-side offset is needed here.
 
   useModalShell(isOpen, onClose, sheetRef);
+
+  // Aynı sheet içinde başka görünüme geçilince (ör. Zikirmatik → Geçmiş)
+  // önceki kaydırma konumu taşınmasın; yeni görünüm baştan açılsın.
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [scrollResetKey]);
 
   const handleDragEnd = (_e: PointerEvent, info: PanInfo) => {
     if (info.offset.y > 80 || info.velocity.y > 500) {
@@ -63,7 +74,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 320 }}
             className="fixed bottom-0 left-0 right-0 z-50 max-w-[var(--shell-w)] mx-auto bg-card rounded-t-[28px] shadow-2xl flex flex-col"
-            style={{ maxHeight: '80dvh' }}
+            // Alt güvenli alan (hareket çubuğu) çerçevede ayrılır, kaydırma
+            // alanının içinde değil: böylece çubuk hiçbir zaman kaydırılabilir
+            // içeriğin üstüne binmez (büyük yazıda "Geçmiş zikirler" düğmesi
+            // çubuğun altında yarım kalıyordu).
+            style={{ maxHeight: '80dvh', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             {/* Sürükleme yalnızca bu tutamaçtan başlar; içerik alanı normal kaydırılabilir kalır. */}
             <div
@@ -85,9 +100,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
               </button>
             </div>
             <div
+              ref={scrollRef}
               className="px-5 flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide"
               style={{
-                paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
+                paddingBottom: '24px',
               }}
             >
               {children}
