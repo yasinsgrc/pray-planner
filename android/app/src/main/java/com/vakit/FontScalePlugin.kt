@@ -1,5 +1,6 @@
 package com.vakit
 
+import android.util.Log
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.getcapacitor.JSObject
@@ -27,14 +28,27 @@ class FontScalePlugin : Plugin() {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             val script = "document.documentElement.style.setProperty('--os-font-scale', '${fontScale()}');"
             WebViewCompat.addDocumentStartJavaScript(bridge.webView, script, setOf("*"))
+            Log.i(TAG, "DOCUMENT_START_SCRIPT destekleniyor: document-start yolu, fontScale=${fontScale()}")
+        } else {
+            // Web tarafı (osFontScale.ts) render öncesi getFontScale() çağırır.
+            Log.i(TAG, "DOCUMENT_START_SCRIPT desteklenmiyor: getFontScale() yedeği kullanılacak")
         }
-        // Desteklenmiyorsa web tarafı (osFontScale.ts) render öncesi getFontScale() çağırır.
     }
 
     @PluginMethod
     fun getFontScale(call: PluginCall) {
-        call.resolve(JSObject().put("fontScale", fontScale().toDouble()))
+        Log.i(TAG, "getFontScale() yedeği çağrıldı: fontScale=${fontScale()}")
+        call.resolve(JSObject().put("fontScale", fontScaleForJs(fontScale())))
+    }
+
+    private companion object {
+        const val TAG = "FontScale"
     }
 
     private fun fontScale(): Float = activity.resources.configuration.fontScale
 }
+
+// Float.toDouble() ikili gösterimi genişletir (1.3f → 1.2999999523162842);
+// document-start yolunun yazdığı "${fontScale}" ile aynı ondalık değer için
+// Float'ın kısa ondalık gösterimi üzerinden çevrilir.
+internal fun fontScaleForJs(scale: Float): Double = scale.toString().toDouble()
