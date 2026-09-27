@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { MapPinIcon, MoonIcon, SunIcon, CompassIcon, HandHeartIcon } from './icons';
 import { LocationItem, HijriDateInfo } from '../types';
+import { lineCount } from '../utils/textFit';
 
 interface HeaderProps {
   location: LocationItem;
@@ -47,6 +48,24 @@ export const Header: React.FC<HeaderProps> = ({
       return false;
     }
   }, [timeZone]);
+
+  const nameRef = React.useRef<HTMLDivElement>(null);
+  const [nameWraps, setNameWraps] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const el = nameRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () =>
+      setNameWraps(lineCount(el.getBoundingClientRect().height, parseFloat(getComputedStyle(el).lineHeight)) > 1);
+    measure();
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(el);
+    document.fonts?.addEventListener('loadingdone', measure);
+    return () => {
+      resizeObserver.disconnect();
+      document.fonts?.removeEventListener('loadingdone', measure);
+    };
+  }, [location.isGpsDerived]);
+
   return (
     <header className="w-full shrink-0 transition-colors pt-[env(safe-area-inset-top)]">
       <div className="px-5 py-4 flex items-center justify-between">
@@ -70,31 +89,39 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="text-xs font-semibold tracking-wide text-ink">
                 Mevcut Konum
               </div>
-              {/* Uzun konum metni ikon butonlarını sıkıştırmasın: kısaltılır. */}
-              <div data-truncate="header-location" className="text-label text-mist font-medium truncate">
+              {/* Konum metni kısaltılmaz; en fazla 2 satıra sarar. */}
+              <div data-header-location className="text-label text-mist font-medium line-clamp-2 break-words">
                 {location.lat.toFixed(2)}, {location.lng.toFixed(2)} · en yakın merkez: {location.districtName || location.cityName}
               </div>
             </div>
           ) : (
             <div className="min-w-0">
-              {/* Uzun ilçe/il adı ikon butonlarını sıkıştırmasın: kısaltılır. */}
-              <div data-truncate="header-location" className="text-xs font-semibold tracking-wide text-ink truncate">
+              {/* İlçe • il kısaltılmaz; en fazla 2 satıra sarar. Sardığında
+                  (ölçülen satır sayısı > 1) ülke satırı yer açmak için gizlenir. */}
+              <div
+                ref={nameRef}
+                data-header-location
+                className="text-xs font-semibold tracking-wide text-ink line-clamp-2 break-words"
+              >
                 {location.districtName} <span className="text-gold-ink">•</span>{' '}
                 <span className="opacity-80">{location.cityName}</span>
               </div>
-              <div data-truncate="header-location" className="text-label text-mist font-medium truncate">
-                {location.country}
-              </div>
+              {!nameWraps && (
+                <div className="text-label text-mist font-medium">
+                  {location.country}
+                </div>
+              )}
             </div>
           )}
         </button>
 
-        {/* Sağ: İkonlar */}
+        {/* Sağ: İkonlar — dokunma hedefi sabit 44px (yazı ölçeğiyle
+            büyüyüp konum adının alanını yemesin); ikon rem ile büyür. */}
         <div className="flex shrink-0 items-center gap-1">
           {/* Kıble Butonu */}
           <button
             onClick={onOpenExplore}
-            className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
+            className="size-[44px] flex items-center justify-center rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label="Kıble Pusulası"
           >
             <CompassIcon className="w-4 h-4 text-gold-ink" />
@@ -103,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Zikirmatik Butonu */}
           <button
             onClick={onOpenZikirmatikModal}
-            className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
+            className="size-[44px] flex items-center justify-center rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label="Zikirmatik"
           >
             <HandHeartIcon className="w-4 h-4 text-gold-ink" />
@@ -112,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Gece/Gündüz Modu Butonu */}
           <button
             onClick={onToggleDarkMode}
-            className="p-3.5 rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
+            className="size-[44px] flex items-center justify-center rounded-full hover:bg-gold/10 text-ink transition-colors cursor-pointer"
             aria-label={isDarkMode ? 'Gündüz Moduna Geç' : 'Gece Moduna Geç'}
           >
             {isDarkMode ? (
