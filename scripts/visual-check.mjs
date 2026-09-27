@@ -2695,6 +2695,9 @@ async function main() {
     // değil de "yapılandırılmadı" uyarısını kontrol etmiş olmamak için —
     // aksi halde bu ekranın gerçek arayüzü hiç denetlenmezdi.
     VITE_PRIVACY_CONTACT_EMAIL: 'test@example.com',
+    // .env'deki gerçek API adresi build'e sızmasın: /api/* çağrıları göreli
+    // kalır ve yerel preview sunucusuna gider (ek ortam değişkeni gerekmez).
+    VITE_API_BASE_URL: '',
   });
 
   console.log('Starting preview server on port', PORT, '...');

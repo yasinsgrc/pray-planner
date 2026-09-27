@@ -21,7 +21,6 @@ export const MATRIX_THEMES = ['light', 'dark'];
 // scrollWidth > clientWidth beklenen davranış. Başka hiçbir metin kırpılamaz.
 export const INTENTIONAL_TRUNCATE_SELECTORS = [
   '[data-truncate="nearby-place-name"]', // NearbyView: yer adı (OSM adları sınırsız uzun olabilir)
-  '[data-truncate="header-location"]', // Header: konum adı (ilçe • il, uzun olabilir)
 ];
 
 // SpiritualSettings bildirim bölümleri yalnızca API erişilebilirken render
@@ -40,9 +39,9 @@ const MAIN_TAB_SCREENS = [
   { id: 'ayarlar', tab: 'Ayarlar' },
 ];
 
-// Açılabilen her modal/sheet. "Destek Ol" sheet'i burada YOK: yalnızca
-// VITE_SUPPORT_IBAN / VITE_SUPPORT_PAYMENT_URL tanımlı build'lerde
-// erişilebilir, aksi halde buton doğrudan paylaşım açar (SupportSection).
+// Açılabilen her modal/sheet. "Destek Ol" sheet'i yalnızca VITE_SUPPORT_IBAN
+// + NAME / VITE_SUPPORT_PAYMENT_URL tanımlı build'de var (SupportSection);
+// visual-check build'i bunları sahte değerlerle verir.
 const MODAL_SCREENS = [
   { id: 'konum-arama', tab: 'Ana Ekran', steps: [/^Konumu Değiştir$/] },
   { id: 'zikirmatik', tab: 'Ana Ekran', steps: [/^Zikirmatik$/] },
@@ -55,6 +54,7 @@ const MODAL_SCREENS = [
   { id: 'gizlilik', tab: 'Ayarlar', steps: [/Gizlilik politikasının tamamı/] },
   { id: 'bildirim-izni', tab: 'Ayarlar', steps: [/^Bildirimlere İzin Ver$/] },
   { id: 'bildirim-sesi', tab: 'Ayarlar', steps: [/^İmsak/] },
+  { id: 'destek-ol', tab: 'Ayarlar', steps: [/^Destek Ol$/] },
 ].map((s) => ({ ...s, modal: true }));
 
 export const MATRIX_SCREENS = [...MAIN_TAB_SCREENS, ...MODAL_SCREENS];
@@ -88,14 +88,22 @@ async function openScreen(page, screen) {
   }
   // Giriş animasyonları (örn. halkanın .animate-blur-up scale'i) bitmeden
   // getBoundingClientRect dönüşümlü kutuyu verir; sonsuz olanlar hariç bekle.
-  await page.evaluate(() =>
-    Promise.all(
-      document
-        .getAnimations()
-        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
-        .map((a) => a.finished.catch(() => {}))
-    )
-  );
+  // Sekme geçişinde yeni içerik çıkış animasyonundan SONRA bağlanır; tek
+  // seferlik bir anlık görüntü o animasyonu kaçırır — sonlu animasyon
+  // kalmayana kadar tekrarla.
+  await page.evaluate(async () => {
+    const finite = () =>
+      document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity && a.playState !== 'finished');
+    for (let i = 0; i < 20; i++) {
+      const pending = finite();
+      if (pending.length === 0) {
+        await new Promise((r) => setTimeout(r, 100));
+        if (finite().length === 0) return;
+        continue;
+      }
+      await Promise.all(pending.map((a) => a.finished.catch(() => {})));
+    }
+  });
 }
 
 // Tek ekran için kesin ölçümler (a–f); sayfa bağlamında çalışır.
@@ -118,15 +126,19 @@ function measureScreen({ isModal, isHome, truncateSelectors, dialInnerRatio }) {
   const root = isModal ? [...document.querySelectorAll('[role="dialog"]')].pop() : document.body;
   const truncateAllowed = (el) => truncateSelectors.some((sel) => el.closest(sel));
   // Dokunma alanı uzantıları (before:absolute before:-inset-*, içerik '')
-  // metin değil ama scrollWidth'e girer; ölçüm süresince yalnızca bunlar gizlenir.
+  // metin değil ama scrollWidth'e girer; ölçüm süresince yalnızca bunlar
+  // gizlenir. Koşul pseudo başına ayrı: position:absolute VE content boş
+  // string (metin yok). Aynı elemanın öteki pseudo'su metin taşıyorsa
+  // gizlenmez (negatif kontrol: neg-pseudo-text).
+  const HIT_AREA_ATTR = { '::before': 'data-measure-hitarea-before', '::after': 'data-measure-hitarea-after' };
   const hitAreaStyle = document.createElement('style');
-  hitAreaStyle.textContent = '[data-measure-hitarea]::before,[data-measure-hitarea]::after{display:none!important}';
+  hitAreaStyle.textContent =
+    '[data-measure-hitarea-before]::before,[data-measure-hitarea-after]::after{display:none!important}';
   for (const el of root.querySelectorAll('*')) {
-    const isHitArea = (pseudo) => {
+    for (const [pseudo, attr] of Object.entries(HIT_AREA_ATTR)) {
       const ps = getComputedStyle(el, pseudo);
-      return ps.position === 'absolute' && (ps.content === '""' || ps.content === "''");
-    };
-    if (isHitArea('::before') || isHitArea('::after')) el.setAttribute('data-measure-hitarea', '');
+      if (ps.position === 'absolute' && (ps.content === '""' || ps.content === "''")) el.setAttribute(attr, '');
+    }
   }
   document.head.appendChild(hitAreaStyle);
   for (const el of root.querySelectorAll('*')) {
@@ -150,7 +162,9 @@ function measureScreen({ isModal, isHome, truncateSelectors, dialInnerRatio }) {
     }
   }
   hitAreaStyle.remove();
-  for (const el of root.querySelectorAll('[data-measure-hitarea]')) el.removeAttribute('data-measure-hitarea');
+  for (const attr of Object.values(HIT_AREA_ATTR)) {
+    for (const el of root.querySelectorAll(`[${attr}]`)) el.removeAttribute(attr);
+  }
 
   // c) Ana ekran: halka içi metin iç dairede YA DA blok halkanın altında.
   if (isHome) {
@@ -183,7 +197,11 @@ function measureScreen({ isModal, isHome, truncateSelectors, dialInnerRatio }) {
   // d) Navbar etiketleri birbirine değmiyor; e) içerik navbar kutusunda.
   const nav = document.querySelector('nav[role="tablist"]');
   const tabs = [...nav.querySelectorAll('[role="tab"]')];
-  const labels = tabs.map((t) => t.querySelector('[data-nav-label]') ?? t.querySelector('span:last-of-type'));
+  // Sığmadığında yalnızca aktif sekmenin etiketi render edilir; diğerleri
+  // ikon + aria-label.
+  const labels = tabs
+    .map((t) => t.querySelector('[data-nav-label]'))
+    .filter((l) => l && l.checkVisibility({ visibilityProperty: true }) && l.getBoundingClientRect().width > 0);
   const lr = labels.map((l) => l.getBoundingClientRect());
   for (let i = 1; i < lr.length; i++) {
     const a = lr[i - 1];
@@ -200,6 +218,39 @@ function measureScreen({ isModal, isHome, truncateSelectors, dialInnerRatio }) {
     }
     if (t.scrollHeight > t.clientHeight) {
       out.push(`e) navbar sekmesi "${t.textContent}" içeriği kutusunu aşıyor: scrollHeight=${t.scrollHeight} > clientHeight=${t.clientHeight}`);
+    }
+    if (!t.querySelector('[data-nav-label]')?.checkVisibility() && !t.getAttribute('aria-label')) {
+      out.push(`g) etiketi görünmeyen navbar sekmesinin aria-label'ı yok`);
+    }
+  }
+
+  // g) Görünür navbar etiketleri >= 11px · ui-scale (0.6875rem). ui-scale =
+  // html font-size / 16. Karşılaştırma 0.01px çözünürlükte (float gürültüsü
+  // 11·1.3 = 14.300000000000001 gibi değerleri yanlış kırmızıya çevirmesin).
+  const uiScale = parseFloat(getComputedStyle(de).fontSize) / 16;
+  const minLabelPx = Math.round(11 * uiScale * 100);
+  for (const l of labels) {
+    const fs = parseFloat(getComputedStyle(l).fontSize);
+    if (Math.round(fs * 100) < minLabelPx) {
+      out.push(`g) navbar etiketi 11px·ölçek altında: ${describe(l)} font-size=${fs}px < ${(minLabelPx / 100).toFixed(2)}px`);
+    }
+  }
+
+  // h) Header: konum adı kısaltılmıyor (yatayda taşmıyor, line-clamp'e
+  // rağmen tüm satırlar görünür) ve ikon butonları >= 44x44.
+  const header = document.querySelector('header');
+  if (header && !isModal) {
+    for (const el of header.querySelectorAll('[data-header-location]')) {
+      if (el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight) {
+        out.push(`h) konum adı kesiliyor: ${describe(el)} scroll ${el.scrollWidth}x${el.scrollHeight} > client ${el.clientWidth}x${el.clientHeight}`);
+      }
+    }
+    for (const b of header.querySelectorAll('button')) {
+      if (b.getAttribute('aria-label') === 'Konumu Değiştir') continue;
+      const r = b.getBoundingClientRect();
+      if (r.width < 44 || r.height < 44) {
+        out.push(`h) header ikon butonu 44px altında: ${describe(b)} "${b.getAttribute('aria-label')}" ${r.width.toFixed(1)}x${r.height.toFixed(1)}`);
+      }
     }
   }
 
@@ -219,6 +270,70 @@ function measureScreen({ isModal, isHome, truncateSelectors, dialInnerRatio }) {
   return out;
 }
 
+// Negatif kontrol: ölçüm kodunun gerçekten yakaladığını kanıtlayan, bilerek
+// bozuk bir sayfa. Beklenen her ihlal (data-testid ile) bulunmalı; pozitif
+// kontrol (yalnızca boş dokunma alanı uzantısı taşan eleman) ihlal
+// üretmemeli. Tutmazsa kapı KIRMIZI döner — istisnalar gerçek taşmayı
+// örtemez.
+const NEGATIVE_CONTROL_HTML = `<!doctype html><html lang="tr"><head><style>
+  html { font-size: 16px; }
+  body { margin: 0; font: 16px/1.25 sans-serif; }
+  .box { width: 60px; white-space: nowrap; }
+  .clip { overflow: hidden; }
+  .rel { position: relative; }
+  #pseudo-text::after { content: 'GİZLENMEMESİ GEREKEN UZUN METİN'; position: absolute; left: 0; top: 0; white-space: nowrap; }
+  #pseudo-text::before, #hitarea-only::before { content: ''; position: absolute; left: -12px; right: -40px; top: -12px; bottom: -12px; }
+  #loc { width: 60px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 12px; line-height: 16px; }
+  nav [data-nav-label] { font-size: 9px; }
+</style></head><body>
+  <header>
+    <button aria-label="Konumu Değiştir"><div id="loc" data-header-location data-testid="neg-header-location">Çok Uzun Bir İlçe Adı • Çok Uzun Bir Şehir Adı Daha</div></button>
+    <button aria-label="Küçük İkon" data-testid="neg-small-icon" style="width:30px;height:30px;padding:0">x</button>
+  </header>
+  <div class="box clip" data-testid="neg-overflow-text">Bu metin kutusuna kesinlikle sığmayan uzun bir cümle</div>
+  <div id="pseudo-text" class="box clip rel" data-testid="neg-pseudo-text">kısa</div>
+  <div id="hitarea-only" class="box clip rel" data-testid="pos-hitarea-only">kısa</div>
+  <nav role="tablist" style="display:flex">
+    <button role="tab" aria-selected="true"><span data-nav-label data-testid="neg-nav-label">ANA</span></button>
+    <button role="tab" aria-selected="false"><span data-nav-label>İKİ</span></button>
+  </nav>
+</body></html>`;
+
+// [kontrol, data-testid] — ihlal o kontrolün harfiyle başlamalı.
+const NEGATIVE_CONTROL_EXPECTED = [
+  ['b', 'neg-overflow-text'], // düz metin taşması
+  ['b', 'neg-pseudo-text'], // metinli ::after taşması — ::before boş dokunma alanı olsa da gizlenmemeli
+  ['g', 'neg-nav-label'], // navbar etiketi 11px·ölçek altında
+  ['h', 'neg-header-location'], // konum adı 2 satıra sığmıyor
+  ['h', 'neg-small-icon'], // header ikon butonu 44px altında
+];
+
+export async function checkNegativeControl(browser, { violations, dialInnerRatio }) {
+  console.log('\n=== Ölçüm negatif kontrolü (bilerek taşan sayfa → ihlal beklenir) ===');
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.setContent(NEGATIVE_CONTROL_HTML);
+    const found = await page.evaluate(measureScreen, {
+      isModal: false,
+      isHome: false,
+      truncateSelectors: INTENTIONAL_TRUNCATE_SELECTORS,
+      dialInnerRatio,
+    });
+    for (const [check, id] of NEGATIVE_CONTROL_EXPECTED) {
+      if (!found.some((f) => f.startsWith(`${check})`) && f.includes(`data-testid=${id}`))) {
+        violations.push(`[negatif-kontrol] ${id} için ${check}) ihlali bekleniyordu, ölçüm yakalamadı (bulunanlar: ${found.join(' | ') || 'yok'})`);
+      }
+    }
+    for (const f of found.filter((f) => f.includes('data-testid=pos-'))) {
+      violations.push(`[negatif-kontrol] pozitif kontrol ihlal üretmemeliydi: ${f}`);
+    }
+    console.log(`  ${found.length} ihlal üretildi, ${NEGATIVE_CONTROL_EXPECTED.length} beklenen kontrol edildi`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function setTheme(page, theme) {
   await page.getByRole('tab', { name: 'Ayarlar', exact: true }).click();
   await page.waitForTimeout(300);
@@ -228,12 +343,27 @@ async function setTheme(page, theme) {
   if (isDark !== (theme === 'dark')) throw new Error(`tema ${theme} uygulanamadı`);
 }
 
-export async function checkScaleMatrix(browser, { baseUrl, violations, time, outDir, dialInnerRatio }) {
+export async function checkScaleMatrix(
+  browser,
+  {
+    baseUrl,
+    violations,
+    time,
+    outDir,
+    dialInnerRatio,
+    viewports = MATRIX_VIEWPORTS,
+    scales = MATRIX_SCALES,
+    themes = MATRIX_THEMES,
+    screens = MATRIX_SCREENS,
+  }
+) {
+  await checkNegativeControl(browser, { violations, dialInnerRatio });
   console.log('\n=== Büyük yazı / ekran yakınlaştırma matrisi (4 viewport x 4 ölçek x 2 tema x tüm ekranlar) ===');
   let screensChecked = 0;
-  for (const viewport of MATRIX_VIEWPORTS) {
-    for (const scale of MATRIX_SCALES) {
-      for (const theme of MATRIX_THEMES) {
+  let retries = 0;
+  for (const viewport of viewports) {
+    for (const scale of scales) {
+      for (const theme of themes) {
         const combo = `${viewport.width}x${viewport.height}@${scale}-${theme}`;
         const context = await browser.newContext({ viewport, locale: 'tr-TR', timezoneId: 'Europe/Istanbul' });
         await context.route('**/health', (route) =>
@@ -263,10 +393,21 @@ export async function checkScaleMatrix(browser, { baseUrl, violations, time, out
           if (applied !== expected) violations.push(`[scale-matrix/${combo}] html font-size ${applied}, beklenen ${expected}`);
           await setTheme(page, theme);
 
-          for (const screen of MATRIX_SCREENS) {
+          for (const screen of screens) {
             const label = `[scale-matrix/${screen.id}/${combo}]`;
             try {
-              await openScreen(page, screen);
+              try {
+                await openScreen(page, screen);
+              } catch (err) {
+                // page.clock'lu sayfa yük altında ara sıra takılıyor (sekme
+                // içeriği gelmiyor). Yeni sayfada BİR kez yeniden dene;
+                // gerçek bir eksik tetikleyici ikinci denemede de düşer.
+                console.log(`  ${label} yeniden deneniyor: ${err.message.split('\n')[0]}`);
+                retries++;
+                await page.close();
+                page = await freshPage();
+                await openScreen(page, screen);
+              }
               const found = await page.evaluate(measureScreen, {
                 isModal: !!screen.modal,
                 isHome: screen.id === 'ana-ekran',
@@ -301,5 +442,5 @@ export async function checkScaleMatrix(browser, { baseUrl, violations, time, out
       }
     }
   }
-  console.log(`  ${screensChecked} ekran ölçüldü; ekran görüntüleri: ${outDir}`);
+  console.log(`  ${screensChecked} ekran ölçüldü (${retries} yeniden deneme); ekran görüntüleri: ${outDir}`);
 }
